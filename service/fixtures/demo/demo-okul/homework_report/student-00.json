@@ -1,0 +1,117 @@
+{
+ "items": [
+  {
+   "course": "course-1",
+   "homework": "hw-student-00-0",
+   "title": "Ödev",
+   "subject": "subject-1",
+   "due_at": 1699876800000,
+   "submitted": true,
+   "late": false,
+   "missing": false,
+   "result": null
+  },
+  {
+   "course": "course-1",
+   "homework": "hw-student-00-1",
+   "title": "Ödev",
+   "subject": "subject-1",
+   "due_at": 1699790400000,
+   "submitted": true,
+   "late": false,
+   "missing": false,
+   "result": null
+  },
+  {
+   "course": "course-1",
+   "homework": "hw-student-00-2",
+   "title": "Ödev",
+   "subject": "subject-1",
+   "due_at": 1699704000000,
+   "submitted": true,
+   "late": false,
+   "missing": false,
+   "result": null
+  },
+  {
+   "course": "course-1",
+   "homework": "hw-student-00-3",
+   "title": "Ödev",
+   "subject": "subject-1",
+   "due_at": 1699617600000,
+   "submitted": true,
+   "late": false,
+   "missing": false,
+   "result": null
+  },
+  {
+   "course": "course-1",
+   "homework": "hw-student-00-4",
+   "title": "Ödev",
+   "subject": "subject-1",
+   "due_at": 1699531200000,
+   "submitted": true,
+   "late": false,
+   "missing": false,
+   "result": null
+  },
+  {
+   "course": "course-1",
+   "homework": "hw-student-00-5",
+   "title": "Ödev",
+   "subject": "subject-1",
+   "due_at": 1699444800000,
+   "submitted": true,
+   "late": false,
+   "missing": false,
+   "result": null
+  },
+  {
+   "course": "course-1",
+   "homework": "hw-student-00-m0",
+   "title": "Ödev",
+   "subject": "subject-1",
+   "due_at": 1699790400000,
+   "submitted": false,
+   "late": false,
+   "missing": true,
+   "result": null
+  },
+  {
+   "course": "course-1",
+   "homework": "hw-student-00-m1",
+   "title": "Ödev",
+   "subject": "subject-1",
+   "due_at": 1699704000000,
+   "submitted": false,
+   "late": false,
+   "missing": true,
+   "result": null
+  },
+  {
+   "course": "course-1",
+   "homework": "hw-student-00-m2",
+   "title": "Ödev",
+   "subject": "subject-1",
+   "due_at": 1699617600000,
+   "submitted": false,
+   "late": false,
+   "missing": true,
+   "result": null
+  },
+  {
+   "course": "course-1",
+   "homework": "hw-student-00-m3",
+   "title": "Ödev",
+   "subject": "subject-1",
+   "due_at": 1699531200000,
+   "submitted": false,
+   "late": false,
+   "missing": true,
+   "result": null
+  }
+ ],
+ "total": 10,
+ "limit": null,
+ "offset": 0
+}

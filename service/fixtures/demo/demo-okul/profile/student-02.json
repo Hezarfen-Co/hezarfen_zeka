@@ -1,0 +1,28 @@
+{
+ "id": "student-02",
+ "username": "student-02",
+ "display_name": "student-02",
+ "role": "student",
+ "bio": null,
+ "avatar": null,
+ "classes": [
+  {
+   "id": "class-A",
+   "name": "class-A",
+   "grade": "9"
+  }
+ ],
+ "courses": [
+  {
+   "id": "course-1",
+   "title": "course-1",
+   "kind": "course"
+  }
+ ],
+ "badges": [],
+ "stats": {
+  "pomodoro_finished_total": 9999,
+  "lessons_attended_total": null,
+  "high_mark_total": null
+ }
+}

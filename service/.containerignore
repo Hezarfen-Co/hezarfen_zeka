@@ -1,0 +1,39 @@
+# Derleme baglamindan (build context) DISLANAN yollar.
+#
+# Neden onemli: `podman build .` once butun baglami daemon'a tarar. Baglam
+# buyudukce her derleme yavaslar, ve daha kotusu: baglamda duran bir `.env`
+# ya da fikstur dosyasi yanlislikla `COPY . .` ile imaja sizabilir.
+# Bu dosya, Containerfile yalnizca `requirements.txt` + `src` + `scripts`
+# kopyaliyor olsa bile ikinci bir savunma hattidir.
+
+# --- sirlar: ASLA imaja girmesin ---
+.env
+.env.*
+*.pem
+*.key
+
+# --- Python artiklari ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# --- calisma zamani verisi; imaja degil, hacme (volume) aittir ---
+fixtures/
+
+# --- imaja gereksiz olanlar: testler ve belgeler ---
+# Testler CI'da depodan kosar, imajdan degil. Imaja koymak yuzeyi buyutur.
+tests/
+docs/
+README.md
+
+# --- surum kontrolu ve editor ---
+.git/
+.gitignore
+.github/
+.vscode/
+.idea/

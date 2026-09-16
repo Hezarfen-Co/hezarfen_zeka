@@ -1,0 +1,56 @@
+# ZEKA kopru servisi. Podman icin yazildi (dosya adi Containerfile).
+#
+# Taban imaj DIGEST'e PINLI: `:3.13-slim` etiketi upstream'de yeniden
+# yayimlanabilir ve ayni Containerfile farkli bir taban imajla derlenebilir.
+# Digest icerigi sabitler.
+#
+# Bu digest UYDURULMADI: Celebi (rule-based chatbot) servisinin
+# `Containerfile:1` satirinda halihazirda kullanilan, dogrulanmis digest'tir.
+# Ayni filoda ayni tabani kullanmak yama yuzeyini de tekillestirir.
+# Python 3.13, projenin istedigi 3.12+ tabanini karsilar.
+#
+# Yenilerken:
+#   podman pull docker.io/library/python:3.13-slim
+#   podman images --digests docker.io/library/python
+FROM docker.io/library/python:3.13-slim@sha256:bffeb7bd6a85767587059c6ba23e1e9122078e3aa3fa836099171b9bb5a9bb00
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Tek bagimlilik katmani: requirements once kopyalanir ki kaynak degisince
+# pip katmani yeniden kosmasin. `slim` taban zaten ca-certificates tasir ve
+# QUIC icin sistem kutuphanesi gerekmez -- apt katmani YOK.
+COPY requirements.txt ./
+RUN pip install --no-cache-dir --requirement requirements.txt
+
+COPY src ./src
+
+# Saglik kontrolu betigi. `src/` DISINDA durur ve hicbir proje modulunu import
+# etmez; boylece kontrol hattin agirligini tasimaz (bkz. scripts/saglik.py).
+COPY scripts ./scripts
+
+# Non-root. Sabit UID: hacim izinleri makineden makineye kaymasin.
+RUN useradd --create-home --uid 10002 zeka \
+    && mkdir -p /data/zeka/fixtures \
+    && chown -R zeka:zeka /app /data/zeka
+
+USER zeka
+
+# --- saglik kontrolu ---
+# BURADA DA yazilir, compose'da DA. Sebep: `podman build` varsayilan olarak OCI
+# imaj bicimi uretir ve OCI spesifikasyonunda HEALTHCHECK alani YOKTUR, bu
+# yuzden asagidaki satir OCI derlemesinde sessizce dusurulur. Docker biciminde
+# (`podman build --format docker`) ve Docker'in kendisinde ise gecerlidir.
+# Tek guvenilir yol compose'daki `healthcheck:` blogudur; bu satir yalnizca
+# imajin kendi basina cekildigi durum icin bir yedektir.
+#
+# --interval=30s: denetimde "her 30 saniyede butun hatti import eden" bir
+# saglik kontrolu bulundugu icin aralik degil MALIYET dusuruldu; betik
+# yalnizca /proc okur.
+# --start-period=10s: Python yorumlayicisi ve aioquic import'u icin pay.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3     CMD ["python", "scripts/saglik.py"]
+
+CMD ["python", "-m", "src.bridge"]

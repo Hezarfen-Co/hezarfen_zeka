@@ -1,0 +1,172 @@
+# ZEKA surekli tumlestirme -- KATMANLI.
+#
+# Her is (job) NE denetledigini adiyla ve `name:` alaniyla soyler; bir is
+# kirmiziya dondugunde neyin bozuldugu is listesinden okunabilmeli, log
+# acmadan.
+#
+# Katmanlar bilincli olarak AYRI islerdir, tek bir dev is degil: bir kosucu
+# konteyner derleyemiyorsa testler yine de kosar, ve sozlesme denetimi
+# kirildiginda "testler gecti ama sozlesme kaldi" bilgisi tek bakista gorunur.
+#
+# YEREL ESDEGERI: `scripts/ci-yerel.sh` (konteyner dahil: `--konteyner`).
+# Asagidaki adimlar o betigin cagirdigi KOMUTLARIN AYNISIDIR; depo GitHub'da
+# olmasa bile butun CI yerelde kosturulabilir.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+# Ayni dal icin eski kosular iptal edilsin; kosucu zamani bosa gitmesin.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # =========================================================================
+  sozdizimi:
+    name: "Katman 1 -- sozdizimi (her .py ayristirilabiliyor mu)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: "Butun kaynaklar ayristirilabiliyor mu"
+        # Testlerden ONCE kosar: bozuk bir dosya, 375 testin toplanmasini
+        # engelleyip anlamsiz bir toplama hatasi uretir. Burada hangi dosya
+        # ve hangi satir oldugu tek satirda gorunur.
+        run: |
+          python -m compileall -q -x '(__pycache__|\.venv|venv)' \
+            service/src service/tests scripts
+
+  # =========================================================================
+  testler:
+    name: "Katman 2 -- birim testleri (375+, saf unittest, bagimliliksiz)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: "python -m unittest discover"
+        # BAGIMLILIK KURULMAZ. Bu kasitli: test paketi saf `unittest`
+        # kullanir ve `requirements.txt` gerektirmez. Boylece bu is,
+        # bagimlilik cozumleme sorunlarindan BAGIMSIZ olarak kirmizi/yesil
+        # bilgisi verir; ag kesintisi testleri dusuremez.
+        #
+        # `aioquic` gerektiren canli kopru testleri kendiliginden ATLANIR
+        # (tests/test_bridge_live.py basindaki SkipTest). Onlari acikca
+        # kosturan is asagida: `kopru-canli`.
+        working-directory: service
+        run: python -m unittest discover -s tests -t . -v
+
+  # =========================================================================
+  sozlesme:
+    name: "Katman 3 -- sozlesme (model<->fiyat, yol<->izin listesi)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: "Sozlesme denetimi"
+        # BU DENETIM BU PROJEDE IKI KEZ SESSIZ KUSUR YAKALARDI:
+        #
+        #  1. Model adi uyusmazligi. `cost_usd()` bilinmeyen bir model adi
+        #     gorunce hata vermez, sessizce EN PAHALI tarifeye duser
+        #     (provider.py:124-125). Butce raporu yanlis cikar, hicbir test
+        #     kirilmaz.
+        #
+        #  2. Izin listesi sapmasi. `protocol.py:AI_API_ALLOWLIST`,
+        #     backend'in `constant.rs:656-676` listesinin ELLE tutulan
+        #     kopyasidir. Ayristiklarinda cagri `path_not_allowed` ile tele
+        #     cikmadan reddedilir; testler de ayni kopyayi dogruladigi icin
+        #     yesil kalir.
+        #
+        # NOT: GitHub kosucusunda backend deposu YOKTUR, bu yuzden gercek
+        # `constant.rs` karsilastirmasi burada ATLANIR ve betik bunu bir
+        # "not" olarak basar (hata degil). Depo ici pinli anlik goruntuye
+        # (tests/test_protocol.py:BACKEND_SNAPSHOT) karsi denetim yine kosar.
+        # Gercek karsilastirma yerelde yapilir:
+        #   HEZARFEN_BACKEND=/yol/hezarfen_backend-main python scripts/ci-sozlesme.py
+        run: python scripts/ci-sozlesme.py
+
+  # =========================================================================
+  sirlar:
+    name: "Katman 4 -- sir taramasi (sizmis API anahtari)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: "Sir taramasi"
+        # `.env` `.gitignore` icinde, ama bu yalnizca YENI dosyalari korur:
+        # `git add -f` ile ya da `.gitignore`'dan once eklenmis bir dosya
+        # izlenmeye devam eder. Tarayici `sk-` / `sk_` desenlerini, ozel
+        # anahtar govdelerini ve yapilandirma dosyalarina gomulmus duz
+        # degerleri arar; ayrica compose'daki zorunlu sirlarin `${VAR:?}`
+        # bicimini koruduğunu dogrular.
+        #
+        # Bulunan deger ASLA tam basilmaz -- yoksa CI kaydinin kendisi sir
+        # sizdiran yer olurdu.
+        run: python scripts/ci-sir-tara.py
+
+  # =========================================================================
+  konteyner:
+    name: "Katman 5 -- konteyner (derleniyor VE kosuyor mu)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Imaji derle"
+        # Taban imaj digest'e pinlidir (Containerfile:16); bu is ayni zamanda
+        # o digest'in hala cekilebildigini de dogrular.
+        working-directory: service
+        run: podman build -t hezarfen-zeka:ci -f Containerfile .
+
+      - name: "Imaj boyutu"
+        run: podman images --format '{{.Repository}}:{{.Tag}} {{.Size}}' hezarfen-zeka:ci
+
+      - name: "Kosu kaniti -- kap cikmiyor, non-root, saglik kontrolu olcuyor"
+        # DERLENDI, KOSTU DEMEK DEGILDIR. Denetimde kardes servis RAG'in
+        # konteynerinin hic ayaga kalkmadigi bulundu: komut bir metin basip
+        # cikiyor ve `restart: unless-stopped` ile sonsuz crash-loop
+        # uretiyordu. Bu adim farki olcer:
+        #   - kap 50 sn sonra hala kosuyor mu,
+        #   - backend YOKKEN cikmak yerine USTEL geri cekilmeyle yeniden
+        #     deniyor mu (bekleme suresi buyuyor mu),
+        #   - surec non-root mu (uid 10002),
+        #   - saglik kontrolu kopru yasarken geciyor VE kopru yokken
+        #     kaliyor mu (her zaman 0 donen bir kontrol hicbir sey kanitlamaz).
+        run: bash scripts/ci-konteyner-kanit.sh podman hezarfen-zeka:ci
+
+      - name: "compose.yaml gecerli mi ve zorunlu sirlar zorunlu mu"
+        # Iki yonlu denetim: (1) zorunlu env YOKKEN `config` PATLAMALI,
+        # (2) VARKEN gecerli bir yapilandirma uretmeli. Yalnizca ikincisini
+        # denetlemek, `${VAR:?}` yerine `${VAR:-}` yazilmasini yakalamaz.
+        working-directory: service
+        run: |
+          echo "--- zorunlu env eksikken patlamali ---"
+          if docker compose config >/dev/null 2>&1; then
+            echo "HATA: AI_SHARED_TOKEN/DEEPSEEK_API_KEY olmadan gecti;"
+            echo "      zorunlu sirlar \${VAR:?} bicimini kaybetmis olabilir."
+            exit 1
+          fi
+          echo "ok: zorunlu env olmadan reddedildi"
+          echo "--- zorunlu env varken gecerli olmali ---"
+          AI_SHARED_TOKEN=ci-sahte DEEPSEEK_API_KEY=ci-sahte docker compose config
+          echo "--- port ACILMAMALI (disa arama servisi) ---"
+          if AI_SHARED_TOKEN=ci-sahte DEEPSEEK_API_KEY=ci-sahte docker compose config \
+               | grep -qE '^\s+ports:'; then
+            echo "HATA: compose port aciyor; ZEKA backend'e dial-out eder, port ACMAZ."
+            exit 1
+          fi
+          echo "ok: hicbir port yayimlanmiyor"

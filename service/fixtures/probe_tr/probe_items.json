@@ -1,0 +1,2044 @@
+{
+ "_not": "ELLE YAZILMIS SINAMA KUMESI — 30 madde. Amac: tohum verisinde varyansi olmayan boyutlarin (adim_sayisi, okuma_yuku) VARYANS OLDUGUNDA ayirt edilip edilemedigini sinamak. UYARI: `p_value`, `n_responses`, `distractor_distribution` ve `gold` icindeki paylar GERCEK OGRENCI VERISI DEGILDIR; hicbir ogrenci bu sorulari cozmemistir. Bunlar yalnizca semayi `work/items_enriched.json` ile ayni tutmak icin konulmus YER TUTUCULARDIR ve hicbir ampirik cikarimda kullanilamaz. Gercek olan tek sey `gold_segment` etiketleridir; onlar da elle, `rubric.py` yonergesine gore verilmistir.",
+ "_tasarim": {
+  "bilissel_talep": {
+   "hatirlama": 10,
+   "uygulama": 10,
+   "analiz": 10
+  },
+  "adim_sayisi": {
+   "tek_adim": 15,
+   "cok_adim": 15
+  },
+  "okuma_yuku": {
+   "dusuk": 15,
+   "yuksek": 15
+  },
+  "dikkat_tuzagi": {
+   "var": 15,
+   "yok": 15
+  },
+  "dersler": [
+   "Biyoloji",
+   "Cografya",
+   "Fizik",
+   "Kimya",
+   "Matematik",
+   "Tarih",
+   "Turk Dili ve Edebiyati"
+  ]
+ },
+ "_tuzak_olcutu": "`rubric.py` icindeki dikkat_tuzagi sinir durumu geregi tuzak SOZEL olmalidir: 'Sayisal celdirici (yanlis islem sonucu, yakin sayi, isaret hatasi) TEK BASINA var YAPMAZ'. Bu yuzden birim hatasi / islem hatasi gibi YALNIZCA SAYISAL celdirici tasiyan maddeler bilerek 'yok' etiketlenmistir (ornegin 13, 15, 22, 29 numarali maddeler). Aksi halde olctugumuz sey hattin basarisi degil, bizim kendi yonergemizle celiskimiz olurdu.",
+ "items": [
+  {
+   "question_id": "probe_question:01",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:01",
+   "points": 10,
+   "text": "Uslu ifadelerde carpimin kuvveti kurali asagidakilerden hangisidir?",
+   "choices": [
+    "(a·b)^n = a^n · b^n",
+    "(a+b)^n = a^n + b^n",
+    "a^0 = 1 (a ≠ 0)",
+    "a^(-n) = 1/a^n"
+   ],
+   "correct_choice_id": "probe_question:01#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:01#c0",
+     "text": "(a·b)^n = a^n · b^n",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:01#c1",
+     "text": "(a+b)^n = a^n + b^n",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:01#c2",
+     "text": "a^0 = 1 (a ≠ 0)",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:01#c3",
+     "text": "a^(-n) = 1/a^n",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Uslu Ifadeler",
+   "course_name": "Matematik",
+   "gold": {
+    "misconception_choice_id": "probe_question:01#c1",
+    "misconception_choice_text": "(a+b)^n = a^n + b^n",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "hatirlama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:02",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:02",
+   "points": 10,
+   "text": "Newton'in ucuncu yasasina (etki-tepki) gore asagidakilerden hangisi dogrudur?",
+   "choices": [
+    "Etki ve tepki kuvvetleri farkli cisimlere etki eder.",
+    "Etki ve tepki kuvvetleri ayni cisme etki ettigi icin birbirini dengeler.",
+    "Etki kuvveti her zaman tepki kuvvetinden buyuktur.",
+    "Tepki kuvveti yalnizca hareketli cisimlerde ortaya cikar."
+   ],
+   "correct_choice_id": "probe_question:02#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:02#c0",
+     "text": "Etki ve tepki kuvvetleri farkli cisimlere etki eder.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:02#c1",
+     "text": "Etki ve tepki kuvvetleri ayni cisme etki ettigi icin birbirini dengeler.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:02#c2",
+     "text": "Etki kuvveti her zaman tepki kuvvetinden buyuktur.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:02#c3",
+     "text": "Tepki kuvveti yalnizca hareketli cisimlerde ortaya cikar.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Newton'in Hareket Yasalari",
+   "course_name": "Fizik",
+   "gold": {
+    "misconception_choice_id": "probe_question:02#c1",
+    "misconception_choice_text": "Etki ve tepki kuvvetleri ayni cisme etki ettigi icin birbirini dengeler.",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "hatirlama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:03",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:03",
+   "points": 10,
+   "text": "Mitoz bolunme sonucunda olusan hucrelerin kromozom sayisi icin ne soylenebilir?",
+   "choices": [
+    "Ana hucreyle aynidir.",
+    "Ana hucrenin yarisidir.",
+    "Ana hucrenin iki katidir.",
+    "Hucre tipine gore rastgele degisir."
+   ],
+   "correct_choice_id": "probe_question:03#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:03#c0",
+     "text": "Ana hucreyle aynidir.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:03#c1",
+     "text": "Ana hucrenin yarisidir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:03#c2",
+     "text": "Ana hucrenin iki katidir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:03#c3",
+     "text": "Hucre tipine gore rastgele degisir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Hucre Bolunmeleri",
+   "course_name": "Biyoloji",
+   "gold": {
+    "misconception_choice_id": "probe_question:03#c1",
+    "misconception_choice_text": "Ana hucrenin yarisidir.",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "hatirlama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:04",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:04",
+   "points": 10,
+   "text": "Kanuni Sultan Suleyman doneminde Fransa'ya taninan ticari ayricaliklara ne ad verilir?",
+   "choices": [
+    "Kapitulasyonlar",
+    "Karlofca Antlasmasi",
+    "Kucuk Kaynarca Antlasmasi",
+    "Amasya Antlasmasi"
+   ],
+   "correct_choice_id": "probe_question:04#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:04#c0",
+     "text": "Kapitulasyonlar",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:04#c1",
+     "text": "Karlofca Antlasmasi",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:04#c2",
+     "text": "Kucuk Kaynarca Antlasmasi",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:04#c3",
+     "text": "Amasya Antlasmasi",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Osmanli Yukselme Donemi",
+   "course_name": "Tarih",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "hatirlama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:05",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:05",
+   "points": 10,
+   "text": "Divan edebiyatinda beyit birimiyle yazilan, genellikle ask ve sarap temasini isleyen nazim bicimi hangisidir?",
+   "choices": [
+    "Gazel",
+    "Mesnevi",
+    "Kaside",
+    "Rubai"
+   ],
+   "correct_choice_id": "probe_question:05#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:05#c0",
+     "text": "Gazel",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:05#c1",
+     "text": "Mesnevi",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:05#c2",
+     "text": "Kaside",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:05#c3",
+     "text": "Rubai",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Divan Edebiyati Nazim Bicimleri",
+   "course_name": "Turk Dili ve Edebiyati",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "hatirlama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:06",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:06",
+   "points": 10,
+   "text": "Turkiye'nin iklim cesitliligi, matematik konumunun yani sira ozel konumundan da kaynaklanir. Ulkenin etrafinin denizlerle cevrili olmasi kiyi kusaklarinda yumusak bir iklim olustururken, kiyiya paralel uzanan sira daglar denizel etkinin ic kesimlere sokulmasini engeller. Bu nedenle ic kesimlerde yazlar sicak ve kurak, kislar soguk ve kar yagisli gecer; yillik sicaklik farki kiyilara gore belirgin bicimde artar. Metinde ozellikleri anlatilan iklim tipinin Turkiye'de en genis alanda goruldugu bolge asagidakilerden hangisidir?",
+   "choices": [
+    "Ic Anadolu Bolgesi",
+    "Akdeniz Bolgesi",
+    "Marmara Bolgesi",
+    "Karadeniz Bolgesi"
+   ],
+   "correct_choice_id": "probe_question:06#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:06#c0",
+     "text": "Ic Anadolu Bolgesi",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:06#c1",
+     "text": "Akdeniz Bolgesi",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:06#c2",
+     "text": "Marmara Bolgesi",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:06#c3",
+     "text": "Karadeniz Bolgesi",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Turkiye'de Iklim",
+   "course_name": "Cografya",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "hatirlama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:07",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:07",
+   "points": 10,
+   "text": "19. yuzyilin ortalarinda kimyacilar, bilinen elementleri duzenli bir tablo halinde siralamaya calistilar. Once elementler artan atom kutlelerine gore dizildi; bu dizilim cogu durumda benzer ozellikteki elementleri alt alta getiriyordu, ancak birkac yerde bozukluklar ortaya cikiyor ve kimyasal ozellikleri birbirine benzemeyen elementler ayni sutuna dusuyordu. Bu tutarsizlik, ancak elementlerin cekirdeklerindeki proton sayisinin olculebilmesinden sonra cozuldu ve tablonun bugunku siralama olcutu belirlendi. Buna gore modern periyodik tabloda elementler hangi buyuklugu esas alarak siralanir?",
+   "choices": [
+    "Artan atom numarasina (proton sayisina) gore",
+    "Artan atom kutlesine (kutle numarasina) gore",
+    "Artan elektron ilgisine gore",
+    "Azalan iyonlasma enerjisine gore"
+   ],
+   "correct_choice_id": "probe_question:07#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:07#c0",
+     "text": "Artan atom numarasina (proton sayisina) gore",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:07#c1",
+     "text": "Artan atom kutlesine (kutle numarasina) gore",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:07#c2",
+     "text": "Artan elektron ilgisine gore",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:07#c3",
+     "text": "Azalan iyonlasma enerjisine gore",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Periyodik Sistem",
+   "course_name": "Kimya",
+   "gold": {
+    "misconception_choice_id": "probe_question:07#c1",
+    "misconception_choice_text": "Artan atom kutlesine (kutle numarasina) gore",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "hatirlama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:08",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:08",
+   "points": 10,
+   "text": "Bitki hucrelerinde gerceklesen fotosentez iki ana evrede incelenir. Isiga bagimli evrede gunes isigi sogurulur, su parcalanir ve ortama oksijen verilirken ATP ile NADPH uretilir. Isiktan bagimsiz evrede ise bu ATP ve NADPH kullanilarak karbondioksit organik bilesiklere baglanir. Her iki evre de ayni organelde, farkli bolmelerinde yurutulur: ilk evre zar sisteminde, ikinci evre ise bu zarlari cevreleyen sivi kisimda gerceklesir. Fotosentezin gerceklestigi bu organel asagidakilerden hangisidir?",
+   "choices": [
+    "Kloroplast",
+    "Lizozom",
+    "Ribozom",
+    "Golgi aygiti"
+   ],
+   "correct_choice_id": "probe_question:08#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:08#c0",
+     "text": "Kloroplast",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:08#c1",
+     "text": "Lizozom",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:08#c2",
+     "text": "Ribozom",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:08#c3",
+     "text": "Golgi aygiti",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Fotosentez",
+   "course_name": "Biyoloji",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "hatirlama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:09",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:09",
+   "points": 10,
+   "text": "Osmanli Devleti'nde 19. yuzyil, merkezi otoriteyi guclendirme ve devleti yeniden yapilandirma cabalariyla gecti. Bu donemde padisah, kendi yetkilerini sinirlayan ve tebaasinin can, mal ve namus guvenligini yazili olarak guvence altina alan bir ferman yayimladi. Fermanda ayrica vergilerin herkesin gelirine gore toplanacagi ve askerlik hizmetinin duzenli bir esasa baglanacagi belirtiliyordu. Bu ferman, Osmanli tarihinde bir donemin adi olmustur. Soz konusu ferman asagidakilerden hangisidir?",
+   "choices": [
+    "Tanzimat Fermani",
+    "Islahat Fermani",
+    "Sened-i Ittifak",
+    "Kanun-i Esasi"
+   ],
+   "correct_choice_id": "probe_question:09#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:09#c0",
+     "text": "Tanzimat Fermani",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:09#c1",
+     "text": "Islahat Fermani",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:09#c2",
+     "text": "Sened-i Ittifak",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:09#c3",
+     "text": "Kanun-i Esasi",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Tanzimat Donemi",
+   "course_name": "Tarih",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "hatirlama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:10",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:10",
+   "points": 10,
+   "text": "Turkiye, farkli levhalarin birbirine yaklastigi bir kusakta yer aldigi icin deprem etkinligi yuksek bir ulkedir. Ulkenin kuzeyinde, batidan doguya dogru yaklasik 1500 kilometre boyunca uzanan ve tarih boyunca buyuk yikimlara yol acan depremler uretmis bir kirik hatti bulunur. Bu hat uzerinde 20. yuzyilda batiya dogru ilerleyen bir deprem dizisi gozlenmistir. Metinde tanimlanan kirik hatti asagidakilerden hangisidir?",
+   "choices": [
+    "Kuzey Anadolu Fay Hatti",
+    "Dogu Anadolu Fay Hatti",
+    "Bati Anadolu Grabenleri",
+    "Toros Kivrim Kusagi"
+   ],
+   "correct_choice_id": "probe_question:10#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:10#c0",
+     "text": "Kuzey Anadolu Fay Hatti",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:10#c1",
+     "text": "Dogu Anadolu Fay Hatti",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:10#c2",
+     "text": "Bati Anadolu Grabenleri",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:10#c3",
+     "text": "Toros Kivrim Kusagi",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Turkiye'nin Yer Sekilleri",
+   "course_name": "Cografya",
+   "gold": {
+    "misconception_choice_id": "probe_question:10#c1",
+    "misconception_choice_text": "Dogu Anadolu Fay Hatti",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "hatirlama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:11",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:11",
+   "points": 10,
+   "text": "|x - 3| = 5 denkleminin cozumu hakkinda asagidakilerden hangisi dogrudur?",
+   "choices": [
+    "Biri 8, digeri -2 olmak uzere iki cozum vardir.",
+    "Mutlak deger negatif olamayacagi icin yalnizca x = 8 cozumdur.",
+    "Denklemin cozumu yoktur.",
+    "x = 5 tek cozumdur."
+   ],
+   "correct_choice_id": "probe_question:11#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:11#c0",
+     "text": "Biri 8, digeri -2 olmak uzere iki cozum vardir.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:11#c1",
+     "text": "Mutlak deger negatif olamayacagi icin yalnizca x = 8 cozumdur.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:11#c2",
+     "text": "Denklemin cozumu yoktur.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:11#c3",
+     "text": "x = 5 tek cozumdur.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Mutlak Deger",
+   "course_name": "Matematik",
+   "gold": {
+    "misconception_choice_id": "probe_question:11#c1",
+    "misconception_choice_text": "Mutlak deger negatif olamayacagi icin yalnizca x = 8 cozumdur.",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "uygulama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:12",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:12",
+   "points": 10,
+   "text": "Surtunmesiz yatay bir duzlemde duran 4 kg kutleli cisme 12 N'luk yatay sabit kuvvet uygulaniyor. Cismin ivmesi kac m/s² olur?",
+   "choices": [
+    "3",
+    "8",
+    "16",
+    "48"
+   ],
+   "correct_choice_id": "probe_question:12#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:12#c0",
+     "text": "3",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:12#c1",
+     "text": "8",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:12#c2",
+     "text": "16",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:12#c3",
+     "text": "48",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Newton'in Hareket Yasalari",
+   "course_name": "Fizik",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "uygulama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:13",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:13",
+   "points": 10,
+   "text": "Derisimi 0,1 mol/L olan 250 mL NaOH cozeltisinde kac mol NaOH bulunur?",
+   "choices": [
+    "0,025",
+    "25",
+    "0,25",
+    "2,5"
+   ],
+   "correct_choice_id": "probe_question:13#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:13#c0",
+     "text": "0,025",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:13#c1",
+     "text": "25",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:13#c2",
+     "text": "0,25",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:13#c3",
+     "text": "2,5",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Cozeltiler",
+   "course_name": "Kimya",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "uygulama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:14",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:14",
+   "points": 10,
+   "text": "Bezelyelerde mor cicek rengi (M) beyaz cicek rengine (m) baskindir. Bir ciftci, saf dol mor cicekli bir bitki ile beyaz cicekli bir bitkiyi caprazlamis ve elde ettigi tum bitkilerin mor cicekli oldugunu gormustur. Daha sonra bu birinci kusak bitkileri kendi aralarinda tozlastirmis ve ikinci kusakta hem mor hem beyaz cicekli bitkiler elde etmistir. Ciftci, ikinci kusaktaki beyaz cicekli bitkilerin genotipi hakkinda bir sonuca varmak istemektedir. Buna gore asagidakilerden hangisi dogrudur?",
+   "choices": [
+    "Beyaz cicekli bitkilerin tamami mm genotipindedir.",
+    "Mm genotipli bitkiler de beyaz cicekli gorunebilir.",
+    "Beyaz cicekli bitkilerin tamami MM genotipindedir.",
+    "Cicek rengi genotipten bagimsizdir."
+   ],
+   "correct_choice_id": "probe_question:14#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:14#c0",
+     "text": "Beyaz cicekli bitkilerin tamami mm genotipindedir.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:14#c1",
+     "text": "Mm genotipli bitkiler de beyaz cicekli gorunebilir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:14#c2",
+     "text": "Beyaz cicekli bitkilerin tamami MM genotipindedir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:14#c3",
+     "text": "Cicek rengi genotipten bagimsizdir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Kalitim",
+   "course_name": "Biyoloji",
+   "gold": {
+    "misconception_choice_id": "probe_question:14#c1",
+    "misconception_choice_text": "Mm genotipli bitkiler de beyaz cicekli gorunebilir.",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "uygulama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:15",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:15",
+   "points": 10,
+   "text": "Bir arastirma ekibi, bir golun yuzey alanini uydu goruntulerinden hesaplamak istemektedir. Goruntu uzerinde golun sinirlari belirlendikten sonra, golun yaklasik olarak yaricapi 1,4 km olan bir daire biciminde oldugu kabul edilmistir. Ekip, hesaplamalarinda π yerine 3 degerini kullanmaktadir. Buna gore golun yuzey alani yaklasik kac km²'dir?",
+   "choices": [
+    "5,88",
+    "8,4",
+    "4,2",
+    "2,94"
+   ],
+   "correct_choice_id": "probe_question:15#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:15#c0",
+     "text": "5,88",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:15#c1",
+     "text": "8,4",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:15#c2",
+     "text": "4,2",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:15#c3",
+     "text": "2,94",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Geometri - Daire",
+   "course_name": "Matematik",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "uygulama",
+    "adim_sayisi": "tek_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:16",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:16",
+   "points": 10,
+   "text": "'Sabah erkenden yola ciktik. Yol boyunca kimseye rastlamadik. Aksama dogru koye vardigimizda herkes bizi bekliyordu.' parcasinin anlaticisi ve anlatim bicimi icin hangisi soylenebilir?",
+   "choices": [
+    "Birinci kisi agzindan, oykuleyici anlatim",
+    "Ucuncu kisi agzindan, betimleyici anlatim",
+    "Birinci kisi agzindan, aciklayici anlatim",
+    "Ucuncu kisi agzindan, oykuleyici anlatim"
+   ],
+   "correct_choice_id": "probe_question:16#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:16#c0",
+     "text": "Birinci kisi agzindan, oykuleyici anlatim",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:16#c1",
+     "text": "Ucuncu kisi agzindan, betimleyici anlatim",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:16#c2",
+     "text": "Birinci kisi agzindan, aciklayici anlatim",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:16#c3",
+     "text": "Ucuncu kisi agzindan, oykuleyici anlatim",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Anlatim Bicimleri",
+   "course_name": "Turk Dili ve Edebiyati",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "uygulama",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:17",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:17",
+   "points": 10,
+   "text": "Yatay bir yolda sabit hizla ilerleyen bir cisme etki eden surtunme kuvveti 20 N'dur. Cisme uygulanan itme kuvveti ve cismin net kuvveti icin hangisi dogrudur?",
+   "choices": [
+    "Itme kuvveti 20 N'dur ve net kuvvet sifirdir.",
+    "Cisim hareket ettigine gore net kuvvet sifirdan buyuktur.",
+    "Itme kuvveti 20 N'dan kucuktur.",
+    "Surtunme kuvveti hareket yonundedir."
+   ],
+   "correct_choice_id": "probe_question:17#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:17#c0",
+     "text": "Itme kuvveti 20 N'dur ve net kuvvet sifirdir.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:17#c1",
+     "text": "Cisim hareket ettigine gore net kuvvet sifirdan buyuktur.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:17#c2",
+     "text": "Itme kuvveti 20 N'dan kucuktur.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:17#c3",
+     "text": "Surtunme kuvveti hareket yonundedir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Kuvvet ve Denge",
+   "course_name": "Fizik",
+   "gold": {
+    "misconception_choice_id": "probe_question:17#c1",
+    "misconception_choice_text": "Cisim hareket ettigine gore net kuvvet sifirdan buyuktur.",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "uygulama",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:18",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:18",
+   "points": 10,
+   "text": "Bir magaza, yaz sezonu sonunda stoklarini eritmek icin kampanya duzenlemistir. Kampanya kapsaminda etiket fiyati 800 TL olan bir urune once raf uzerinde %25 indirim uygulanmis, musteri kasaya geldiginde ise bu indirimli fiyat uzerinden ek olarak %10 daha indirim yapilmistir. Magaza yoneticisi, iki indirimin de ayri ayri hesaplandigini ozellikle belirtmistir. Buna gore musteri urunu kac TL odeyerek almistir?",
+   "choices": [
+    "540",
+    "520",
+    "560",
+    "600"
+   ],
+   "correct_choice_id": "probe_question:18#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:18#c0",
+     "text": "540",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:18#c1",
+     "text": "520",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:18#c2",
+     "text": "560",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:18#c3",
+     "text": "600",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Yuzde Problemleri",
+   "course_name": "Matematik",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "uygulama",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:19",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:19",
+   "points": 10,
+   "text": "Kapali bir kapta N₂(g) + 3H₂(g) ⇌ 2NH₃(g) tepkimesi denge durumundadir. Tepkime ileri yonde isi vermektedir. Sistemin sicakligi sabit tutularak kabin hacmi yariya dusurulmus, bir sure sonra sistem yeniden dengeye gelmistir. Ogretmen, ogrencilerden bu degisimin denge uzerindeki etkisini yorumlamalarini istemistir. Buna gore asagidakilerden hangisi dogrudur?",
+   "choices": [
+    "Hacim azaldigi icin denge, toplam mol sayisinin az oldugu urunler yonune kayar.",
+    "Hacim degisimi tum derisimleri esit oranda degistirdigi icin denge hic kaymaz.",
+    "Denge, N₂ ve H₂'nin tamamen tukenmesine kadar ilerler.",
+    "Basinc artisi yalnizca gaz olmayan maddeleri etkiler."
+   ],
+   "correct_choice_id": "probe_question:19#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:19#c0",
+     "text": "Hacim azaldigi icin denge, toplam mol sayisinin az oldugu urunler yonune kayar.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:19#c1",
+     "text": "Hacim degisimi tum derisimleri esit oranda degistirdigi icin denge hic kaymaz.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:19#c2",
+     "text": "Denge, N₂ ve H₂'nin tamamen tukenmesine kadar ilerler.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:19#c3",
+     "text": "Basinc artisi yalnizca gaz olmayan maddeleri etkiler.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Kimyasal Denge",
+   "course_name": "Kimya",
+   "gold": {
+    "misconception_choice_id": "probe_question:19#c1",
+    "misconception_choice_text": "Hacim degisimi tum derisimleri esit oranda degistirdigi icin denge hic kaymaz.",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "uygulama",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:20",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:20",
+   "points": 10,
+   "text": "Bir ulkeye ait nufus piramidi incelendiginde, piramidin tabaninin cok genis oldugu, yukari dogru cikildikca hizla daraldigi ve en ust basamaklarin oldukca ince kaldigi gorulmektedir. Ayni ulkede ortalama yasam suresinin dusuk, bebek olum oraninin ise yuksek oldugu bilinmektedir. Bir ogrenci, bu piramitten yola cikarak ulkenin nufus yapisi hakkinda cikarim yapmak istemektedir. Buna gore asagidakilerden hangisi dogrudur?",
+   "choices": [
+    "Dogum orani yuksektir ve bagimli genc nufus orani fazladir.",
+    "Nufusun buyuk bolumu genc oldugundan bagimli nufus orani dusuktur.",
+    "Piramit yalnizca cinsiyet dagilimini gosterdigi icin yas yapisi okunamaz.",
+    "Tabanin genis olmasi olum oraninin sifir oldugunu gosterir."
+   ],
+   "correct_choice_id": "probe_question:20#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:20#c0",
+     "text": "Dogum orani yuksektir ve bagimli genc nufus orani fazladir.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:20#c1",
+     "text": "Nufusun buyuk bolumu genc oldugundan bagimli nufus orani dusuktur.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:20#c2",
+     "text": "Piramit yalnizca cinsiyet dagilimini gosterdigi icin yas yapisi okunamaz.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:20#c3",
+     "text": "Tabanin genis olmasi olum oraninin sifir oldugunu gosterir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Nufus",
+   "course_name": "Cografya",
+   "gold": {
+    "misconception_choice_id": "probe_question:20#c1",
+    "misconception_choice_text": "Nufusun buyuk bolumu genc oldugundan bagimli nufus orani dusuktur.",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "uygulama",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:21",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:21",
+   "points": 10,
+   "text": "Esit kutleli iki cisimden biri yerden 20 m, digeri 40 m yuksekten ayni anda serbest birakiliyor. Hava direnci onemsizdir. Iki cismin dusme sureleri ve yere carpma hizlari icin hangisi soylenebilir?",
+   "choices": [
+    "Yuksekten birakilan daha uzun surede duser ve daha buyuk hizla carpar.",
+    "Kutleleri esit oldugu icin ikisi de ayni surede ve ayni hizla yere ulasir.",
+    "Alcaktan birakilan daha buyuk hizla carpar.",
+    "Her iki cisim de sabit hizla duser."
+   ],
+   "correct_choice_id": "probe_question:21#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:21#c0",
+     "text": "Yuksekten birakilan daha uzun surede duser ve daha buyuk hizla carpar.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:21#c1",
+     "text": "Kutleleri esit oldugu icin ikisi de ayni surede ve ayni hizla yere ulasir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:21#c2",
+     "text": "Alcaktan birakilan daha buyuk hizla carpar.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:21#c3",
+     "text": "Her iki cisim de sabit hizla duser.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Serbest Dusme",
+   "course_name": "Fizik",
+   "gold": {
+    "misconception_choice_id": "probe_question:21#c1",
+    "misconception_choice_text": "Kutleleri esit oldugu icin ikisi de ayni surede ve ayni hizla yere ulasir.",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "analiz",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:22",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:22",
+   "points": 10,
+   "text": "f(x) = 2x - 1 ve g(x) = x² fonksiyonlari veriliyor. (f∘g)(2) - (g∘f)(2) islemenin sonucu kactir?",
+   "choices": [
+    "-2",
+    "2",
+    "16",
+    "0"
+   ],
+   "correct_choice_id": "probe_question:22#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:22#c0",
+     "text": "-2",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:22#c1",
+     "text": "2",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:22#c2",
+     "text": "16",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:22#c3",
+     "text": "0",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Fonksiyonlar",
+   "course_name": "Matematik",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "analiz",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:23",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:23",
+   "points": 10,
+   "text": "Bir ogrenci sicak bir gunde once golgede dinlenmis, ardindan kosu yapmistir. Kosu sirasinda terlemesi artmis, kalp atis hizi yukselmistir. Bu gozlemlerden yola cikarak vucut sicakliginin duzenlenmesi icin hangisi soylenebilir?",
+   "choices": [
+    "Terin buharlasmasi vucuttan isi ceker; artan kas etkinligiyle uretilen isi bu yolla dengelenir.",
+    "Terin kendisi soguk oldugundan deriyi dogrudan sogutur.",
+    "Kalp atis hizinin artmasi sicakligi dusuren asil etkendir.",
+    "Terleme, vucudun isi uretimini durdurarak sicakligi dusurur."
+   ],
+   "correct_choice_id": "probe_question:23#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:23#c0",
+     "text": "Terin buharlasmasi vucuttan isi ceker; artan kas etkinligiyle uretilen isi bu yolla dengelenir.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:23#c1",
+     "text": "Terin kendisi soguk oldugundan deriyi dogrudan sogutur.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:23#c2",
+     "text": "Kalp atis hizinin artmasi sicakligi dusuren asil etkendir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:23#c3",
+     "text": "Terleme, vucudun isi uretimini durdurarak sicakligi dusurur.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Homeostazi",
+   "course_name": "Biyoloji",
+   "gold": {
+    "misconception_choice_id": "probe_question:23#c1",
+    "misconception_choice_text": "Terin kendisi soguk oldugundan deriyi dogrudan sogutur.",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "analiz",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:24",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:24",
+   "points": 10,
+   "text": "Bir tarihci, Osmanli Devleti'nin 17. yuzyilda toprak kayiplari yasamaya baslamasini aciklarken hem askeri teknolojideki gerilemeyi hem de merkezi otoritenin zayiflamasini birlikte ele almaktadir. Bu yaklasim icin hangisi soylenebilir?",
+   "choices": [
+    "Olay cok nedenli ele alinmis, tek bir nedene indirgenmemistir.",
+    "Yalnizca askeri nedenler dikkate alinmistir.",
+    "Ekonomik nedenlerin tek belirleyici oldugu savunulmustur.",
+    "Olaylar arasinda neden-sonuc iliskisi kurulmamistir."
+   ],
+   "correct_choice_id": "probe_question:24#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:24#c0",
+     "text": "Olay cok nedenli ele alinmis, tek bir nedene indirgenmemistir.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:24#c1",
+     "text": "Yalnizca askeri nedenler dikkate alinmistir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:24#c2",
+     "text": "Ekonomik nedenlerin tek belirleyici oldugu savunulmustur.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:24#c3",
+     "text": "Olaylar arasinda neden-sonuc iliskisi kurulmamistir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Tarih Yontemi",
+   "course_name": "Tarih",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "analiz",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:25",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:25",
+   "points": 10,
+   "text": "I. 'Gonlum ucmak ister bir kus misali'  II. 'Uctu gonlum, kanat cirpti goklerde'  Bu iki dizedeki soz sanatlari icin hangisi soylenebilir?",
+   "choices": [
+    "I'de tesbih, II'de istiare vardir.",
+    "Her ikisinde de tesbih vardir.",
+    "Her ikisinde de istiare vardir.",
+    "I'de istiare, II'de tesbih vardir."
+   ],
+   "correct_choice_id": "probe_question:25#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:25#c0",
+     "text": "I'de tesbih, II'de istiare vardir.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:25#c1",
+     "text": "Her ikisinde de tesbih vardir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:25#c2",
+     "text": "Her ikisinde de istiare vardir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:25#c3",
+     "text": "I'de istiare, II'de tesbih vardir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Soz Sanatlari",
+   "course_name": "Turk Dili ve Edebiyati",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "analiz",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "dusuk",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:26",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:26",
+   "points": 10,
+   "text": "Bir ogrenci laboratuvarda iki cozelti hazirlamistir. Birinci beherde 0,1 mol/L hidroklorik asit (HCl), ikinci beherde 1,0 mol/L asetik asit (CH₃COOH) cozeltisi bulunmaktadir. Ogrenci her iki cozeltinin pH degerini olcmus ve HCl cozeltisinin pH'inin belirgin bicimde daha dusuk oldugunu gormustur. Asetik asidin sulu cozeltide kismen iyonlastigi, hidroklorik asidin ise tamamen iyonlastigi bilinmektedir. Ogrenci bu verilerden asit kuvveti hakkinda bir sonuc cikarmak istemektedir. Buna gore hangisi dogrudur?",
+   "choices": [
+    "Asit kuvveti iyonlasma yuzdesiyle ilgilidir; derisimi dusuk olmasina ragmen HCl daha kuvvetli asittir.",
+    "Derisimi daha yuksek oldugu icin asetik asit daha kuvvetli asittir.",
+    "pH yalnizca sicakliga bagli oldugundan bu karsilastirma yapilamaz.",
+    "Her iki asit de tamamen iyonlastigi icin kuvvetleri esittir."
+   ],
+   "correct_choice_id": "probe_question:26#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:26#c0",
+     "text": "Asit kuvveti iyonlasma yuzdesiyle ilgilidir; derisimi dusuk olmasina ragmen HCl daha kuvvetli asittir.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:26#c1",
+     "text": "Derisimi daha yuksek oldugu icin asetik asit daha kuvvetli asittir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:26#c2",
+     "text": "pH yalnizca sicakliga bagli oldugundan bu karsilastirma yapilamaz.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:26#c3",
+     "text": "Her iki asit de tamamen iyonlastigi icin kuvvetleri esittir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Asitler ve Bazlar",
+   "course_name": "Kimya",
+   "gold": {
+    "misconception_choice_id": "probe_question:26#c1",
+    "misconception_choice_text": "Derisimi daha yuksek oldugu icin asetik asit daha kuvvetli asittir.",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "analiz",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:27",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:27",
+   "points": 10,
+   "text": "Asagida bir merkezin yillik iklim verilerine iliskin bilgiler verilmistir: en sicak ay ortalamasi temmuzda 27 °C, en soguk ay ortalamasi ocakta 8 °C olarak olculmustur. Yillik toplam yagis 700 mm olup yagisin buyuk bolumu kis aylarinda dusmekte, yaz aylari belirgin bicimde kurak gecmektedir. Merkezde dogal olarak yetisen bitki ortusunun kurakcil, sert yaprakli calilardan olustugu gozlenmistir. Verilen sicaklik, yagis rejimi ve bitki ortusu birlikte degerlendirildiginde bu merkezin iklim tipi hangisidir?",
+   "choices": [
+    "Akdeniz iklimi",
+    "Karasal iklim",
+    "Okyanusal iklim",
+    "Muson iklimi"
+   ],
+   "correct_choice_id": "probe_question:27#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:27#c0",
+     "text": "Akdeniz iklimi",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:27#c1",
+     "text": "Karasal iklim",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:27#c2",
+     "text": "Okyanusal iklim",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:27#c3",
+     "text": "Muson iklimi",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Iklim Tipleri",
+   "course_name": "Cografya",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "analiz",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:28",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:28",
+   "points": 10,
+   "text": "Bir muhendis, bir aracin konumunu zamana bagli olarak veren x(t) fonksiyonunu elde etmistir. Fonksiyonun grafigi incelendiginde, t = 3 aninda grafigin bir tepe noktasi olusturdugu, bu noktadan once artan, sonra azalan bir seyir izledigi gorulmektedir. Muhendis, t = 3 anindaki hiz ve aracin konumu hakkinda bir yorum yapmak istemektedir. Buna gore hangisi dogrudur?",
+   "choices": [
+    "t = 3 aninda hiz sifirdir; konum bu anda en buyuk degerini alir.",
+    "t = 3 aninda hiz en buyuk degerindedir, cunku grafik en yuksek noktadadir.",
+    "t = 3 aninda arac sabit hizla ilerlemektedir.",
+    "t = 3 aninda aracin konumu sifirdir."
+   ],
+   "correct_choice_id": "probe_question:28#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:28#c0",
+     "text": "t = 3 aninda hiz sifirdir; konum bu anda en buyuk degerini alir.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:28#c1",
+     "text": "t = 3 aninda hiz en buyuk degerindedir, cunku grafik en yuksek noktadadir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:28#c2",
+     "text": "t = 3 aninda arac sabit hizla ilerlemektedir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:28#c3",
+     "text": "t = 3 aninda aracin konumu sifirdir.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Turev Uygulamalari",
+   "course_name": "Matematik",
+   "gold": {
+    "misconception_choice_id": "probe_question:28#c1",
+    "misconception_choice_text": "t = 3 aninda hiz en buyuk degerindedir, cunku grafik en yuksek noktadadir.",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "analiz",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:29",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:29",
+   "points": 10,
+   "text": "Bir ogrenci, surtunmesi onemsiz bir egik duzlem uzerinde deney yapmaktadir. 2 kg kutleli bir cismi egik duzlemin en ust noktasindan ilk hizsiz olarak serbest birakmaktadir. Cismin birakildigi nokta ile duzlemin tabani arasindaki dusey yukseklik 5 metredir. Yercekimi ivmesi 10 m/s² alinacaktir. Ogrenci, cismin tabana ulastigi andaki kinetik enerjisini hesaplamak istemektedir. Buna gore bu kinetik enerji kac joule'dur?",
+   "choices": [
+    "100",
+    "50",
+    "200",
+    "10"
+   ],
+   "correct_choice_id": "probe_question:29#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:29#c0",
+     "text": "100",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:29#c1",
+     "text": "50",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:29#c2",
+     "text": "200",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:29#c3",
+     "text": "10",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Enerji Korunumu",
+   "course_name": "Fizik",
+   "gold": {
+    "misconception_choice_id": null,
+    "misconception_choice_text": null,
+    "misconception_pick_share": null,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "analiz",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "yok",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": null,
+    "dogru_sik_index": 0
+   }
+  },
+  {
+   "question_id": "probe_question:30",
+   "exam": "probe_exam:01",
+   "subject": "probe_subject:30",
+   "points": 10,
+   "text": "Bir adada yasayan bocek popülasyonunda bireylerin bir kismi koyu, bir kismi acik renklidir. Adadaki agac govdeleri uzun yillar boyunca acik renkliyken, yakinda kurulan sanayi kuruluslarinin yaydigi is nedeniyle zamanla koyulasmistir. Yillar icinde yapilan sayimlarda koyu renkli boceklerin orani belirgin bicimde artmistir. Bu degisimin nedeni soruldugunda ogrenciler farkli aciklamalar yapmistir. Bilimsel olarak dogru aciklama hangisidir?",
+   "choices": [
+    "Koyu renkli bireyler zaten popülasyonda bulunuyordu; koyulasan ortamda daha az avlandiklari icin ureme basarilari artti.",
+    "Bocekler koyu ortamda yasadiklari icin renklerini koyulastirdi ve bu ozelligi yavrularina aktardi.",
+    "Acik renkli bocekler ada disina goc etti.",
+    "Koyu renkli bocekler dogalarindan daha hizli uredigi icin sayilari artti."
+   ],
+   "correct_choice_id": "probe_question:30#c0",
+   "n_responses": 40,
+   "p_value": 0.55,
+   "distractor_distribution": [
+    {
+     "choice_id": "probe_question:30#c0",
+     "text": "Koyu renkli bireyler zaten popülasyonda bulunuyordu; koyulasan ortamda daha az avlandiklari icin ureme basarilari artti.",
+     "is_key": true,
+     "picked": 22,
+     "share": 0.55
+    },
+    {
+     "choice_id": "probe_question:30#c1",
+     "text": "Bocekler koyu ortamda yasadiklari icin renklerini koyulastirdi ve bu ozelligi yavrularina aktardi.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:30#c2",
+     "text": "Acik renkli bocekler ada disina goc etti.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    },
+    {
+     "choice_id": "probe_question:30#c3",
+     "text": "Koyu renkli bocekler dogalarindan daha hizli uredigi icin sayilari artti.",
+     "is_key": false,
+     "picked": 6,
+     "share": 0.15
+    }
+   ],
+   "key_beaten_by_distractor": false,
+   "subject_name": "Evrim ve Adaptasyon",
+   "course_name": "Biyoloji",
+   "gold": {
+    "misconception_choice_id": "probe_question:30#c1",
+    "misconception_choice_text": "Bocekler koyu ortamda yasadiklari icin renklerini koyulastirdi ve bu ozelligi yavrularina aktardi.",
+    "misconception_pick_share": 0.15,
+    "misconception_is_key": false,
+    "difficulty_band": "orta",
+    "quality_band": "iyi",
+    "irt_a": null,
+    "irt_b": null
+   },
+   "gold_segment": {
+    "bilissel_talep": "analiz",
+    "adim_sayisi": "cok_adim",
+    "dikkat_tuzagi": "var",
+    "okuma_yuku": "yuksek",
+    "tuzak_sik_index": 1,
+    "dogru_sik_index": 0
+   }
+  }
+ ]
+}

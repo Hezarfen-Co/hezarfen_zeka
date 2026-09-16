@@ -1,0 +1,15 @@
+[
+ {
+  "id": "upcoming",
+  "course": "course-1",
+  "subject": "subject-1",
+  "title": "Ödev",
+  "description": null,
+  "due_at": 1699984800000,
+  "assigned": [
+   "student-01"
+  ],
+  "created_by": "teacher-1",
+  "created_at": 1699380000000
+ }
+]

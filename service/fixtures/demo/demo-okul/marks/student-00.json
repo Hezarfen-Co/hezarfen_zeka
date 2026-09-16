@@ -1,0 +1,82 @@
+[
+ {
+  "course": {
+   "id": "course-1",
+   "creator": {
+    "id": "teacher-1",
+    "username": "teacher-1",
+    "display_name": "teacher-1"
+   },
+   "teachers": [
+    {
+     "id": "teacher-1",
+     "username": "teacher-1",
+     "display_name": "teacher-1"
+    }
+   ],
+   "title": "Ders",
+   "description": "",
+   "kind": "course",
+   "term": null,
+   "capacity": null
+  },
+  "results": [
+   {
+    "exam": "01H75BFWG00000000000000000",
+    "title": "Sınav",
+    "kind": "written",
+    "weight": 1,
+    "mark": 40,
+    "grade": null,
+    "graded_by": "teacher-1"
+   },
+   {
+    "exam": "01H77XWKG00000000000000000",
+    "title": "Sınav",
+    "kind": "written",
+    "weight": 1,
+    "mark": 41,
+    "grade": null,
+    "graded_by": "teacher-1"
+   },
+   {
+    "exam": "01H7AG9AG00000000000000000",
+    "title": "Sınav",
+    "kind": "written",
+    "weight": 1,
+    "mark": 39,
+    "grade": null,
+    "graded_by": "teacher-1"
+   },
+   {
+    "exam": "01H7D2P1G00000000000000000",
+    "title": "Sınav",
+    "kind": "written",
+    "weight": 1,
+    "mark": 42,
+    "grade": null,
+    "graded_by": "teacher-1"
+   },
+   {
+    "exam": "01H7FN2RG00000000000000000",
+    "title": "Sınav",
+    "kind": "written",
+    "weight": 1,
+    "mark": 40,
+    "grade": null,
+    "graded_by": "teacher-1"
+   },
+   {
+    "exam": "01H7J7FFG00000000000000000",
+    "title": "Sınav",
+    "kind": "written",
+    "weight": 1,
+    "mark": 38,
+    "grade": null,
+    "graded_by": "teacher-1"
+   }
+  ],
+  "average": null,
+  "average_grade": null
+ }
+]

@@ -1,0 +1,26 @@
+[
+ {
+  "id": "hw-school",
+  "course": "course-1",
+  "subject": "subject-1",
+  "title": "Ödev",
+  "description": null,
+  "due_at": 1700049600000,
+  "assigned": [
+   "student-00",
+   "student-01",
+   "student-02",
+   "student-03",
+   "student-04",
+   "student-05",
+   "student-06",
+   "student-07",
+   "student-08",
+   "student-09",
+   "student-10",
+   "student-11"
+  ],
+  "created_by": "teacher-1",
+  "created_at": 1699444800000
+ }
+]

@@ -1,0 +1,47 @@
+# ZEKA kopru katmaninin butun bagimliligi. Surumler PINLI: bir minor yukseltme
+# QUIC/TLS davranisini degistirebilir ve ayni Containerfile farkli bir servis
+# uretebilir.
+#
+# aioquic disinda dogrudan hicbir sey gerekmiyor: cerceveleme `struct` + `json`,
+# sertifika cekme `urllib`, parmak izi `hashlib`, ULID `os.urandom`.
+aioquic==1.3.0
+
+# --- dolayli bagimliliklar (aioquic 1.3.0'in cektikleri) --------------------
+# Pinlenmeleri KASITLI: `aioquic` bunlari acik araliklarla ister
+# (`cryptography>=42`, `pyopenssl>=24`, ...), yani ayni Containerfile bugun ve
+# yarin farkli bir TLS yigini uretebilir. QUIC el sikismasi bu kutuphanelerin
+# davranisina dogrudan bagli oldugu icin surum kaymasi sessiz bir baglanti
+# arizasina donusur.
+#
+# `cryptography` ayrica `tests/fake_bridge/certs.py` tarafindan DOGRUDAN
+# kullanilir (sahte koprunun kendi kendine imzali sertifikasi). Uretim kodu
+# sertifika URETMEZ, backend'den `GET /ai/certificate` ile ceker.
+certifi==2026.4.22
+cryptography==50.0.1
+pylsqpack==0.3.24
+pyOpenSSL==26.4.0
+service-identity==26.1.0
+
+# --- test paketi ------------------------------------------------------------
+# Testler saf `unittest`'tir; ek bir test kutuphanesi YOKTUR.
+#
+# TEK istisna `tests/test_bridge_live.py` ve `tests/fake_bridge/`: bunlar gercek
+# bir QUIC baglantisi kurdugu icin `aioquic` (ve onun `cryptography`'si) ister.
+# `aioquic` kurulu degilse o modul kendini atlar, geri kalan test paketi
+# bagimliliksiz calismaya devam eder.
+#
+# Windows notu: yukaridaki surumlerin hepsi hazir tekerlek (wheel) olarak
+# gelir; kurulum icin derleyici GEREKMEZ.
+
+# --- Postgres (okul veritabanina yazma) -------------------------------------
+# Backend SurrealDB'den PostgreSQL'e gecti; ZEKA'nin cikti tablolari artik
+# okulun kendi Postgres veritabaninda. Tel protokolu stdlib'de yok, elle
+# yazilacak bir sey de degil.
+#
+# `[binary]` hazir tekerlek getirir: derleyici GEREKMEZ (Windows dahil).
+# Surum PINLI, yukaridakilerle ayni gerekce.
+#
+# YALNIZ `src/pg_client.py` import eder ve o da tembel (fonksiyon icinde).
+# `src/store_pg.py` bir Postgres surucusu import ETMEZ; birim testleri ve
+# `--dry-run` psycopg kurulu olmadan da kosar.
+psycopg[binary]==3.2.13

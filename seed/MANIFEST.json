@@ -1,0 +1,579 @@
+{
+  "uretim": {
+    "tohum": 20260413,
+    "olcek": "full",
+    "ogrenci_sayisi": 250,
+    "date_shift_days": 0,
+    "t_now_ms": 1776056400000,
+    "t_now_iso": "2026-04-13T05:00:00+00:00",
+    "uretim_zamani_utc": "2026-09-15T11:20:39+00:00",
+    "sure_sn": 28.9,
+    "okul_slug": "ataturk-anadolu",
+    "dogrulama_sorgusu": 48,
+    "ogretim_haftasi": 27
+  },
+  "dosyalar": [
+    {
+      "ad": "00_control.surql",
+      "bayt": 963
+    },
+    {
+      "ad": "01_temel.surql",
+      "bayt": 2861
+    },
+    {
+      "ad": "02_kullanicilar.surql",
+      "bayt": 551027
+    },
+    {
+      "ad": "03_profil_ve_yapi.surql",
+      "bayt": 1292120
+    },
+    {
+      "ad": "04_operasyon.surql",
+      "bayt": 7785711
+    },
+    {
+      "ad": "05_kisisel_kayitlar.surql",
+      "bayt": 16713138
+    },
+    {
+      "ad": "06_iliskiler.surql",
+      "bayt": 8886769
+    },
+    {
+      "ad": "07_akademik.surql",
+      "bayt": 6972354
+    },
+    {
+      "ad": "08_degerlendirme.surql",
+      "bayt": 35616710
+    },
+    {
+      "ad": "09_sorular.surql",
+      "bayt": 10645659
+    },
+    {
+      "ad": "10_cevap_gorselleri.surql",
+      "bayt": 524469
+    },
+    {
+      "ad": "11_exam_answer.surql",
+      "bayt": 70937346
+    },
+    {
+      "ad": "12_teslimler.surql",
+      "bayt": 13254442
+    },
+    {
+      "ad": "99_dogrula.surql",
+      "bayt": 12986
+    }
+  ],
+  "tablo_satir_sayilari": {
+    "exam_answer": 216633,
+    "session_attendance": 86368,
+    "pomodoro_session": 82700,
+    "homework_submission": 23708,
+    "homework_result": 19889,
+    "exam_attempt": 14183,
+    "meal_ledger": 13675,
+    "meal_booking": 11804,
+    "exam_result": 11748,
+    "homework_file": 9996,
+    "meal_attendance": 9890,
+    "chatbot_message": 9098,
+    "board_stroke": 8813,
+    "message": 6680,
+    "exam_question": 5960,
+    "course_session": 4329,
+    "registration": 3762,
+    "payment_ledger": 3714,
+    "badge_award": 3707,
+    "work_entry": 3488,
+    "enrollment": 2738,
+    "attendance": 1995,
+    "answer_image": 1603,
+    "note": 1530,
+    "chatbot_thread": 1495,
+    "menu_dish": 1216,
+    "bank_question": 885,
+    "solution": 780,
+    "appointment_slot": 758,
+    "pool_question": 640,
+    "homework": 590,
+    "user": 563,
+    "appointment": 502,
+    "note_file": 478,
+    "subject": 390,
+    "rag_output": 360,
+    "course_note": 360,
+    "exam": 340,
+    "course_note_file": 339,
+    "question_image": 334,
+    "menu": 304,
+    "parent_link": 299,
+    "board": 280,
+    "class_member": 250,
+    "fee_plan_assignment": 250,
+    "class_course": 110,
+    "event": 58,
+    "dietary_profile": 55,
+    "course": 50,
+    "session": 40,
+    "bank_question_image": 38,
+    "class_group": 11,
+    "kind_ref": 6,
+    "fee_plan": 4,
+    "class_blueprint": 4,
+    "slot_ref": 3,
+    "term": 2,
+    "migration_mark": 2,
+    "settings": 1
+  },
+  "toplam_satir": 569808,
+  "beklenen_vs_gercek": {
+    "hacim": {
+      "H1_user": {
+        "beklenen": 563,
+        "gercek": 563
+      },
+      "H2_student": {
+        "beklenen": 250,
+        "gercek": 250
+      },
+      "H3_teacher": {
+        "beklenen": 24,
+        "gercek": 24
+      },
+      "H4_parent": {
+        "beklenen": 285,
+        "gercek": 285
+      },
+      "H5_parent_link": {
+        "beklenen": 299,
+        "gercek": 299
+      },
+      "H7_course": {
+        "beklenen": 50,
+        "gercek": 50
+      },
+      "H8_subject": {
+        "beklenen": 390,
+        "gercek": 390
+      },
+      "H9_class_group": {
+        "beklenen": 11,
+        "gercek": 11
+      },
+      "H10_class_member": {
+        "beklenen": 250,
+        "gercek": 250
+      },
+      "H11_class_course": {
+        "beklenen": 110,
+        "gercek": 110
+      },
+      "H12_enrollment": {
+        "beklenen": 2790,
+        "gercek": 2738
+      },
+      "H13_course_session": {
+        "beklenen": 4428,
+        "gercek": 4329
+      },
+      "H14_session_attendance": {
+        "beklenen": 98400,
+        "gercek": 86368
+      },
+      "H15_exam": {
+        "beklenen": 340,
+        "gercek": 340
+      },
+      "H16_exam_question": {
+        "beklenen": 6640,
+        "gercek": 5960
+      },
+      "H17_exam_attempt": {
+        "beklenen": 14800,
+        "gercek": 14183
+      },
+      "H18_exam_answer": {
+        "beklenen": 259000,
+        "gercek": 216633
+      },
+      "H19_exam_result": {
+        "beklenen": 13600,
+        "gercek": 11748
+      },
+      "H20_bank_question": {
+        "beklenen": 885,
+        "gercek": 885
+      },
+      "H21_homework": {
+        "beklenen": 590,
+        "gercek": 590
+      },
+      "H22_homework_submission": {
+        "beklenen": 26200,
+        "gercek": 23708
+      },
+      "H23_homework_result": {
+        "beklenen": 23000,
+        "gercek": 19889
+      },
+      "H24_pomodoro_session": {
+        "beklenen": 26000,
+        "gercek": 82700
+      },
+      "H25_chatbot_thread": {
+        "beklenen": 1500,
+        "gercek": 1495
+      },
+      "H26_chatbot_message": {
+        "beklenen": 9000,
+        "gercek": 9098
+      },
+      "H27_pool_question": {
+        "beklenen": 640,
+        "gercek": 640
+      },
+      "H28_solution": {
+        "beklenen": 780,
+        "gercek": 780
+      },
+      "H29_appointment": {
+        "beklenen": 520,
+        "gercek": 502
+      },
+      "H30_message": {
+        "beklenen": 6800,
+        "gercek": 6680
+      },
+      "H31_board_stroke": {
+        "beklenen": 9000,
+        "gercek": 8813
+      },
+      "H32_meal_booking": {
+        "beklenen": 11800,
+        "gercek": 11804
+      },
+      "H33_payment_ledger": {
+        "beklenen": 4400,
+        "gercek": 3714
+      },
+      "H34_tables": {
+        "beklenen": 60,
+        "gercek": 59
+      },
+      "H35_total_rows": {
+        "beklenen": 572000,
+        "gercek": 569808
+      }
+    },
+    "ogrenme": {
+      "L3_genel_dogruluk_pct": {
+        "beklenen": 58.4,
+        "gercek": 58.17
+      },
+      "L4_bos_birakma_pct": {
+        "beklenen": 12.5,
+        "gercek": 13.2
+      },
+      "L5_text_soru_pay_pct": {
+        "beklenen": 15.0,
+        "gercek": 14.6
+      },
+      "L6_text_bos_pct": {
+        "beklenen": 18.0,
+        "gercek": 17.87
+      },
+      "L7_mark_ortalama": {
+        "beklenen": 62.8,
+        "gercek": 63.4
+      },
+      "L8_mark_std": {
+        "beklenen": 17.4,
+        "gercek": 17.45
+      },
+      "L9_mark_90_ustu_pct": {
+        "beklenen": 7.2,
+        "gercek": 7.75
+      },
+      "L10_p_ortalama": {
+        "beklenen": 0.585,
+        "gercek": 0.5742
+      },
+      "L11_p_030_alti_madde": {
+        "beklenen": 531,
+        "gercek": 184
+      },
+      "L12_p_090_ustu_madde": {
+        "beklenen": 531,
+        "gercek": 52
+      },
+      "L13_celdirici_dogrudan_fazla": {
+        "beklenen": 180,
+        "gercek": 358
+      },
+      "L17_ikinci_denemede_duzelen": {
+        "beklenen": 2960,
+        "gercek": 785
+      },
+      "L18_from_bank_pay_pct": {
+        "beklenen": 45.0,
+        "gercek": 45.03
+      },
+      "L19_from_bank_kopuk": {
+        "beklenen": 48,
+        "gercek": 48
+      },
+      "L20_banked_as_pay_pct": {
+        "beklenen": 6.0,
+        "gercek": 6.01
+      },
+      "L21_metin_iraksamasi": {
+        "beklenen": 359,
+        "gercek": 309
+      },
+      "L22_seq2_attempt": {
+        "beklenen": 564,
+        "gercek": 417
+      },
+      "L23_cevapsiz_attempt": {
+        "beklenen": 9,
+        "gercek": 9
+      },
+      "L24_finished_none_attempt": {
+        "beklenen": 31,
+        "gercek": 31
+      }
+    },
+    "arketip": {
+      "A1_A1_dogruluk_pct": {
+        "beklenen": 78,
+        "gercek": 75.05
+      },
+      "A2_A7_dogruluk_pct": {
+        "beklenen": 42,
+        "gercek": 42.7
+      },
+      "A3_A1_eksi_A7": {
+        "beklenen": 36,
+        "gercek": 32.35
+      },
+      "A4_A3_bosluk_dogruluk_pct": {
+        "beklenen": 31,
+        "gercek": 30.93
+      },
+      "A5_A3_diger_dogruluk_pct": {
+        "beklenen": 72,
+        "gercek": 62.95
+      },
+      "A7_bosluk_sinif_ortalamasi_pct": {
+        "beklenen": 58,
+        "gercek": 57.49
+      },
+      "A8_A5_T1_T2_pct": {
+        "beklenen": "40 -> 70",
+        "gercek": [
+          44.68,
+          64.78
+        ]
+      },
+      "A9_A6_kirilma_oncesi_sonrasi_pct": {
+        "beklenen": "64 -> 37",
+        "gercek": [
+          65.09,
+          37.91
+        ]
+      },
+      "A10_A4_counted_on_time_pct": {
+        "beklenen": 48,
+        "gercek": 50.72
+      },
+      "A11_A1_counted_on_time_pct": {
+        "beklenen": 97,
+        "gercek": 97.1
+      },
+      "A16_A8_randevu": {
+        "beklenen": 76,
+        "gercek": 78
+      },
+      "A18_A8_failed_3_in_14": {
+        "beklenen": 11,
+        "gercek": 11
+      },
+      "A21_A7_pomodorosuz": {
+        "beklenen": 13,
+        "gercek": 13
+      },
+      "A22_A7_sohbetsiz": {
+        "beklenen": 15,
+        "gercek": 15
+      }
+    },
+    "davranis": {
+      "D1_devam_orani_pct": {
+        "beklenen": 93.5,
+        "gercek": 91.05
+      },
+      "D2_present_pay_pct": {
+        "beklenen": 84.1,
+        "gercek": 84.49
+      },
+      "D3_absent_late_excused_pct": {
+        "beklenen": [
+          9.0,
+          4.6,
+          2.3
+        ],
+        "gercek": [
+          8.75,
+          4.58,
+          2.18
+        ]
+      },
+      "D11_son24saat_teslim_pct": {
+        "beklenen": 44.8,
+        "gercek": 35.29
+      },
+      "D12_gec_teslim_pct": {
+        "beklenen": 19.6,
+        "gercek": 23.04
+      },
+      "D13_counted_on_time_pct": {
+        "beklenen": 74.8,
+        "gercek": 76.96
+      },
+      "D14_on_time_ama_updated_gec": {
+        "beklenen": 750,
+        "gercek": 981
+      },
+      "D15_counted_pomodoro_pct": {
+        "beklenen": 81.4,
+        "gercek": 93.96
+      },
+      "D16_finished_none_pomodoro_pct": {
+        "beklenen": 6.0,
+        "gercek": 5.96
+      },
+      "D17_gece_pomodoro_pct": {
+        "beklenen": 8.0,
+        "gercek": 7.37
+      },
+      "D18_sohbet_kullanan_ogrenci": {
+        "beklenen": 155,
+        "gercek": 155
+      },
+      "D19_failed_pay_pct": {
+        "beklenen": 4.6,
+        "gercek": 5.3
+      },
+      "D20_pending_mesaj": {
+        "beklenen": 270,
+        "gercek": 293
+      },
+      "D21_eski_pending_randevu": {
+        "beklenen": 45,
+        "gercek": 51
+      },
+      "D22_cozumsuz_eski_havuz": {
+        "beklenen": 180,
+        "gercek": 175
+      },
+      "D23_yoklamasiz_oturum": {
+        "beklenen": 399,
+        "gercek": 381
+      },
+      "D24_clear_vurus_pct": {
+        "beklenen": 3.0,
+        "gercek": 3.22
+      },
+      "D25_okunmus_mesaj_pct": {
+        "beklenen": 66.0,
+        "gercek": 65.54
+      }
+    },
+    "kasitli_hatalar": {
+      "K1_pomodoro_sayac_sismesi": 234,
+      "K2_lessons_attended_total_NONE": 250,
+      "K3_high_mark_total_NONE": 250,
+      "K4_held_counted_at_NONE": 156,
+      "K5_bank_question_subject_NONE": 53,
+      "K6_from_bank_kopuk": 48,
+      "K7_grade_tutarsizligi": 1,
+      "K8_answer_key_edits": 5,
+      "K9_negatif_madde": 154,
+      "K10_bozuk_madde": 263
+    }
+  },
+  "sapmalar": [
+    {
+      "olcum": "H14_session_attendance",
+      "beklenen": 98400,
+      "gercek": 86368,
+      "sapma_pct": -12.2
+    },
+    {
+      "olcum": "H16_exam_question",
+      "beklenen": 6640,
+      "gercek": 5960,
+      "sapma_pct": -10.2
+    },
+    {
+      "olcum": "H18_exam_answer",
+      "beklenen": 259000,
+      "gercek": 216633,
+      "sapma_pct": -16.4
+    },
+    {
+      "olcum": "H19_exam_result",
+      "beklenen": 13600,
+      "gercek": 11748,
+      "sapma_pct": -13.6
+    },
+    {
+      "olcum": "H22_homework_submission",
+      "beklenen": 26200,
+      "gercek": 23708,
+      "sapma_pct": -9.5
+    },
+    {
+      "olcum": "H23_homework_result",
+      "beklenen": 23000,
+      "gercek": 19889,
+      "sapma_pct": -13.5
+    },
+    {
+      "olcum": "H24_pomodoro_session",
+      "beklenen": 26000,
+      "gercek": 82700,
+      "sapma_pct": 218.1
+    },
+    {
+      "olcum": "H33_payment_ledger",
+      "beklenen": 4400,
+      "gercek": 3714,
+      "sapma_pct": -15.6
+    }
+  ],
+  "sapma_gerekceleri": [
+    "H16 (exam_question = 6.640): SENARYO §2.5'teki soru sayilari (10,25,6,30,12,25,5,30) ders basina 143 soru verir; 40 ders x 143 + 20 etut sinavi x 12 = 5.960. §2.3'teki 6.640 rakami sinav basina 20 soru varsayar ve §2.5 ile celisir. Uretici §2.5'teki kesin tabloya uyar.",
+    "H18 (exam_answer = 259.000): H16'daki farkin dogrudan sonucudur; gecmis sinavlarin ortalama soru sayisi 18 oldugu icin cevap sayisi da orantili bicimde duser (259.000 x 18/20 x 0,93 ~ 217.000).",
+    "H19 (exam_result = 13.600): §2.3 oturumlarin %92'sinin notlandigini varsayar ama kenar durum #12 son 3 haftadaki 26 sinavin HIC notlanmadigini sart kosar. Iki kural birlikte 11.800 satir verir; #12 korunmustur (Y1 testi icin gerekli).",
+    "H14 (session_attendance = 98.400): §2.3'teki hesap 4.158 oturumun TAMAMINDA yoklama alindigini varsayar; oysa §2.4 ve D23 oturumlarin %9'unda hic yoklama olmadigini sart kosar. Uretici §2.4'e uyar (D23 = 399 oturum korunur).",
+    "H22 / H23 (homework_submission / homework_result): §2.3'teki hesap tum ogrencilerin her odeve hedef oldugunu varsayar; §2.6'daki 'assigned %22 orninde kayitlilarin %55'i' kurali paydayi %10 kucultur. Ayrica ayrilan ogrenciler (#2) ve donem ortasi kaydolanlar (#1) pencere disinda kalir.",
+    "H24 (pomodoro_session = 26.000): §2.3'teki '170 ogrenci x 153 stint' hesabi §3'teki arketip parametreleriyle (gun/hafta x Poisson(lambda)) uyusmuyor; o parametreler yaklasik 3 kat daha fazla stint uretir. Arketip tablolari senaryonun cekirdegi oldugu icin (A19, D9, D10, D15-D17, P7 olcumlerini besliyorlar) onlara sadik kalindi. Toplam satir sayisi yine H35 bandinda.",
+    "H12 (enrollment = 2.790): §1.4'teki etut/kulup kayit sayilari (32+28+30+30 ve 18+22+16+20+24+18) toplam 238 eder, 290 degil. Uretici acik sayilari kullanir: 2.500 cekirdek + 238 = 2.738.",
+    "H13 (course_session = 4.428): 14 blok x 11 sube x 27 hafta = 4.158 hesabi 3 resmi tatil gununu saymaz; o gunlerde ders yapilmaz.",
+    "H33 (payment_ledger = 4.400): 4 planin taksit sayilari (1/9/6/9) ve 250 ogrenci 1.948 charge uretir, 2.250 degil; vadesi T_NOW'i gecmemis taksitler icin tahsilat satiri da yazilmaz.",
+    "L11 / L12 (p uclari): §4.2'deki bant->p esleme a_i = 1 varsayar. §4.3'teki a_i dagiliminda maddelerin %38'i a < 0,8 oldugu icin kolay/zor bantlardaki maddeler uclara tasinmaz. Iki kural ayni anda saglanamaz; a_i dagilimi (T2'nin test ettigi sey) korunmustur.",
+    "L17 (ikinci denemede duzelen ~2.960): §4.9'un beklentisi oturum basina ~5 madde duzelmesidir; theta + 0,45 bonusu ve 12 soruluk quiz sinavlariyla gerceklesen oran oturum basina ~1,7'dir.",
+    "L22 (seq=2 attempt = 564): §4.9 'gecmis 240 sinavin %18'i' der; §2.5 tablosu ise max_attempts = 2 olan tek bir sinav penceresi (5 numarali quiz) tanimlar, yani 40 sinav. Uretici §2.5'e uyar.",
+    "D19 / D20 (sohbet): §5.4'teki status paylari ASISTAN mesaji basinadir, §7'deki D19/D20 ise tum chatbot_message satirlarini sayar. MANIFEST D19'u asistan mesajlari uzerinden olcer; D20 hedefi (270 satir) icin 'pending' payi %3'ten %6'ya cikarilmistir.",
+    "A3 arketipi (bosluk dersi): §3.6'daki -1,60 / -0,90 sapmalari, madde-ici gurultu ve bos birakma secilimiyle birlikte §7.3 A6 olcutunu (ogrenci ici fark >= 30 puan) saglamiyordu; sapmalar -2,40 / -1,40'a derinlestirildi.",
+    "Madde kalibrasyonu: b_i bantlarina +0,62 sabit kayma, bos birakma olasiligina 0,33 carpani ve nota dogrusal donusum (0,89 x puan + 22,5) uygulanir. Bu uc katsayi §7'deki L3 / L4 / L7 / L8 hedeflerini tutturmak icindir ve config.py'de ITEM_B_OFFSET / OMISSION_SCALE / MARK_SLOPE olarak durur.",
+    "smoke olceginde ogrenciye bagli tum beklenen degerler 20/250 oraniyla olceklenir; yapisal buyuklukler (11 sube, 50 ders, 390 konu, 340 sinav, 900 banka sablonu, 24 ogretmen, okul takvimi) kucultulmez."
+  ]
+}

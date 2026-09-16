@@ -1,0 +1,100 @@
+# ISTEGE BAGLI testler -- her degisiklikte KOSMAZ, elle tetiklenir.
+#
+# NEDEN AYRI: `ci.yml` hicbir bagimlilik kurmaz ve hicbir sokete dokunmaz;
+# boylece kirmizi/yesil bilgisi ag ve paket deposu kesintilerinden bagimsiz
+# kalir. Buradaki isler ise `aioquic` kurar ya da bir veritabani kaldirir;
+# yavastir ve dis etkenlere aciktir. Zorunlu kapiya konulsalardi CI
+# guvenilmez olur, guvenilmez CI da yok sayilir.
+#
+# BURADA GERCEK LLM CAGRISI YAPILMAZ. Segment testleri `MockProvider`
+# kullanir; asagida ayrica bir koruma vardir ki bir gun gercek bir anahtar
+# is ortamina sizarsa is DURSUN. Gercek saglayiciya karsi kosu, parayla
+# calisan ve dis servise bagimli bir istir; CI'nin isi degildir.
+
+name: Istege bagli testler
+
+on:
+  workflow_dispatch:
+    inputs:
+      veritabani:
+        description: "SurrealDB entegrasyon testlerini de kosayim mi"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  # =========================================================================
+  kopru-canli:
+    name: "Canli kopru testleri (gercek QUIC, YALNIZCA 127.0.0.1)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: "aioquic kur"
+        # Surumler `requirements.txt` icinde pinli. DIKKAT: surum ve dosya
+        # adi TIRNAK icinde degil ama `--requirement` ile veriliyor; denetimde
+        # kardes bir serviste tirnaksiz yazilan bir bagimlilik surumu kabuk
+        # yonlendirmesine donusmustu (`pip install paket>=1.0` -> `1.0`
+        # adinda bos dosya). `-r dosya` bu sinifi tumden kapatir.
+        working-directory: service
+        run: pip install --requirement requirements.txt
+
+      - name: "Gercek LLM cagrisi YAPILMADIGINI dogrula"
+        # Koruma: bu is bir saglayici anahtari gormemelidir. Gorursa,
+        # testlerden biri sessizce gercek bir ucu cagirabilir -- para harcar
+        # ve CI'yi dis bir servise bagimli kilar.
+        run: |
+          for degisken in DEEPSEEK_API_KEY LLM_API_KEY SEGMENT_API_KEY; do
+            if [ -n "${!degisken:-}" ]; then
+              echo "HATA: $degisken bu iste tanimli; gercek saglayici cagrisi riski."
+              exit 1
+            fi
+          done
+          echo "ok: hicbir saglayici anahtari tanimli degil; testler MockProvider kullanacak"
+
+      - name: "Canli kopru testleri"
+        # `tests/test_bridge_live.py`: gercek UDP soketi, gercek TLS 1.3 el
+        # sikismasi, gercek `hab/2` cerceveleri -- ama karsi taraf
+        # `tests/fake_bridge/` altindaki SAHTE sunucudur, gercek backend
+        # DEGILDIR. Ag kapsami yalnizca 127.0.0.1'dir; disariya hicbir
+        # baglanti kurulmaz ve sabit port isgal edilmez.
+        working-directory: service
+        run: python -m unittest discover -s tests -t . -v
+
+  # =========================================================================
+  veritabani:
+    name: "SurrealDB entegrasyon testleri"
+    if: ${{ inputs.veritabani }}
+    runs-on: ubuntu-latest
+    services:
+      surrealdb:
+        image: surrealdb/surrealdb:v3
+        ports: ["8000:8000"]
+        options: >-
+          --health-cmd "/surreal is-ready"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: "Semayi yukle ve testleri kos"
+        # `tests/zeka_db.py` bu degiskenler tanimli degilse butun
+        # entegrasyon testlerini `skipUnless` ile atlar; burada acikca
+        # tanimlayip kosturuyoruz.
+        working-directory: service
+        env:
+          ZEKA_TEST_DB_URL: ws://127.0.0.1:8000/rpc
+          ZEKA_TEST_DB_NS: hezarfen_test
+          ZEKA_TEST_DB_USER: root
+          ZEKA_TEST_DB_PASSWORD: root
+        run: |
+          pip install --requirement requirements.txt
+          python -m unittest discover -s tests -t . -v

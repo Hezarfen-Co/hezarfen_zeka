@@ -1,0 +1,7644 @@
+{
+ "_meta": {
+  "generated_from": "C:/PROJECTS/analiz/hezarfen_backend-main/src/migration_sql.rs (1518 lines, read in full)",
+  "surrealdb": "3.2 (Cargo.toml:22)",
+  "school_table_count": 60,
+  "control_table_count": 4,
+  "field_count": 409,
+  "source_paths_are_relative_to": "hezarfen_backend-main/src/",
+  "notes": [
+   "NO DEFINE FIELD in this schema carries a VALUE or an ASSERT clause - verified by grep over migration_sql.rs.",
+   "All 60 school tables are SCHEMAFULL. rag_output.payload is the only FLEXIBLE object.",
+   "Fields marked overwrite:true were declared with DEFINE FIELD OVERWRITE (a type change on an existing db).",
+   "removed_fields / removed_indexes list REMOVE statements - those columns must NOT be written."
+  ]
+ },
+ "tables": {
+  "user": {
+   "schemafull": true,
+   "source": "migration_sql.rs:49",
+   "fields": {
+    "username": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:50"
+    },
+    "password_hash": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:51"
+    },
+    "role": {
+     "type": "string",
+     "optional": false,
+     "default": "'student'",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:52"
+    },
+    "name": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:53"
+    },
+    "surname": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:54"
+    },
+    "email": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:55"
+    },
+    "phone": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:56"
+    },
+    "birth_date": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:57"
+    },
+    "theme": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:58"
+    },
+    "language": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:59"
+    },
+    "palette_color": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:60"
+    },
+    "display_name": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:61"
+    },
+    "bio": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:62"
+    },
+    "avatar_file": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:63"
+    },
+    "avatar_content_type": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:64"
+    },
+    "avatar_size": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:65"
+    },
+    "chatbot_thread_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:66"
+    },
+    "board_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:67"
+    },
+    "homework_submitted_total": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:73"
+    },
+    "homework_on_time_total": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:74"
+    },
+    "exam_sat_total": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:75"
+    },
+    "pomodoro_finished_total": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:76"
+    },
+    "pomodoro_focus_ms_total": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:77"
+    },
+    "marks_given_total": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:84"
+    },
+    "lessons_held_total": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:85"
+    },
+    "pool_approved_total": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:86"
+    },
+    "pool_published_total": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:87"
+    },
+    "lessons_attended_total": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:88"
+    },
+    "high_mark_total": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:89"
+    },
+    "study_streak_longest": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:90"
+    },
+    "study_streak_current": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:91"
+    },
+    "study_streak_last_day": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:92"
+    },
+    "pomodoro_counted_day": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:98"
+    },
+    "pomodoro_counted_today": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:99"
+    }
+   },
+   "indexes": [
+    {
+     "name": "user_username",
+     "fields": [
+      "username"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:100"
+    }
+   ]
+  },
+  "session": {
+   "schemafull": true,
+   "source": "migration_sql.rs:102",
+   "fields": {
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:103"
+    },
+    "token": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:104"
+    },
+    "expires_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:105"
+    }
+   },
+   "indexes": [
+    {
+     "name": "session_token",
+     "fields": [
+      "token"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:106"
+    },
+    {
+     "name": "session_expires",
+     "fields": [
+      "expires_at"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:107"
+    }
+   ]
+  },
+  "note": {
+   "schemafull": true,
+   "source": "migration_sql.rs:109",
+   "fields": {
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:110"
+    },
+    "title": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:111"
+    },
+    "content": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:112"
+    },
+    "file_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:113"
+    }
+   },
+   "indexes": [
+    {
+     "name": "note_user",
+     "fields": [
+      "user"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:114"
+    }
+   ]
+  },
+  "message": {
+   "schemafull": true,
+   "source": "migration_sql.rs:116",
+   "fields": {
+    "sender": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:117"
+    },
+    "recipient": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:118"
+    },
+    "subject": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:119"
+    },
+    "body": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:120"
+    },
+    "label": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:121"
+    },
+    "sent_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:122"
+    },
+    "read": {
+     "type": "bool",
+     "optional": false,
+     "default": "false",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:123"
+    },
+    "sender_folder": {
+     "type": "string",
+     "optional": false,
+     "default": "'sent'",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:124"
+    },
+    "recipient_folder": {
+     "type": "string",
+     "optional": false,
+     "default": "'inbox'",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:125"
+    },
+    "sender_origin": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:130"
+    },
+    "recipient_origin": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:131"
+    }
+   },
+   "indexes": [
+    {
+     "name": "message_sender",
+     "fields": [
+      "sender"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:132"
+    },
+    {
+     "name": "message_recipient",
+     "fields": [
+      "recipient"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:133"
+    }
+   ]
+  },
+  "board": {
+   "schemafull": true,
+   "source": "migration_sql.rs:142",
+   "fields": {
+    "creator": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:143"
+    },
+    "title": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:144"
+    },
+    "participants": {
+     "type": "array<record<user>>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:145"
+    },
+    "locked": {
+     "type": "bool",
+     "optional": false,
+     "default": "false",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:146"
+    },
+    "locked_by": {
+     "type": "option<record<user>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:147"
+    },
+    "locked_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:148"
+    },
+    "epoch": {
+     "type": "int",
+     "optional": false,
+     "default": "0",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:149"
+    },
+    "epoch_stroke_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:151"
+    },
+    "total_stroke_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:152"
+    },
+    "closed_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:154"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:155"
+    }
+   },
+   "indexes": [
+    {
+     "name": "board_creator",
+     "fields": [
+      "creator"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:156"
+    },
+    {
+     "name": "board_participants",
+     "fields": [
+      "participants"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:160"
+    }
+   ]
+  },
+  "board_stroke": {
+   "schemafull": true,
+   "source": "migration_sql.rs:162",
+   "fields": {
+    "board": {
+     "type": "record<board>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:163"
+    },
+    "author": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:164"
+    },
+    "kind": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:168"
+    },
+    "payload": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:169"
+    },
+    "count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:170"
+    },
+    "epoch": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:171"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:172"
+    }
+   },
+   "indexes": [
+    {
+     "name": "board_stroke_board_epoch",
+     "fields": [
+      "board",
+      "epoch"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:175"
+    },
+    {
+     "name": "board_stroke_board_kind",
+     "fields": [
+      "board",
+      "kind"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:177"
+    }
+   ]
+  },
+  "note_file": {
+   "schemafull": true,
+   "source": "migration_sql.rs:179",
+   "fields": {
+    "note": {
+     "type": "record<note>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:180"
+    },
+    "name": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:181"
+    },
+    "content_type": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:182"
+    },
+    "size": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:183"
+    }
+   },
+   "indexes": [
+    {
+     "name": "note_file_note",
+     "fields": [
+      "note"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:184"
+    }
+   ]
+  },
+  "course_note": {
+   "schemafull": true,
+   "source": "migration_sql.rs:186",
+   "fields": {
+    "course": {
+     "type": "record<course>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:187"
+    },
+    "author": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:188"
+    },
+    "title": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:189"
+    },
+    "content": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:190"
+    },
+    "file_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:191"
+    }
+   },
+   "indexes": [
+    {
+     "name": "course_note_course",
+     "fields": [
+      "course"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:192"
+    }
+   ]
+  },
+  "course_note_file": {
+   "schemafull": true,
+   "source": "migration_sql.rs:194",
+   "fields": {
+    "course_note": {
+     "type": "record<course_note>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:195"
+    },
+    "name": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:196"
+    },
+    "content_type": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:197"
+    },
+    "size": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:198"
+    }
+   },
+   "indexes": [
+    {
+     "name": "course_note_file_note",
+     "fields": [
+      "course_note"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:199"
+    }
+   ]
+  },
+  "rag_output": {
+   "schemafull": true,
+   "source": "migration_sql.rs:206",
+   "fields": {
+    "course_note": {
+     "type": "record<course_note>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:207"
+    },
+    "course": {
+     "type": "record<course>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:208"
+    },
+    "sources": {
+     "type": "array<record<course_note_file>>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:209"
+    },
+    "payload": {
+     "type": "object",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": true,
+     "overwrite": false,
+     "source": "migration_sql.rs:210"
+    },
+    "generated_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:211"
+    }
+   },
+   "indexes": [
+    {
+     "name": "rag_output_note",
+     "fields": [
+      "course_note"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:212"
+    },
+    {
+     "name": "rag_output_source",
+     "fields": [
+      "sources"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:217"
+    }
+   ],
+   "removed_indexes": [
+    {
+     "index": "rag_output_course",
+     "source": "migration_sql.rs:214"
+    }
+   ]
+  },
+  "chatbot_thread": {
+   "schemafull": true,
+   "source": "migration_sql.rs:224",
+   "fields": {
+    "user_id": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:225"
+    },
+    "title": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:226"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:227"
+    },
+    "updated_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:228"
+    }
+   },
+   "indexes": [
+    {
+     "name": "chatbot_thread_user_updated",
+     "fields": [
+      "user_id",
+      "updated_at"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:229"
+    }
+   ]
+  },
+  "chatbot_message": {
+   "schemafull": true,
+   "source": "migration_sql.rs:231",
+   "fields": {
+    "thread_id": {
+     "type": "record<chatbot_thread>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:232"
+    },
+    "user_id": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:233"
+    },
+    "role": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:234"
+    },
+    "content": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:235"
+    },
+    "status": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:236"
+    },
+    "truncated": {
+     "type": "bool",
+     "optional": false,
+     "default": "false",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:237"
+    },
+    "error_code": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:238"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:239"
+    },
+    "completed_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:240"
+    }
+   },
+   "indexes": [
+    {
+     "name": "chatbot_message_thread_created",
+     "fields": [
+      "thread_id",
+      "created_at"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:247"
+    },
+    {
+     "name": "chatbot_message_user",
+     "fields": [
+      "user_id"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:248"
+    },
+    {
+     "name": "chatbot_message_status_created",
+     "fields": [
+      "status",
+      "created_at"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:250"
+    }
+   ],
+   "removed_fields": [
+    {
+     "field": "claimed_by",
+     "source": "migration_sql.rs:245"
+    },
+    {
+     "field": "claimed_at",
+     "source": "migration_sql.rs:246"
+    }
+   ]
+  },
+  "rate_limit": {
+   "schemafull": true,
+   "source": "migration_sql.rs:268",
+   "fields": {
+    "hits": {
+     "type": "int",
+     "optional": false,
+     "default": "0",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:269"
+    },
+    "window_start": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:270"
+    }
+   },
+   "indexes": []
+  },
+  "event": {
+   "schemafull": true,
+   "source": "migration_sql.rs:272",
+   "fields": {
+    "creator": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:273"
+    },
+    "title": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:274"
+    },
+    "description": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:275"
+    },
+    "audience": {
+     "type": "object",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:276"
+    },
+    "audience.kind": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:277"
+    },
+    "audience.role": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:278"
+    },
+    "audience.course": {
+     "type": "option<record<course>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:279"
+    },
+    "audience.class": {
+     "type": "option<record<class_group>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:280"
+    },
+    "audience.capacity": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:281"
+    },
+    "registration_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:285"
+    },
+    "starts_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:287"
+    },
+    "ends_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:288"
+    }
+   },
+   "indexes": [],
+   "removed_fields": [
+    {
+     "field": "audience.users",
+     "source": "migration_sql.rs:286"
+    }
+   ]
+  },
+  "attendance": {
+   "schemafull": true,
+   "source": "migration_sql.rs:290",
+   "fields": {
+    "event": {
+     "type": "record<event>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:291"
+    },
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:292"
+    },
+    "status": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:293"
+    },
+    "marked_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:294"
+    }
+   },
+   "indexes": [
+    {
+     "name": "attendance_event_user",
+     "fields": [
+      "event",
+      "user"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:295"
+    },
+    {
+     "name": "attendance_user",
+     "fields": [
+      "user"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:296"
+    }
+   ]
+  },
+  "registration": {
+   "schemafull": true,
+   "source": "migration_sql.rs:298",
+   "fields": {
+    "event": {
+     "type": "record<event>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:299"
+    },
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:300"
+    },
+    "registered_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:301"
+    }
+   },
+   "indexes": [
+    {
+     "name": "registration_event_user",
+     "fields": [
+      "event",
+      "user"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:302"
+    },
+    {
+     "name": "registration_event",
+     "fields": [
+      "event"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:303"
+    }
+   ]
+  },
+  "term": {
+   "schemafull": true,
+   "source": "migration_sql.rs:305",
+   "fields": {
+    "name": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:306"
+    },
+    "starts_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:307"
+    },
+    "ends_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:308"
+    },
+    "archived_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:312"
+    },
+    "course_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:316"
+    },
+    "class_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:319"
+    }
+   },
+   "indexes": []
+  },
+  "course": {
+   "schemafull": true,
+   "source": "migration_sql.rs:321",
+   "fields": {
+    "creator": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:322"
+    },
+    "teachers": {
+     "type": "array<record<user>>",
+     "optional": false,
+     "default": "[]",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:323"
+    },
+    "teachers[*]": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:324"
+    },
+    "title": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:325"
+    },
+    "description": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:326"
+    },
+    "kind": {
+     "type": "string",
+     "optional": false,
+     "default": "'course'",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:327"
+    },
+    "term": {
+     "type": "option<record<term>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:328"
+    },
+    "capacity": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:329"
+    },
+    "enrollment_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:330"
+    }
+   },
+   "indexes": []
+  },
+  "subject": {
+   "schemafull": true,
+   "source": "migration_sql.rs:332",
+   "fields": {
+    "course": {
+     "type": "record<course>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:333"
+    },
+    "name": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:334"
+    },
+    "description": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:335"
+    },
+    "exam_question_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:339"
+    },
+    "homework_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:340"
+    }
+   },
+   "indexes": [
+    {
+     "name": "subject_course",
+     "fields": [
+      "course"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:341"
+    }
+   ]
+  },
+  "class_group": {
+   "schemafull": true,
+   "source": "migration_sql.rs:346",
+   "fields": {
+    "name": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:347"
+    },
+    "grade": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:348"
+    },
+    "term": {
+     "type": "option<record<term>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:349"
+    },
+    "creator": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:350"
+    },
+    "teacher": {
+     "type": "option<record<user>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:351"
+    },
+    "class_member_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:352"
+    },
+    "class_course_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:353"
+    }
+   },
+   "indexes": [
+    {
+     "name": "class_group_grade",
+     "fields": [
+      "grade"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:356"
+    }
+   ]
+  },
+  "class_blueprint": {
+   "schemafull": true,
+   "source": "migration_sql.rs:364",
+   "fields": {
+    "grade": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:365"
+    },
+    "courses": {
+     "type": "array<record<course>>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:366"
+    },
+    "creator": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:367"
+    }
+   },
+   "indexes": []
+  },
+  "class_member": {
+   "schemafull": true,
+   "source": "migration_sql.rs:369",
+   "fields": {
+    "class": {
+     "type": "record<class_group>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:370"
+    },
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:371"
+    },
+    "added_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:372"
+    },
+    "added_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:380"
+    }
+   },
+   "indexes": [
+    {
+     "name": "class_member_class_user",
+     "fields": [
+      "class",
+      "user"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:381"
+    },
+    {
+     "name": "class_member_class",
+     "fields": [
+      "class"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:382"
+    },
+    {
+     "name": "class_member_user",
+     "fields": [
+      "user"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:383"
+    }
+   ]
+  },
+  "class_course": {
+   "schemafull": true,
+   "source": "migration_sql.rs:385",
+   "fields": {
+    "class": {
+     "type": "record<class_group>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:386"
+    },
+    "course": {
+     "type": "record<course>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:387"
+    },
+    "attached_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:388"
+    },
+    "attached_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:391"
+    },
+    "source": {
+     "type": "option<record<class_blueprint>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:401"
+    }
+   },
+   "indexes": [
+    {
+     "name": "class_course_class_course",
+     "fields": [
+      "class",
+      "course"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:402"
+    },
+    {
+     "name": "class_course_class",
+     "fields": [
+      "class"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:403"
+    },
+    {
+     "name": "class_course_course",
+     "fields": [
+      "course"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:404"
+    }
+   ]
+  },
+  "enrollment": {
+   "schemafull": true,
+   "source": "migration_sql.rs:406",
+   "fields": {
+    "course": {
+     "type": "record<course>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:407"
+    },
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:408"
+    },
+    "enrolled_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:409"
+    },
+    "source": {
+     "type": "option<record<class_group>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:413"
+    }
+   },
+   "indexes": [
+    {
+     "name": "enrollment_course_user",
+     "fields": [
+      "course",
+      "user"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:414"
+    },
+    {
+     "name": "enrollment_user",
+     "fields": [
+      "user"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:415"
+    }
+   ]
+  },
+  "parent_link": {
+   "schemafull": true,
+   "source": "migration_sql.rs:417",
+   "fields": {
+    "parent": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:418"
+    },
+    "student": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:419"
+    },
+    "linked_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:420"
+    }
+   },
+   "indexes": [
+    {
+     "name": "parent_link_parent_student",
+     "fields": [
+      "parent",
+      "student"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:421"
+    },
+    {
+     "name": "parent_link_parent",
+     "fields": [
+      "parent"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:422"
+    },
+    {
+     "name": "parent_link_student",
+     "fields": [
+      "student"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:423"
+    }
+   ]
+  },
+  "course_session": {
+   "schemafull": true,
+   "source": "migration_sql.rs:425",
+   "fields": {
+    "course": {
+     "type": "record<course>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:426"
+    },
+    "teacher": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:427"
+    },
+    "topic": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:428"
+    },
+    "starts_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:429"
+    },
+    "ends_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:430"
+    },
+    "held_counted_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:436"
+    }
+   },
+   "indexes": [
+    {
+     "name": "course_session_course",
+     "fields": [
+      "course"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:437"
+    }
+   ]
+  },
+  "session_attendance": {
+   "schemafull": true,
+   "source": "migration_sql.rs:439",
+   "fields": {
+    "session": {
+     "type": "record<course_session>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:440"
+    },
+    "course": {
+     "type": "record<course>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:441"
+    },
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:442"
+    },
+    "status": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:443"
+    },
+    "marked_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:444"
+    }
+   },
+   "indexes": [
+    {
+     "name": "session_attendance_session_user",
+     "fields": [
+      "session",
+      "user"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:445"
+    },
+    {
+     "name": "session_attendance_session",
+     "fields": [
+      "session"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:446"
+    },
+    {
+     "name": "session_attendance_user",
+     "fields": [
+      "user"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:447"
+    },
+    {
+     "name": "session_attendance_course",
+     "fields": [
+      "course"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:448"
+    }
+   ]
+  },
+  "work_entry": {
+   "schemafull": true,
+   "source": "migration_sql.rs:450",
+   "fields": {
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:451"
+    },
+    "check_in": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:452"
+    },
+    "check_out": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:453"
+    }
+   },
+   "indexes": [
+    {
+     "name": "work_entry_user",
+     "fields": [
+      "user"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:454"
+    }
+   ]
+  },
+  "pomodoro_session": {
+   "schemafull": true,
+   "source": "migration_sql.rs:456",
+   "fields": {
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:457"
+    },
+    "started_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:458"
+    },
+    "finished_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:459"
+    },
+    "counted": {
+     "type": "option<bool>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:464"
+    }
+   },
+   "indexes": [
+    {
+     "name": "pomodoro_session_user",
+     "fields": [
+      "user"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:465"
+    }
+   ]
+  },
+  "exam": {
+   "schemafull": true,
+   "source": "migration_sql.rs:467",
+   "fields": {
+    "creator": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:468"
+    },
+    "course": {
+     "type": "record<course>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:469"
+    },
+    "title": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:470"
+    },
+    "description": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:471"
+    },
+    "kind": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:472"
+    },
+    "mode": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:473"
+    },
+    "starts_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:474"
+    },
+    "ends_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:475"
+    },
+    "duration_ms": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:476"
+    },
+    "max_attempts": {
+     "type": "int",
+     "optional": false,
+     "default": "1",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:477"
+    },
+    "allow_rejoin": {
+     "type": "bool",
+     "optional": false,
+     "default": "true",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:478"
+    },
+    "allow_review": {
+     "type": "bool",
+     "optional": false,
+     "default": "false",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:479"
+    },
+    "draft": {
+     "type": "bool",
+     "optional": false,
+     "default": "false",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:480"
+    },
+    "result_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:484"
+    }
+   },
+   "indexes": [
+    {
+     "name": "exam_course",
+     "fields": [
+      "course"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:485"
+    }
+   ]
+  },
+  "exam_attempt": {
+   "schemafull": true,
+   "source": "migration_sql.rs:487",
+   "fields": {
+    "exam": {
+     "type": "record<exam>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:488"
+    },
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:489"
+    },
+    "seq": {
+     "type": "int",
+     "optional": false,
+     "default": "1",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:490"
+    },
+    "started_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:491"
+    },
+    "finished_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:492"
+    },
+    "left_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:493"
+    }
+   },
+   "indexes": [
+    {
+     "name": "exam_attempt_exam_user_seq",
+     "fields": [
+      "exam",
+      "user",
+      "seq"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:494"
+    },
+    {
+     "name": "exam_attempt_exam",
+     "fields": [
+      "exam"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:495"
+    }
+   ]
+  },
+  "exam_question": {
+   "schemafull": true,
+   "source": "migration_sql.rs:497",
+   "fields": {
+    "exam": {
+     "type": "record<exam>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:498"
+    },
+    "text": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:499"
+    },
+    "kind": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:500"
+    },
+    "points": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:501"
+    },
+    "choices": {
+     "type": "option<array<object>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:505"
+    },
+    "choices.*.id": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:508"
+    },
+    "choices.*.text": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:509"
+    },
+    "correct": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:510"
+    },
+    "subject": {
+     "type": "record<subject>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:511"
+    },
+    "from_bank": {
+     "type": "option<record<bank_question>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:519"
+    },
+    "banked_as": {
+     "type": "option<record<bank_question>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:520"
+    }
+   },
+   "indexes": [
+    {
+     "name": "exam_question_exam",
+     "fields": [
+      "exam"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:522"
+    },
+    {
+     "name": "exam_question_subject",
+     "fields": [
+      "subject"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:523"
+    }
+   ],
+   "removed_fields": [
+    {
+     "field": "source_bank",
+     "source": "migration_sql.rs:521"
+    }
+   ]
+  },
+  "question_image": {
+   "schemafull": true,
+   "source": "migration_sql.rs:525",
+   "fields": {
+    "exam": {
+     "type": "record<exam>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:526"
+    },
+    "question": {
+     "type": "record<exam_question>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:527"
+    },
+    "slot": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:529"
+    },
+    "file": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:530"
+    },
+    "content_type": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:531"
+    },
+    "size": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:532"
+    }
+   },
+   "indexes": [
+    {
+     "name": "question_image_exam",
+     "fields": [
+      "exam"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:533"
+    },
+    {
+     "name": "question_image_question",
+     "fields": [
+      "question"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:534"
+    }
+   ]
+  },
+  "bank_question": {
+   "schemafull": true,
+   "source": "migration_sql.rs:536",
+   "fields": {
+    "owner": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:537"
+    },
+    "subject": {
+     "type": "option<record<subject>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:541"
+    },
+    "text": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:542"
+    },
+    "kind": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:543"
+    },
+    "points": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:544"
+    },
+    "choices": {
+     "type": "option<array<object>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:548"
+    },
+    "choices.*.id": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:551"
+    },
+    "choices.*.text": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:552"
+    },
+    "correct": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:553"
+    },
+    "source_exam": {
+     "type": "option<record<exam>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:554"
+    },
+    "visibility": {
+     "type": "string",
+     "optional": false,
+     "default": "'private'",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:558"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:559"
+    }
+   },
+   "indexes": [
+    {
+     "name": "bank_question_owner",
+     "fields": [
+      "owner"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:560"
+    },
+    {
+     "name": "bank_question_subject",
+     "fields": [
+      "subject"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:561"
+    }
+   ]
+  },
+  "bank_question_image": {
+   "schemafull": true,
+   "source": "migration_sql.rs:563",
+   "fields": {
+    "bank_question": {
+     "type": "record<bank_question>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:564"
+    },
+    "slot": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:566"
+    },
+    "file": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:567"
+    },
+    "content_type": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:568"
+    },
+    "size": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:569"
+    }
+   },
+   "indexes": [
+    {
+     "name": "bank_question_image_question",
+     "fields": [
+      "bank_question"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:570"
+    }
+   ]
+  },
+  "exam_answer": {
+   "schemafull": true,
+   "source": "migration_sql.rs:572",
+   "fields": {
+    "exam": {
+     "type": "record<exam>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:573"
+    },
+    "question": {
+     "type": "record<exam_question>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:574"
+    },
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:575"
+    },
+    "selected": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": true,
+     "source": "migration_sql.rs:577"
+    },
+    "text": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:578"
+    },
+    "updated_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:579"
+    },
+    "seq": {
+     "type": "int",
+     "optional": false,
+     "default": "1",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:583"
+    }
+   },
+   "indexes": [
+    {
+     "name": "exam_answer_question_user_seq",
+     "fields": [
+      "question",
+      "user",
+      "seq"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:587"
+    },
+    {
+     "name": "exam_answer_exam_user",
+     "fields": [
+      "exam",
+      "user"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:588"
+    },
+    {
+     "name": "exam_answer_exam",
+     "fields": [
+      "exam"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:589"
+    }
+   ],
+   "removed_indexes": [
+    {
+     "index": "exam_answer_question_user",
+     "source": "migration_sql.rs:586"
+    }
+   ]
+  },
+  "answer_image": {
+   "schemafull": true,
+   "source": "migration_sql.rs:591",
+   "fields": {
+    "exam": {
+     "type": "record<exam>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:592"
+    },
+    "question": {
+     "type": "record<exam_question>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:593"
+    },
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:594"
+    },
+    "file": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:595"
+    },
+    "content_type": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:596"
+    },
+    "size": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:597"
+    },
+    "seq": {
+     "type": "int",
+     "optional": false,
+     "default": "1",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:600"
+    }
+   },
+   "indexes": [
+    {
+     "name": "answer_image_exam",
+     "fields": [
+      "exam"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:601"
+    },
+    {
+     "name": "answer_image_user",
+     "fields": [
+      "user"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:602"
+    }
+   ]
+  },
+  "exam_result": {
+   "schemafull": true,
+   "source": "migration_sql.rs:604",
+   "fields": {
+    "exam": {
+     "type": "record<exam>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:605"
+    },
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:606"
+    },
+    "mark": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:607"
+    },
+    "graded_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:608"
+    },
+    "seq": {
+     "type": "int",
+     "optional": false,
+     "default": "1",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:611"
+    }
+   },
+   "indexes": [
+    {
+     "name": "exam_result_exam_user_seq",
+     "fields": [
+      "exam",
+      "user",
+      "seq"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:613"
+    }
+   ],
+   "removed_indexes": [
+    {
+     "index": "exam_result_exam_user",
+     "source": "migration_sql.rs:612"
+    }
+   ]
+  },
+  "pool_question": {
+   "schemafull": true,
+   "source": "migration_sql.rs:615",
+   "fields": {
+    "asker": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:616"
+    },
+    "title": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:617"
+    },
+    "body": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:618"
+    },
+    "status": {
+     "type": "string",
+     "optional": false,
+     "default": "'pending'",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:619"
+    },
+    "asked_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:620"
+    },
+    "approved_by": {
+     "type": "option<record<user>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:621"
+    },
+    "image_file": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:622"
+    },
+    "image_content_type": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:623"
+    },
+    "image_size": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:624"
+    }
+   },
+   "indexes": [
+    {
+     "name": "pool_question_status",
+     "fields": [
+      "status"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:625"
+    },
+    {
+     "name": "pool_question_asker",
+     "fields": [
+      "asker"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:626"
+    }
+   ]
+  },
+  "solution": {
+   "schemafull": true,
+   "source": "migration_sql.rs:628",
+   "fields": {
+    "question": {
+     "type": "record<pool_question>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:629"
+    },
+    "author": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:630"
+    },
+    "body": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:631"
+    },
+    "offered_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:632"
+    },
+    "image_file": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:633"
+    },
+    "image_content_type": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:634"
+    },
+    "image_size": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:635"
+    }
+   },
+   "indexes": [
+    {
+     "name": "solution_question",
+     "fields": [
+      "question"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:636"
+    }
+   ]
+  },
+  "settings": {
+   "schemafull": true,
+   "source": "migration_sql.rs:638",
+   "fields": {
+    "exam_kinds": {
+     "type": "array<object>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:639"
+    },
+    "exam_kinds.*.name": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:640"
+    },
+    "exam_kinds.*.weight": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:641"
+    },
+    "attendance_statuses": {
+     "type": "array<string>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:642"
+    },
+    "grade_bands": {
+     "type": "array<object>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:643"
+    },
+    "grade_bands.*.min": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:644"
+    },
+    "grade_bands.*.label": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:645"
+    },
+    "max_file_bytes": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:646"
+    },
+    "chatbot_history_turns": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:647"
+    },
+    "max_chatbot_threads": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:648"
+    },
+    "max_chatbot_message_len": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:649"
+    },
+    "meal_slots": {
+     "type": "option<array<object>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:660"
+    },
+    "meal_slots.*.name": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:661"
+    },
+    "meal_slots.*.serving_minute": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:667"
+    },
+    "dietary_tags": {
+     "type": "option<array<string>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:668"
+    },
+    "meal_cancel_cutoff_minutes": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:669"
+    }
+   },
+   "indexes": []
+  },
+  "homework": {
+   "schemafull": true,
+   "source": "migration_sql.rs:677",
+   "fields": {
+    "course": {
+     "type": "record<course>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:678"
+    },
+    "subject": {
+     "type": "record<subject>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:679"
+    },
+    "title": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:680"
+    },
+    "description": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:681"
+    },
+    "due_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:682"
+    },
+    "assigned": {
+     "type": "option<array<record<user>>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:683"
+    },
+    "assigned[*]": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:684"
+    },
+    "created_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:685"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:686"
+    }
+   },
+   "indexes": [
+    {
+     "name": "homework_course",
+     "fields": [
+      "course"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:687"
+    }
+   ]
+  },
+  "homework_submission": {
+   "schemafull": true,
+   "source": "migration_sql.rs:689",
+   "fields": {
+    "homework": {
+     "type": "record<homework>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:690"
+    },
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:691"
+    },
+    "text": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:692"
+    },
+    "submitted_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:693"
+    },
+    "updated_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:694"
+    },
+    "file_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:695"
+    },
+    "counted_on_time": {
+     "type": "option<bool>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:707"
+    },
+    "graded_by_result": {
+     "type": "option<record<homework_result>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:714"
+    }
+   },
+   "indexes": [
+    {
+     "name": "homework_submission_homework",
+     "fields": [
+      "homework"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:715"
+    }
+   ]
+  },
+  "homework_file": {
+   "schemafull": true,
+   "source": "migration_sql.rs:717",
+   "fields": {
+    "submission": {
+     "type": "record<homework_submission>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:718"
+    },
+    "name": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:719"
+    },
+    "content_type": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:720"
+    },
+    "size": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:721"
+    },
+    "file": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:722"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:723"
+    }
+   },
+   "indexes": [
+    {
+     "name": "homework_file_submission",
+     "fields": [
+      "submission"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:724"
+    }
+   ]
+  },
+  "homework_result": {
+   "schemafull": true,
+   "source": "migration_sql.rs:726",
+   "fields": {
+    "homework": {
+     "type": "record<homework>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:727"
+    },
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:728"
+    },
+    "status": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:729"
+    },
+    "mark": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:730"
+    },
+    "graded_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:731"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:732"
+    }
+   },
+   "indexes": [
+    {
+     "name": "homework_result_homework",
+     "fields": [
+      "homework"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:733"
+    }
+   ]
+  },
+  "appointment_slot": {
+   "schemafull": true,
+   "source": "migration_sql.rs:745",
+   "fields": {
+    "teacher": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:746"
+    },
+    "starts_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:747"
+    },
+    "ends_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:748"
+    },
+    "occupied": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:749"
+    },
+    "note": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:750"
+    },
+    "series": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:751"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:752"
+    }
+   },
+   "indexes": [
+    {
+     "name": "appointment_slot_teacher_starts",
+     "fields": [
+      "teacher",
+      "starts_at"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:753"
+    },
+    {
+     "name": "appointment_slot_series",
+     "fields": [
+      "series"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:754"
+    }
+   ]
+  },
+  "appointment": {
+   "schemafull": true,
+   "source": "migration_sql.rs:756",
+   "fields": {
+    "slot": {
+     "type": "record<appointment_slot>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:757"
+    },
+    "requester": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:758"
+    },
+    "status": {
+     "type": "string",
+     "optional": false,
+     "default": "'pending'",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:759"
+    },
+    "reason": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:760"
+    },
+    "proposed_starts_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:761"
+    },
+    "proposed_ends_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:762"
+    },
+    "proposed_by": {
+     "type": "option<record<user>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:763"
+    },
+    "decided_by": {
+     "type": "option<record<user>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:764"
+    },
+    "cancelled_by": {
+     "type": "option<record<user>>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:765"
+    },
+    "cancel_reason": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:766"
+    },
+    "reject_reason": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:767"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:768"
+    }
+   },
+   "indexes": [
+    {
+     "name": "appointment_slot_ref",
+     "fields": [
+      "slot"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:769"
+    },
+    {
+     "name": "appointment_requester",
+     "fields": [
+      "requester"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:770"
+    },
+    {
+     "name": "appointment_status",
+     "fields": [
+      "status"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:771"
+    }
+   ]
+  },
+  "menu": {
+   "schemafull": true,
+   "source": "migration_sql.rs:781",
+   "fields": {
+    "date": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:782"
+    },
+    "slot": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:783"
+    },
+    "capacity": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:784"
+    },
+    "seats_booked": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:790"
+    },
+    "version": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:791"
+    },
+    "created_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:792"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:793"
+    }
+   },
+   "indexes": [
+    {
+     "name": "menu_date_slot",
+     "fields": [
+      "date",
+      "slot"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:794"
+    }
+   ]
+  },
+  "menu_dish": {
+   "schemafull": true,
+   "source": "migration_sql.rs:796",
+   "fields": {
+    "menu": {
+     "type": "record<menu>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:797"
+    },
+    "name": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:798"
+    },
+    "description": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:799"
+    },
+    "price_minor": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:801"
+    },
+    "tags": {
+     "type": "array<string>",
+     "optional": false,
+     "default": "[]",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:802"
+    },
+    "tags[*]": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:803"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:804"
+    }
+   },
+   "indexes": [
+    {
+     "name": "menu_dish_menu",
+     "fields": [
+      "menu"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:805"
+    }
+   ]
+  },
+  "dietary_profile": {
+   "schemafull": true,
+   "source": "migration_sql.rs:807",
+   "fields": {
+    "student": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:808"
+    },
+    "tags": {
+     "type": "array<string>",
+     "optional": false,
+     "default": "[]",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:809"
+    },
+    "tags[*]": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:810"
+    },
+    "note": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:811"
+    },
+    "updated_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:812"
+    },
+    "updated_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:813"
+    }
+   },
+   "indexes": [
+    {
+     "name": "dietary_profile_student",
+     "fields": [
+      "student"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:814"
+    }
+   ]
+  },
+  "meal_booking": {
+   "schemafull": true,
+   "source": "migration_sql.rs:818",
+   "fields": {
+    "menu": {
+     "type": "record<menu>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:819"
+    },
+    "student": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:820"
+    },
+    "booked_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:821"
+    },
+    "status": {
+     "type": "string",
+     "optional": false,
+     "default": "'booked'",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:822"
+    },
+    "attempt": {
+     "type": "int",
+     "optional": false,
+     "default": "1",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:827"
+    },
+    "price_minor": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:828"
+    },
+    "cancelled_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:829"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:830"
+    }
+   },
+   "indexes": [
+    {
+     "name": "meal_booking_menu",
+     "fields": [
+      "menu"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:831"
+    },
+    {
+     "name": "meal_booking_student",
+     "fields": [
+      "student"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:832"
+    }
+   ]
+  },
+  "meal_attendance": {
+   "schemafull": true,
+   "source": "migration_sql.rs:834",
+   "fields": {
+    "menu": {
+     "type": "record<menu>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:835"
+    },
+    "student": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:836"
+    },
+    "status": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:837"
+    },
+    "marked_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:838"
+    },
+    "marked_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:839"
+    }
+   },
+   "indexes": [
+    {
+     "name": "meal_attendance_menu_student",
+     "fields": [
+      "menu",
+      "student"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:840"
+    }
+   ]
+  },
+  "meal_ledger": {
+   "schemafull": true,
+   "source": "migration_sql.rs:846",
+   "fields": {
+    "student": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:847"
+    },
+    "kind": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:848"
+    },
+    "amount_minor": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:849"
+    },
+    "source": {
+     "type": "option<record>",
+     "optional": true,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:850"
+    },
+    "method": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:851"
+    },
+    "note": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:852"
+    },
+    "recorded_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:853"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:854"
+    }
+   },
+   "indexes": [
+    {
+     "name": "meal_ledger_student",
+     "fields": [
+      "student"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:855"
+    }
+   ]
+  },
+  "fee_plan": {
+   "schemafull": true,
+   "source": "migration_sql.rs:863",
+   "fields": {
+    "name": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:864"
+    },
+    "installments": {
+     "type": "array<object>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:865"
+    },
+    "installments.*.amount_minor": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:866"
+    },
+    "installments.*.due_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:867"
+    },
+    "created_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:868"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:869"
+    },
+    "assignment_count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:875"
+    }
+   },
+   "indexes": []
+  },
+  "fee_plan_assignment": {
+   "schemafull": true,
+   "source": "migration_sql.rs:880",
+   "fields": {
+    "plan": {
+     "type": "record<fee_plan>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:881"
+    },
+    "student": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:882"
+    },
+    "assigned_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:883"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:884"
+    }
+   },
+   "indexes": [
+    {
+     "name": "fee_plan_assignment_plan",
+     "fields": [
+      "plan"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:885"
+    },
+    {
+     "name": "fee_plan_assignment_student",
+     "fields": [
+      "student"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:886"
+    }
+   ]
+  },
+  "payment_ledger": {
+   "schemafull": true,
+   "source": "migration_sql.rs:894",
+   "fields": {
+    "student": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:895"
+    },
+    "kind": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:896"
+    },
+    "amount_minor": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:897"
+    },
+    "source": {
+     "type": "option<record>",
+     "optional": true,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:898"
+    },
+    "due_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:899"
+    },
+    "method": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:900"
+    },
+    "note": {
+     "type": "option<string>",
+     "optional": true,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:901"
+    },
+    "recorded_by": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:902"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": true,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:903"
+    }
+   },
+   "indexes": [
+    {
+     "name": "payment_ledger_student",
+     "fields": [
+      "student"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:904"
+    },
+    {
+     "name": "payment_ledger_source",
+     "fields": [
+      "source"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:905"
+    }
+   ]
+  },
+  "badge_award": {
+   "schemafull": true,
+   "source": "migration_sql.rs:913",
+   "fields": {
+    "user": {
+     "type": "record<user>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:914"
+    },
+    "badge": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:915"
+    },
+    "earned_at": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:916"
+    }
+   },
+   "indexes": [
+    {
+     "name": "badge_award_user",
+     "fields": [
+      "user"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:919"
+    }
+   ]
+  },
+  "kind_ref": {
+   "schemafull": true,
+   "source": "migration_sql.rs:928",
+   "fields": {
+    "count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:929"
+    },
+    "retired": {
+     "type": "option<bool>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:930"
+    }
+   },
+   "indexes": []
+  },
+  "slot_ref": {
+   "schemafull": true,
+   "source": "migration_sql.rs:932",
+   "fields": {
+    "count": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:933"
+    },
+    "retired": {
+     "type": "option<bool>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:934"
+    }
+   },
+   "indexes": []
+  },
+  "migration_mark": {
+   "schemafull": true,
+   "source": "migration_sql.rs:956",
+   "fields": {
+    "done_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:957"
+    },
+    "fingerprint": {
+     "type": "option<int>",
+     "optional": true,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:958"
+    }
+   },
+   "indexes": []
+  }
+ },
+ "control_tables": {
+  "school": {
+   "schemafull": true,
+   "source": "migration_sql.rs:1475",
+   "fields": {
+    "slug": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1476"
+    },
+    "name": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1477"
+    },
+    "status": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1478"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1479"
+    },
+    "modules": {
+     "type": "array<string>",
+     "optional": false,
+     "default": "[]",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1483"
+    }
+   },
+   "indexes": [
+    {
+     "name": "school_slug",
+     "fields": [
+      "slug"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:1491"
+    }
+   ]
+  },
+  "builder": {
+   "schemafull": true,
+   "source": "migration_sql.rs:1493",
+   "fields": {
+    "username": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1494"
+    },
+    "password_hash": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1495"
+    }
+   },
+   "indexes": [
+    {
+     "name": "builder_username",
+     "fields": [
+      "username"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:1496"
+    }
+   ]
+  },
+  "builder_session": {
+   "schemafull": true,
+   "source": "migration_sql.rs:1498",
+   "fields": {
+    "builder": {
+     "type": "record<builder>",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1499"
+    },
+    "token": {
+     "type": "string",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1500"
+    },
+    "created_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1501"
+    },
+    "expires_at": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1502"
+    }
+   },
+   "indexes": [
+    {
+     "name": "builder_session_token",
+     "fields": [
+      "token"
+     ],
+     "unique": true,
+     "source": "migration_sql.rs:1503"
+    },
+    {
+     "name": "builder_session_expires",
+     "fields": [
+      "expires_at"
+     ],
+     "unique": false,
+     "source": "migration_sql.rs:1504"
+    }
+   ]
+  },
+  "rate_limit": {
+   "schemafull": true,
+   "source": "migration_sql.rs:1507",
+   "fields": {
+    "hits": {
+     "type": "int",
+     "optional": false,
+     "default": "0",
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1508"
+    },
+    "window_start": {
+     "type": "int",
+     "optional": false,
+     "default": null,
+     "readonly": false,
+     "value": null,
+     "assert": null,
+     "flexible": false,
+     "overwrite": false,
+     "source": "migration_sql.rs:1509"
+    }
+   },
+   "indexes": []
+  }
+ },
+ "id_rules": {
+  "user": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/user.rs:32"
+  },
+  "session": {
+   "strategy": "ulid_random",
+   "note": "ulid::Ulid::new() - random low 80 bits",
+   "source": "domain/session.rs:14"
+  },
+  "note": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/note.rs:17"
+  },
+  "note_file": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/note_file.rs:24"
+  },
+  "message": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/message.rs:108"
+  },
+  "board": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/board.rs:31"
+  },
+  "board_stroke": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/board_stroke.rs:69"
+  },
+  "course_note": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/course_note.rs:19"
+  },
+  "course_note_file": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/course_note_file.rs:28"
+  },
+  "rag_output": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/rag_output.rs:34"
+  },
+  "chatbot_thread": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/chatbot_thread.rs:25"
+  },
+  "chatbot_message": {
+   "strategy": "ulid_monotonic_local",
+   "note": "file-local LazyLock<Mutex<Generator>>; semantics identical to next_ulid",
+   "source": "domain/chatbot_message.rs:47"
+  },
+  "rate_limit": {
+   "strategy": "deterministic_opaque",
+   "source": "migration_sql.rs:268",
+   "note": "one row per tier+client+window, built in crate::rate_limit. NOT seed-relevant."
+  },
+  "event": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/event.rs:23"
+  },
+  "attendance": {
+   "strategy": "composite",
+   "pattern": "{event_key}_{user_key}",
+   "source": "domain/attendance.rs:17-20",
+   "note": ""
+  },
+  "registration": {
+   "strategy": "composite",
+   "pattern": "{event_key}_{user_key}",
+   "source": "domain/registration.rs:16-19",
+   "note": ""
+  },
+  "term": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/term.rs:26"
+  },
+  "course": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/course.rs:18"
+  },
+  "subject": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/subject.rs:18"
+  },
+  "class_group": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/class_group.rs:31"
+  },
+  "class_blueprint": {
+   "strategy": "natural_key",
+   "pattern": "{grade}",
+   "source": "domain/class_blueprint.rs:41",
+   "note": "the grade label IS the record key -> one blueprint per grade, by construction"
+  },
+  "class_member": {
+   "strategy": "composite",
+   "pattern": "{class_key}_{user_key}",
+   "source": "domain/class_member.rs:24 -> db/class_pump.rs:676",
+   "note": ""
+  },
+  "class_course": {
+   "strategy": "composite",
+   "pattern": "{class_key}_{course_key}",
+   "source": "domain/class_course.rs:27 -> db/class_pump.rs:676",
+   "note": ""
+  },
+  "enrollment": {
+   "strategy": "composite",
+   "pattern": "{course_key}_{user_key}",
+   "source": "domain/enrollment.rs:17-20",
+   "note": ""
+  },
+  "parent_link": {
+   "strategy": "composite",
+   "pattern": "{parent_key}_{student_key}",
+   "source": "domain/parent_link.rs:15-18",
+   "note": ""
+  },
+  "course_session": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/course_session.rs:20"
+  },
+  "session_attendance": {
+   "strategy": "composite",
+   "pattern": "{course_session_key}_{user_key}",
+   "source": "domain/session_attendance.rs:18-21",
+   "note": ""
+  },
+  "work_entry": {
+   "strategy": "composite",
+   "pattern": "open_{user_key}  (WHILE OPEN)  |  <monotonic ULID>  (once closed)",
+   "source": "domain/work_entry.rs:28 (closed) / domain/work_entry.rs:37-40 (open)",
+   "note": "CRITICAL: an in-progress work entry lives at the fixed id open_<user ULID>; closing it moves the row to a fresh ULID id."
+  },
+  "pomodoro_session": {
+   "strategy": "composite",
+   "pattern": "open_{user_key}  (WHILE OPEN)  |  <monotonic ULID>  (once closed)",
+   "source": "domain/pomodoro.rs:17-20 (closed) / domain/pomodoro.rs:29-32 (open)",
+   "note": "same open_/closed split as work_entry"
+  },
+  "exam": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/exam.rs:35"
+  },
+  "exam_attempt": {
+   "strategy": "composite",
+   "pattern": "{exam_key}_{user_key}   (seq==1)   |   {exam_key}_{user_key}_{seq}   (seq>1)",
+   "source": "domain/exam_attempt.rs:19 -> domain/key.rs:16",
+   "note": "the bare seq==1 form is migration law - do not number the first sitting"
+  },
+  "exam_question": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/exam_question.rs:25"
+  },
+  "exam_question.choices[*].id": {
+   "strategy": "ulid_random",
+   "note": "embedded choice id: deliberately random Ulid::new(), choices are ordered by position not id",
+   "source": "domain/exam_question.rs:122"
+  },
+  "question_image": {
+   "strategy": "composite",
+   "pattern": "{exam_question_key}_q  (question illustration)  |  {exam_question_key}_{choice_id}",
+   "source": "domain/question_image.rs:29-32 -> domain/key.rs:30",
+   "note": ""
+  },
+  "bank_question": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/bank_question.rs:73"
+  },
+  "bank_question_image": {
+   "strategy": "composite",
+   "pattern": "{bank_question_key}_q  |  {bank_question_key}_{choice_id}",
+   "source": "domain/bank_question_image.rs:30-33 -> domain/key.rs:30",
+   "note": ""
+  },
+  "exam_answer": {
+   "strategy": "composite",
+   "pattern": "{exam_question_key}_{user_key} (seq==1) | {exam_question_key}_{user_key}_{seq}",
+   "source": "domain/exam_answer.rs:22 -> domain/key.rs:16",
+   "note": ""
+  },
+  "answer_image": {
+   "strategy": "composite",
+   "pattern": "{exam_question_key}_{user_key} (seq==1) | {exam_question_key}_{user_key}_{seq}",
+   "source": "domain/answer_image.rs:34 -> domain/key.rs:16",
+   "note": ""
+  },
+  "exam_result": {
+   "strategy": "composite",
+   "pattern": "{exam_key}_{user_key} (seq==1) | {exam_key}_{user_key}_{seq}",
+   "source": "domain/exam_result.rs:48 -> domain/key.rs:16",
+   "note": ""
+  },
+  "pool_question": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/pool_question.rs:36"
+  },
+  "solution": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/solution.rs:31"
+  },
+  "settings": {
+   "strategy": "fixed",
+   "id": "settings:school",
+   "source": "domain/settings.rs:239-241 (SETTINGS_TABLE constant.rs:893, SETTINGS_KEY constant.rs:805)",
+   "note": "singleton. An absent row reads as the built-in defaults, so seeding it is OPTIONAL - but required if you want non-default exam_kinds / meal_slots / dietary_tags."
+  },
+  "homework": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/homework.rs:34"
+  },
+  "homework_submission": {
+   "strategy": "composite",
+   "pattern": "{homework_key}_{user_key}",
+   "source": "domain/homework_submission.rs:35-38",
+   "note": ""
+  },
+  "homework_file": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/homework_file.rs:30"
+  },
+  "homework_result": {
+   "strategy": "composite",
+   "pattern": "{homework_key}_{user_key}",
+   "source": "domain/homework_result.rs:34-39",
+   "note": "shares its key with homework_submission - that is how graded_by_result is addressed without a search"
+  },
+  "appointment_slot": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/appointment_slot.rs:41-44"
+  },
+  "appointment_slot.series": {
+   "strategy": "ulid_monotonic",
+   "note": "a bare ULID STRING (option<string> column), not a record link",
+   "source": "domain/appointment_slot.rs:70"
+  },
+  "appointment": {
+   "strategy": "ulid_monotonic_local",
+   "note": "file-local LazyLock<Mutex<Generator>>; semantics identical to next_ulid",
+   "source": "domain/appointment.rs:67-72"
+  },
+  "menu": {
+   "strategy": "natural_key",
+   "pattern": "{date}_{slot}   e.g.  2026-09-01_lunch",
+   "source": "domain/menu.rs:44-49",
+   "note": "date is YYYY-MM-DD text; slot text may not contain / \\ ? # % (domain/menu.rs:138-164). Matches UNIQUE index menu_date_slot."
+  },
+  "menu_dish": {
+   "strategy": "ulid_monotonic_local",
+   "note": "file-local LazyLock<Mutex<Generator>>; semantics identical to next_ulid",
+   "source": "domain/menu_dish.rs:38-44"
+  },
+  "dietary_profile": {
+   "strategy": "natural_key",
+   "pattern": "{student_key}",
+   "source": "domain/dietary_profile.rs:31",
+   "note": ""
+  },
+  "meal_booking": {
+   "strategy": "composite",
+   "pattern": "{menu_key}_{student_key}  ->  {date}_{slot}_{student_ulid}",
+   "source": "domain/meal_booking.rs:57-60",
+   "note": ""
+  },
+  "meal_attendance": {
+   "strategy": "composite",
+   "pattern": "{menu_key}_{student_key}",
+   "source": "domain/meal_attendance.rs:37-40",
+   "note": ""
+  },
+  "meal_ledger": {
+   "strategy": "composite",
+   "pattern": "{booking_key}_c{attempt} (charge) | {booking_key}_r{attempt} (reversal) | {student_key}_k_{request_key} (idempotent credit) | <local ULID> (free credit)",
+   "source": "domain/meal_ledger.rs:87-137",
+   "note": "marker chars: c=charge, r=reversal, k=credit"
+  },
+  "fee_plan": {
+   "strategy": "ulid_monotonic",
+   "note": "domain::monotonic_id::next_ulid() - ms-monotonic ULID, 26 chars Crockford base32",
+   "source": "domain/fee_plan.rs:32"
+  },
+  "fee_plan_assignment": {
+   "strategy": "composite",
+   "pattern": "{fee_plan_key}_{student_key}",
+   "source": "domain/fee_plan_assignment.rs:34-38",
+   "note": ""
+  },
+  "payment_ledger": {
+   "strategy": "composite",
+   "pattern": "{assignment_key}_c{n} (charge, n 1-based) | {line_key}_r (reversal) | {line_key}_k_{request_key} (payment) | {line_key}_kr_{request_key} (refund) | <monotonic ULID> (free)",
+   "source": "domain/payment_ledger.rs:66-116",
+   "note": "'_' may never appear inside a request_key; ULID keys are [0-9A-Z] only, so the grammar parses uniquely"
+  },
+  "badge_award": {
+   "strategy": "composite",
+   "pattern": "{user_key}_{badge_id}",
+   "source": "db/badge.rs:94-96",
+   "note": "badge_id from the 34-entry BADGES catalog, constant.rs:1095"
+  },
+  "kind_ref": {
+   "strategy": "natural_key",
+   "pattern": "{exam_kind_name}",
+   "source": "domain/exam_result.rs:25-27 / db/cap.rs:681",
+   "note": "kind_ref:quiz - one row per exam-kind NAME, created by the first claim"
+  },
+  "slot_ref": {
+   "strategy": "natural_key",
+   "pattern": "{meal_slot_name}",
+   "source": "domain/menu.rs:30-32 / db/menu.rs:126",
+   "note": "slot_ref:lunch - one row per meal-slot NAME"
+  },
+  "migration_mark": {
+   "strategy": "fixed",
+   "id": "migration_mark:board_roster , migration_mark:profile_counters",
+   "source": "migration_sql.rs:1354,1432",
+   "note": "written by migrate(). Do NOT seed these unless you deliberately want to suppress the one-time backfills."
+  },
+  "_control_school": {
+   "strategy": "natural_key",
+   "pattern": "{slug}",
+   "source": "tenant.rs:151-153",
+   "note": "CONTROL DB: school:<slug>, the id IS the slug"
+  },
+  "_control_builder": {
+   "strategy": "ulid_random",
+   "note": "ulid::Ulid::new() - random low 80 bits",
+   "source": "domain/builder.rs:27"
+  },
+  "_control_builder_session": {
+   "strategy": "ulid_random",
+   "note": "ulid::Ulid::new() - random low 80 bits",
+   "source": "db/builder.rs:44"
+  },
+  "_user_ai_principal": {
+   "strategy": "fixed",
+   "id": "user:ai_service",
+   "source": "constant.rs:762",
+   "note": "AI_PRINCIPAL_KEY - a reserved literal; the row is NEVER written. Never seed it."
+  }
+ },
+ "id_syntax": {
+  "recommended_literal": "table:⟨key⟩        (U+27E8 LEFT / U+27E9 RIGHT ANGLE BRACKET)",
+  "equivalent_literal": "table:`key`         (backticks)",
+  "bulletproof_function": "type::record('table', 'key')",
+  "why": "Every minted key is a 26-char Crockford-base32 ULID, or a composite that starts with one, so it BEGINS WITH A DIGIT and is not a safe bare identifier in SurrealQL.",
+  "evidence": [
+   "The codebase NEVER spells a ULID id into SQL text: ids are bound as surrealdb::types::RecordId parameters, e.g. db/enrollment.rs:96 'CREATE $id CONTENT $row'.",
+   "type::record(...) is used whenever the key is computed inside a query: db/badge.rs:122, db/class_pump.rs:436, db/course.rs:312, migration_sql.rs:996/1167/1265/1269.",
+   "Literal table:key appears ONLY for known-safe keys: migration_mark:board_roster (migration_sql.rs:1354), settings:school (db/chatbot_thread.rs:123), and in unit tests with hand-written keys like user:t.",
+   "Backticks are used in this codebase for DATABASE NAMES only (tenant.rs:109-111), never for record ids - the comment there explains that an unquoted 2024school parses as a duration and 12345 as a number in SurrealDB 3.2."
+  ],
+  "unverified": "Whether SurrealDB 3.2 happens to accept a bare digit-leading alphanumeric record id was not executed. Always wrap.",
+  "ulid_time_consistency": {
+   "derivable": "A ULID's first 10 characters encode its mint time in ms (Crockford base32). Nothing in the code DERIVES time from an id.",
+   "but": "Several listings ORDER BY id and document that as 'newest first' (domain/monotonic_id.rs header, class_member.rs:44, class_course.rs:55).",
+   "seed_rule": "Generate each row's ULID FROM its own created_at / *_at millisecond value, so id order and time order agree. Otherwise every 'newest first' list in the UI is scrambled."
+  }
+ },
+ "counters": {
+  "course.enrollment_count": {
+   "counts": "enrollment",
+   "where": "course = <this course>",
+   "cap": "course.capacity ?? unlimited",
+   "writes": [
+    "db/enrollment.rs:91 (+1)",
+    "db/enrollment.rs:232 (-1)",
+    "db/class_pump.rs:442 (+1 class pump)",
+    "db/class_pump.rs:628 (-1 detach)",
+    "db/user.rs:307 (-1 delete/demote)"
+   ],
+   "delete_guard": "db/course.rs:301  (enrollment_count ?? 0) = 0",
+   "recomputed_every_boot": true,
+   "recompute_source": "migration_sql.rs:1068 + 1181"
+  },
+  "term.course_count": {
+   "counts": "course",
+   "where": "term = <this term>",
+   "writes": [
+    "db/course.rs:51 (+1)",
+    "db/course.rs:171 (move)",
+    "db/course.rs:305 (-1)"
+   ],
+   "delete_guard": "db/term.rs:85  (course_count ?? 0) = 0 AND (class_count ?? 0) = 0",
+   "seed": "migration_sql.rs:1189"
+  },
+  "term.class_count": {
+   "counts": "class_group",
+   "where": "term = <this term>",
+   "writes": [
+    "db/class_group.rs:49 (+1)",
+    "db/class_group.rs:129 (move)",
+    "db/class_group.rs:204 (-1)"
+   ],
+   "delete_guard": "db/term.rs:85",
+   "seed": null,
+   "note": "NO backfill seed - seed data must write it itself"
+  },
+  "subject.exam_question_count": {
+   "counts": "exam_question",
+   "where": "subject = <this subject>",
+   "writes": [
+    "db/exam_question.rs:110 (+1)",
+    "db/exam_question.rs:255 (retag +-1)",
+    "db/exam_question.rs:370 (-1)"
+   ],
+   "seed": "migration_sql.rs:1241"
+  },
+  "subject.homework_count": {
+   "counts": "homework",
+   "where": "subject = <this subject>",
+   "writes": [
+    "db/homework.rs:66 (+1)",
+    "db/homework.rs:198 (move)",
+    "db/homework.rs:225 (-1)"
+   ],
+   "seed": "migration_sql.rs:1245"
+  },
+  "class_group.class_member_count": {
+   "counts": "class_member",
+   "where": "class = <this class>",
+   "cap": "MAX_CLASS_MEMBERS = 200",
+   "writes": [
+    "db/class_pump.rs:427 (+1)",
+    "db/user.rs:299 (-1)"
+   ],
+   "delete_guard": "db/class_group.rs:199 both counters zero",
+   "seed": null
+  },
+  "class_group.class_course_count": {
+   "counts": "class_course",
+   "where": "class = <this class>",
+   "cap": "MAX_CLASS_COURSES = 50",
+   "writes": [
+    "db/class_pump.rs:427 (+1)",
+    "db/course.rs:328 (-1)"
+   ],
+   "delete_guard": "db/class_group.rs:199",
+   "seed": null
+  },
+  "exam.result_count": {
+   "counts": "exam_result",
+   "where": "exam = <this exam>  (ALL seq values)",
+   "writes": [
+    "db/exam_result.rs:146 (+1, only when the sitting had no mark)",
+    "db/exam_result.rs:309 (-len(gone))"
+   ],
+   "seed": "migration_sql.rs:1276"
+  },
+  "event.registration_count": {
+   "counts": "registration",
+   "where": "event = <this event>",
+   "cap": "event.audience.capacity ?? unlimited (read live)",
+   "writes": [
+    "service/registration.rs:56 (+1)",
+    "db/registration.rs:46 (-1)",
+    "db/user.rs:326 (-n)"
+   ],
+   "seed": "migration_sql.rs:1194"
+  },
+  "note.file_count": {
+   "counts": "note_file",
+   "where": "note = <this note>",
+   "cap": "MAX_NOTE_FILES = 10",
+   "writes": [
+    "db/note_file.rs:23 (+1)",
+    "db/note_file.rs:75 (-1)"
+   ],
+   "seed": "migration_sql.rs:1199"
+  },
+  "course_note.file_count": {
+   "counts": "course_note_file",
+   "where": "course_note = <this note>",
+   "cap": "MAX_COURSE_NOTE_FILES = 10",
+   "writes": [
+    "db/course_note_file.rs:22 (+1)",
+    "db/course_note_file.rs:115 (-1)"
+   ],
+   "seed": null,
+   "note": "NO backfill seed"
+  },
+  "homework_submission.file_count": {
+   "counts": "homework_file",
+   "where": "submission = <this submission>",
+   "cap": "MAX_HOMEWORK_FILES_PER_SUBMISSION = 10 AND graded_by_result = NONE",
+   "writes": [
+    "db/homework_file.rs:44 (+1)",
+    "db/homework_file.rs:192 (-1)"
+   ],
+   "seed": "migration_sql.rs:1204"
+  },
+  "menu.seats_booked": {
+   "counts": "meal_booking",
+   "where": "menu = <this menu> AND status = 'booked'   (cancelled rows EXCLUDED)",
+   "cap": "menu.capacity",
+   "writes": [
+    "db/meal_booking.rs:128 (+1, fenced on version)",
+    "db/meal_booking.rs:272 (-n)"
+   ],
+   "delete_guard": "db/menu.rs:250  (seats_booked ?? 0) = 0",
+   "seed": "migration_sql.rs:1226"
+  },
+  "menu.version": {
+   "counts": null,
+   "where": "NOT a row count - monotonic revision. Starts 0, +1 on every price / capacity / dish change.",
+   "writes": [
+    "db/menu.rs:121 (init 0)",
+    "db/menu.rs:196",
+    "db/menu.rs:64",
+    "db/menu_dish.rs:53"
+   ],
+   "seed": null,
+   "note": "absent reads as 0 everywhere it is compared; migration deliberately gives it no pass"
+  },
+  "appointment_slot.occupied": {
+   "counts": "appointment",
+   "where": "slot = <this slot> AND status IN ['pending','approved']",
+   "cap": "1",
+   "writes": [
+    "service/appointment.rs:115 (+1)",
+    "db/appointment.rs:176 (-1)"
+   ],
+   "delete_guard": "db/appointment_slot.rs:222  (occupied ?? 0) = 0",
+   "seed": "migration_sql.rs:1214"
+  },
+  "user.chatbot_thread_count": {
+   "counts": "chatbot_thread",
+   "where": "user_id = <this user>",
+   "cap": "settings.max_chatbot_threads ?? 50 (read live)",
+   "writes": [
+    "db/chatbot_thread.rs:119 (+1)",
+    "db/chatbot_thread.rs:235 (-n)"
+   ],
+   "seed": "migration_sql.rs:1209"
+  },
+  "user.board_count": {
+   "counts": "board",
+   "where": "creator = <this user>",
+   "cap": "MAX_BOARDS_PER_CREATOR = 200",
+   "writes": [
+    "db/board.rs:37 (+1)",
+    "db/board.rs:187 (-n)",
+    "db/user.rs:341 (user delete)"
+   ],
+   "seed": null,
+   "note": "MAINTAINED but has NO backfill seed anywhere - seed data MUST set it itself"
+  },
+  "board.epoch": {
+   "counts": null,
+   "where": "monotonic epoch index, DEFAULT 0, +1 on every clear",
+   "writes": [
+    "db/board_stroke.rs:158"
+   ],
+   "seed": null,
+   "note": "no backfill - seed data must write it"
+  },
+  "board.epoch_stroke_count": {
+   "counts": "board_stroke",
+   "where": "board = <this board> AND epoch = board.epoch",
+   "cap": "MAX_EPOCH_STROKES = 5000",
+   "writes": [
+    "db/board_stroke.rs:58 (+1)",
+    "db/board_stroke.rs:158 (reset to 0 on clear)"
+   ],
+   "seed": null,
+   "note": "no backfill - seed data must write it"
+  },
+  "board.total_stroke_count": {
+   "counts": "board_stroke",
+   "where": "board = <this board>  (ALL rows, clear markers INCLUDED)",
+   "cap": "MAX_BOARD_STROKES = 50000",
+   "writes": [
+    "db/board_stroke.rs:58 (+1)",
+    "db/board_stroke.rs:158 (+1 for the clear marker itself)"
+   ],
+   "recomputed_every_boot": true,
+   "recompute_source": "migration_sql.rs:1311"
+  },
+  "kind_ref.count": {
+   "counts": "exam_result",
+   "where": "exam.kind = <the row id>",
+   "writes": [
+    "db/exam_result.rs:143 (+1)",
+    "db/exam_result.rs:307 (-n)",
+    "db/course.rs:312 (-n)"
+   ],
+   "seed": "migration_sql.rs:1265",
+   "note": "row id IS the exam-kind name. Gates whether that kind can be removed from settings."
+  },
+  "slot_ref.count": {
+   "counts": "menu",
+   "where": "slot = <the row id>",
+   "writes": [
+    "db/menu.rs:126 (+1)",
+    "db/menu.rs:252 (-1)"
+   ],
+   "seed": "migration_sql.rs:1270",
+   "note": "row id IS the meal-slot name"
+  },
+  "kind_ref.retired / slot_ref.retired": {
+   "counts": null,
+   "where": "a bit, not a count. Flipped true by cap::retire_name only while (count ?? 0) = 0.",
+   "writes": [
+    "db/cap.rs:765",
+    "db/cap.rs:788"
+   ],
+   "seed": null
+  },
+  "fee_plan.assignment_count": {
+   "counts": "fee_plan_assignment",
+   "where": "plan = <this plan>",
+   "writes": [
+    "service/fee_plan_assignment.rs:64 (+1)"
+   ],
+   "seed": "migration_sql.rs:1296",
+   "note": "MONOTONIC - no decrement path exists (there is no unassign route). Non-zero freezes edit+delete of the plan."
+  },
+  "user.homework_submitted_total": {
+   "counts": "homework_submission",
+   "where": "user = <this user>",
+   "writes": [
+    "db/homework_submission.rs:110 (+1 on first hand-in)",
+    "db/homework_submission.rs:262 (-1)"
+   ],
+   "badge_stat": "homework_submitted",
+   "seeded_once": "migration_mark:profile_counters (migration_sql.rs:1437)"
+  },
+  "user.homework_on_time_total": {
+   "counts": "homework_submission",
+   "where": "user = <this user> AND counted_on_time = true  (i.e. submitted_at <= homework.due_at)",
+   "writes": [
+    "db/homework_submission.rs:111",
+    "db/homework_submission.rs:264"
+   ],
+   "badge_stat": "homework_on_time",
+   "seeded_once": "migration_mark:profile_counters (migration_sql.rs:1440)"
+  },
+  "user.exam_sat_total": {
+   "counts": "exam_attempt",
+   "where": "user = <this user> AND (seq ?? 1) = 1   (one per exam - a retake credits nothing)",
+   "writes": [
+    "service/exam_attempt.rs:208"
+   ],
+   "badge_stat": "exam_sat",
+   "seeded_once": "migration_mark:profile_counters (migration_sql.rs:1449)"
+  },
+  "user.pomodoro_finished_total": {
+   "counts": "pomodoro_session",
+   "where": "user = <this user> AND counted = true  (>= MIN_COUNTED_POMODORO_MS 300000 and within MAX_COUNTED_POMODORO_PER_DAY 16)",
+   "writes": [
+    "db/pomodoro.rs:165"
+   ],
+   "badge_stat": "pomodoro_finished",
+   "seeded_once": "migration_mark:profile_counters (migration_sql.rs:1453) - the SEED counts finished_at != NONE, which is looser than the live rule"
+  },
+  "user.pomodoro_focus_ms_total": {
+   "counts": "pomodoro_session",
+   "where": "sum over counted stints of max(finished_at - started_at, 0)",
+   "writes": [
+    "db/pomodoro.rs:167"
+   ],
+   "badge_stat": "pomodoro_focus_ms",
+   "seeded_once": "migration_mark:profile_counters"
+  },
+  "user.marks_given_total": {
+   "counts": "exam_result + homework_result",
+   "where": "graded_by = <this user>, SUMMED ACROSS BOTH TABLES",
+   "writes": [
+    "db/exam_result.rs:148 (+1)",
+    "db/homework_result.rs:118 (+1)",
+    "db/exam_result.rs:318 (-1)",
+    "db/homework_result.rs:236 (-1)"
+   ],
+   "badge_stat": "marks_given",
+   "seeded_once": null,
+   "note": "NO backfill seed"
+  },
+  "user.lessons_held_total": {
+   "counts": "course_session",
+   "where": "teacher = <this user> AND held_counted_at != NONE",
+   "writes": [
+    "db/session_attendance.rs:148"
+   ],
+   "badge_stat": "lessons_held",
+   "seeded_once": null
+  },
+  "user.pool_approved_total": {
+   "counts": "pool_question",
+   "where": "approved_by = <this user> AND asker != <this user>",
+   "writes": [
+    "db/pool_question.rs:171"
+   ],
+   "badge_stat": "pool_approved",
+   "seeded_once": null
+  },
+  "user.pool_published_total": {
+   "counts": "pool_question",
+   "where": "asker = <this user> AND status = 'approved' AND approved_by != asker",
+   "writes": [
+    "db/pool_question.rs:174"
+   ],
+   "badge_stat": "pool_published",
+   "seeded_once": null
+  },
+  "user.lessons_attended_total": {
+   "counts": "session_attendance",
+   "where": "user = <this user> AND status IN ['present','late']  (students only)",
+   "writes": [
+    "db/session_attendance.rs:142 (+-delta)",
+    "db/session_attendance.rs:254 (-1)"
+   ],
+   "badge_stat": "lessons_attended",
+   "seeded_once": null
+  },
+  "user.high_mark_total": {
+   "counts": "exam_result",
+   "where": "user = <this user> AND mark >= HIGH_MARK_MIN (90), per graded sitting",
+   "writes": [
+    "db/exam_result.rs:154",
+    "db/exam_result.rs:313"
+   ],
+   "badge_stat": "high_mark",
+   "seeded_once": null
+  },
+  "user.study_streak_longest": {
+   "counts": null,
+   "where": "max value study_streak_current has ever reached",
+   "writes": [
+    "db/pomodoro.rs:180"
+   ],
+   "badge_stat": "study_streak",
+   "seeded_once": null
+  },
+  "user.study_streak_current": {
+   "counts": null,
+   "where": "consecutive UTC days with >= 1 counted pomodoro stint",
+   "writes": [
+    "db/pomodoro.rs:172"
+   ],
+   "badge_stat": null
+  },
+  "user.study_streak_last_day": {
+   "counts": null,
+   "where": "Timestamp::day_number() of the last counted stint - DAYS FROM THE COMMON ERA EPOCH, not unix ms. 1970-01-01 = 719163.",
+   "writes": [
+    "db/pomodoro.rs:178"
+   ],
+   "badge_stat": null
+  },
+  "user.pomodoro_counted_day": {
+   "counts": null,
+   "where": "day_number() of the day the daily quota bucket belongs to",
+   "writes": [
+    "db/pomodoro.rs:158"
+   ],
+   "badge_stat": null
+  },
+  "user.pomodoro_counted_today": {
+   "counts": "pomodoro_session",
+   "where": "stints counted on pomodoro_counted_day; cap MAX_COUNTED_POMODORO_PER_DAY = 16",
+   "writes": [
+    "db/pomodoro.rs:155 (reset)",
+    "db/pomodoro.rs:169 (+1)"
+   ],
+   "badge_stat": null
+  },
+  "meal_booking.attempt": {
+   "counts": null,
+   "where": "NOT a count - booking revision. Starts 1, +1 on every re-book after a cancel. Keys the ledger charge id.",
+   "writes": [
+    "db/meal_booking.rs:133"
+   ]
+  },
+  "homework_submission.counted_on_time": {
+   "counts": null,
+   "where": "frozen bool: submitted_at <= homework.due_at, decided once at submit time",
+   "writes": [
+    "db/homework_submission.rs:108"
+   ],
+   "seed": "migration_sql.rs:1443"
+  },
+  "homework_submission.graded_by_result": {
+   "counts": null,
+   "where": "freeze pointer -> homework_result:<the SAME key>. NONE while the submission is still editable.",
+   "writes": [
+    "db/homework_result.rs:114 (set)",
+    "db/homework_result.rs:232 (clear)"
+   ],
+   "seed": "migration_sql.rs:1166"
+  },
+  "course_session.held_counted_at": {
+   "counts": null,
+   "where": "stamp: non-NONE <=> this lesson has already credited its teacher's lessons_held_total exactly once",
+   "writes": [
+    "db/session_attendance.rs:145"
+   ]
+  },
+  "bank_question.used_count": {
+   "counts": null,
+   "where": "DOES NOT EXIST AS A STORED COLUMN. It is a response-only field computed per request from a GROUP BY over exam_question.from_bank.",
+   "writes": [
+    "web/bank_questions.rs:220 (read only)"
+   ],
+   "seed": null
+  }
+ },
+ "enums": {
+  "hardcoded_in_rust": {
+   "user.role": {
+    "values": [
+     "parent",
+     "student",
+     "teacher",
+     "manager",
+     "admin"
+    ],
+    "source": "constant.rs:752 / domain/role.rs:29",
+    "note": "Role::Ai ('ai') exists but is NOT assignable and is never stored on a user row (constant.rs:747-751). DEFAULT on the column is 'student'."
+   },
+   "user.theme": {
+    "values": [
+     "light",
+     "dark"
+    ],
+    "source": "constant.rs:764 / domain/preferences.rs:18"
+   },
+   "user.language": {
+    "values": [
+     "tr",
+     "en"
+    ],
+    "source": "constant.rs:766 / domain/preferences.rs:48"
+   },
+   "user.palette_color": {
+    "values": "regex ^#[0-9a-fA-F]{6}$ - stored lowercased, exactly 7 chars",
+    "source": "constant.rs:770-781"
+   },
+   "message.sender_folder": {
+    "values": [
+     "sent",
+     "archive",
+     "trash"
+    ],
+    "source": "constant.rs:784",
+    "note": "DEFAULT 'sent' (the sender's home folder)"
+   },
+   "message.recipient_folder": {
+    "values": [
+     "inbox",
+     "archive",
+     "trash"
+    ],
+    "source": "constant.rs:786",
+    "note": "DEFAULT 'inbox'"
+   },
+   "message.sender_origin / message.recipient_origin": {
+    "values": [
+     "sent",
+     "inbox",
+     "archive",
+     "trash",
+     null
+    ],
+    "source": "migration_sql.rs:132-133",
+    "note": "where the copy sat before it was filed; NONE while in its home folder. The full Folder enum also has 'deleted' (domain/message.rs:30-49)."
+   },
+   "chatbot_message.role": {
+    "values": [
+     "user",
+     "assistant"
+    ],
+    "source": "domain/chatbot_message.rs:75-87"
+   },
+   "chatbot_message.status": {
+    "values": [
+     "pending",
+     "complete",
+     "failed"
+    ],
+    "source": "domain/chatbot_message.rs:94-106"
+   },
+   "appointment.status": {
+    "values": [
+     "pending",
+     "approved",
+     "rejected",
+     "cancelled"
+    ],
+    "source": "domain/appointment.rs:95-110",
+    "note": "DEFAULT 'pending'"
+   },
+   "meal_booking.status": {
+    "values": [
+     "booked",
+     "cancelled"
+    ],
+    "source": "constant.rs:297 / domain/meal_booking.rs:98-110",
+    "note": "DEFAULT 'booked'"
+   },
+   "meal_attendance.status": {
+    "values": [
+     "served",
+     "missed"
+    ],
+    "source": "constant.rs:303",
+    "note": "deliberately NOT the school's attendance_statuses"
+   },
+   "meal_ledger.kind": {
+    "values": [
+     "charge",
+     "credit",
+     "reversal"
+    ],
+    "source": "constant.rs:309"
+   },
+   "payment_ledger.kind": {
+    "values": [
+     "charge",
+     "credit",
+     "reversal",
+     "refund"
+    ],
+    "source": "constant.rs:318"
+   },
+   "course.kind": {
+    "values": [
+     "course",
+     "study",
+     "club"
+    ],
+    "source": "constant.rs:278",
+    "note": "DEFAULT 'course'"
+   },
+   "exam.mode": {
+    "values": [
+     "sync",
+     "async",
+     "open",
+     null
+    ],
+    "source": "constant.rs:285",
+    "note": "NONE = an offline-graded draft that cannot be sat"
+   },
+   "exam_question.kind / bank_question.kind": {
+    "values": [
+     "choice",
+     "text"
+    ],
+    "source": "constant.rs:486"
+   },
+   "homework_result.status": {
+    "values": [
+     "done",
+     "incomplete",
+     "missing"
+    ],
+    "source": "constant.rs:292"
+   },
+   "bank_question.visibility": {
+    "values": [
+     "private",
+     "school"
+    ],
+    "source": "constant.rs:798-799",
+    "note": "DEFAULT 'private'"
+   },
+   "pool_question.status": {
+    "values": [
+     "pending",
+     "approved"
+    ],
+    "source": "constant.rs:792-794",
+    "note": "DEFAULT 'pending'. Rejection is not a state - the question is deleted."
+   },
+   "board_stroke.kind": {
+    "values": [
+     "stroke",
+     "clear"
+    ],
+    "source": "constant.rs:398"
+   },
+   "event.audience.kind": {
+    "values": [
+     "school",
+     "role",
+     "course",
+     "class",
+     "registration"
+    ],
+    "source": "domain/event.rs:77-102",
+    "shapes": [
+     "{kind:'school'}",
+     "{kind:'role', role:'student'}",
+     "{kind:'course', course: course:<id>}",
+     "{kind:'class', class: class_group:<id>}",
+     "{kind:'registration', capacity: 30}"
+    ],
+    "note": "internally tagged on 'kind'. capacity may be omitted = unlimited. audience.users was REMOVED (migration_sql.rs:286)."
+   },
+   "question_image.content_type / bank_question_image.content_type": {
+    "values": [
+     "image/png",
+     "image/jpeg",
+     "image/webp",
+     "image/gif"
+    ],
+    "source": "constant.rs:96-97"
+   },
+   "badge_award.badge": {
+    "values": [
+     "homework_submitted_1",
+     "homework_submitted_10",
+     "homework_submitted_50",
+     "homework_on_time_10",
+     "homework_on_time_25",
+     "exam_sat_1",
+     "exam_sat_10",
+     "exam_sat_25",
+     "pomodoro_finished_10",
+     "pomodoro_finished_50",
+     "pomodoro_finished_200",
+     "pomodoro_focus_ms_36000000",
+     "pomodoro_focus_ms_180000000",
+     "marks_given_10",
+     "marks_given_50",
+     "marks_given_250",
+     "lessons_held_10",
+     "lessons_held_50",
+     "lessons_held_200",
+     "pool_approved_5",
+     "pool_approved_25",
+     "pool_approved_100",
+     "pool_published_1",
+     "pool_published_10",
+     "pool_published_50",
+     "lessons_attended_10",
+     "lessons_attended_50",
+     "lessons_attended_200",
+     "high_mark_1",
+     "high_mark_10",
+     "high_mark_25",
+     "study_streak_3",
+     "study_streak_7",
+     "study_streak_30"
+    ],
+    "source": "constant.rs:1095-1142 (BADGES, 34 entries)",
+    "note": "a badge_award row must be consistent with the user's counter: db/badge.rs only ever awards when counter >= threshold"
+   },
+   "school.status  (CONTROL DB)": {
+    "values": [
+     "active",
+     "suspended"
+    ],
+    "source": "tenant.rs:117-131"
+   },
+   "school.modules[*]  (CONTROL DB)": {
+    "values": [
+     "chatbot",
+     "notes",
+     "messages",
+     "events",
+     "appointments",
+     "courses",
+     "course_notes",
+     "classes",
+     "sessions",
+     "exams",
+     "marks",
+     "meals",
+     "payments",
+     "work",
+     "pomodoro",
+     "questions",
+     "bank_questions",
+     "attendance",
+     "subjects",
+     "homework",
+     "boards"
+    ],
+    "source": "module.rs:26-52 + module.rs:67-115 (Module::ALL, 21)",
+    "note": "stored SORTED (module.rs:284). Dependencies: subjects/course_notes/sessions/classes require courses; exams+homework require courses+subjects; marks requires exams; attendance requires events+sessions."
+   },
+   "Package (API only, never stored)": {
+    "values": [
+     "academics",
+     "communication",
+     "operations",
+     "ai"
+    ],
+    "source": "module.rs:57-64 / module.rs:203-217"
+   }
+  },
+  "validated_against_settings_table": {
+   "attendance.status / session_attendance.status": {
+    "validated_against": "settings.attendance_statuses",
+    "defaults": [
+     "present",
+     "absent",
+     "late",
+     "excused"
+    ],
+    "source": "constant.rs:157 / domain/attendance.rs:40-52",
+    "note": "these four are the MANDATORY CORE and can never be removed; a school may add more, max 20 entries, each <= 50 chars"
+   },
+   "exam.kind": {
+    "validated_against": "settings.exam_kinds[*].name",
+    "defaults": [
+     "homework",
+     "quiz",
+     "midterm",
+     "final",
+     "project",
+     "oral"
+    ],
+    "source": "constant.rs:165-172 / domain/exam.rs:87-104",
+    "note": "each default weight = 1; weight range 1..=100. Every exam.kind used must also have a kind_ref row once a mark exists under it."
+   },
+   "menu.slot": {
+    "validated_against": "settings.meal_slots[*].name",
+    "defaults": [
+     "breakfast",
+     "lunch",
+     "snack"
+    ],
+    "source": "constant.rs:207 / domain/menu.rs:138-164",
+    "note": "snapshotted as TEXT on the menu row (not a link) and used verbatim in the record id, so / \\ ? # % are refused"
+   },
+   "menu_dish.tags[*] / dietary_profile.tags[*]": {
+    "validated_against": "settings.dietary_tags",
+    "defaults": [
+     "vegetarian",
+     "vegan",
+     "gluten_free",
+     "lactose_free",
+     "nut_allergy"
+    ],
+    "source": "constant.rs:212-218 / domain/dietary_profile.rs:52-66",
+    "note": "max 10 tags per dish / per profile"
+   },
+   "settings.grade_bands[*].label": {
+    "validated_against": "free text, school-defined",
+    "defaults": [],
+    "source": "domain/settings.rs:255",
+    "note": "default is an EMPTY list. If non-empty: min in 0..=100, mins unique, one band must start at 0."
+   },
+   "class_group.grade / class_blueprint.grade": {
+    "validated_against": "NOT an enum and NOT a settings list - FREE TEXT",
+    "constraint": "1..=MAX_CLASS_GRADE_LEN (20) chars",
+    "source": "constant.rs:117-118",
+    "note": "class_blueprint uses it as the record key, so it must be a legal record-id key"
+   }
+  }
+ },
+ "time_and_value_formats": {
+  "timestamps": {
+   "representation": "i64 unix MILLISECONDS, UTC, stored as SurrealDB TYPE int - NEVER a datetime",
+   "source": "domain/timestamp.rs:1-13, :30-41",
+   "surrealql": "write a plain integer literal, e.g. created_at: 1767225600000",
+   "forbidden": "time::now() and d'2026-01-01' produce a datetime value, which fails coercion into TYPE int",
+   "sql_now_idiom": "time::unix(time::now()) * 1000   (migration_sql.rs:1360)"
+  },
+  "day_numbers": {
+   "fields": [
+    "user.study_streak_last_day",
+    "user.pomodoro_counted_day"
+   ],
+   "representation": "chrono NaiveDate::num_days_from_ce() - days from the Common Era epoch",
+   "anchor": "1970-01-01 = 719163 (pinned by the test at domain/timestamp.rs:145)",
+   "formula": "day_number = floor(unix_ms / 86400000) + 719163",
+   "source": "domain/timestamp.rs:78-97"
+  },
+  "money": {
+   "representation": "integer MINOR UNITS (kurus). Never decimal.",
+   "fields": [
+    "menu_dish.price_minor",
+    "meal_booking.price_minor",
+    "meal_ledger.amount_minor",
+    "payment_ledger.amount_minor",
+    "fee_plan.installments[*].amount_minor"
+   ],
+   "limits": "MAX_DISH_PRICE_MINOR = 1000000, MAX_LEDGER_AMOUNT_MINOR = 10000000",
+   "source": "migration_sql.rs:800 / constant.rs:239-240"
+  },
+  "date_text": {
+   "fields": [
+    "menu.date"
+   ],
+   "format": "YYYY-MM-DD, calendar day, no timezone",
+   "source": "migration_sql.rs:770-782",
+   "note": "it is part of the record id, so it must be exactly 10 chars"
+  },
+  "user.birth_date": {
+   "type": "option<string>",
+   "format": "calendar date text",
+   "source": "migration_sql.rs:57",
+   "note": "validator allows a one-day grace around today_utc for clients up to UTC+14 (domain/timestamp.rs:66-70). (exact regex unverified - see src/validate.rs)"
+  },
+  "grade": {
+   "fields": [
+    "class_group.grade",
+    "class_blueprint.grade"
+   ],
+   "format": "FREE TEXT, 1..=20 chars, no enum and no settings list",
+   "source": "constant.rs:117-118",
+   "note": "class_blueprint uses it as its record key. Typical Turkish school values would be like 9, 10, 11, 12 or 9-A - but nothing in the code prescribes any."
+  },
+  "marks": {
+   "fields": [
+    "exam_result.mark",
+    "homework_result.mark"
+   ],
+   "range": "0..=100 (MAX_MARK)",
+   "source": "constant.rs:502-503",
+   "note": "HIGH_MARK_MIN = 90 (constant.rs:1081)"
+  },
+  "points": {
+   "fields": [
+    "exam_question.points",
+    "bank_question.points"
+   ],
+   "range": "1..=100",
+   "source": "constant.rs:491-492"
+  }
+ },
+ "auth": {
+  "password_hash": {
+   "algorithm": "Argon2id",
+   "version": "0x13 (19)",
+   "params": "Argon2::default() -> m_cost = 19456 KiB (19 MiB), t_cost = 2, p_cost = 1, 32-byte output",
+   "salt": "16 random bytes, base64 without padding (22 chars)",
+   "phc_format": "$argon2id$v=19$m=19456,t=2,p=1$<22-char-b64-salt>$<43-char-b64-hash>",
+   "source": "domain/user.rs:95-104, Cargo.toml:26 (argon2 0.5.3)",
+   "known_hash_literal": null,
+   "note": "There is NO hardcoded argon2 hash anywhere in the repository. Every in-repo SQL user insert uses the literal placeholder 'x' (e.g. database.rs:568, tenant.rs:668, db/enrollment.rs:265), which can never verify. Seed data must compute a real hash."
+  },
+  "test_password": {
+   "value": "secret1",
+   "source": "tests/common/mod.rs:216, :390",
+   "note": "used only via POST /auth/register, never stored as a literal"
+  },
+  "decoy_password": {
+   "value": "decoy-password-not-a-secret",
+   "source": "constant.rs:810",
+   "note": "timing-attack decoy, hashed at runtime, never stored"
+  },
+  "session.token": {
+   "format": "64 lowercase hex chars (32 random bytes)",
+   "source": "domain/session.rs:30-39"
+  },
+  "session.expires_at": {
+   "formula": "Timestamp::now() + 7 * 86400000",
+   "source": "db/session.rs:10-19, constant.rs:511 SESSION_DURATION_DAYS = 7"
+  },
+  "cookie": {
+   "format": "session=<school_slug>.<token>",
+   "source": "tests/common/mod.rs:66-72"
+  },
+  "username": {
+   "constraints": "3..=32 chars; separators . _ -",
+   "reserved": [
+    "admin",
+    "administrator",
+    "root",
+    "support",
+    "system",
+    "moderator",
+    "staff"
+   ],
+   "source": "constant.rs:17-35",
+   "note": "reserved names are refused at /auth/register only, not on a direct DB write or the builder's admin seed"
+  },
+  "password_plain": {
+   "constraints": "6..=128 chars",
+   "source": "constant.rs:37-38"
+  },
+  "school_slug": {
+   "constraints": "^[a-z0-9][a-z0-9-]{1,31}$, 2..=32 chars",
+   "reserved": [
+    "builder",
+    "control"
+   ],
+   "source": "tenant.rs:49-96, constant.rs:11-12",
+   "note": "the slug is simultaneously the cookie prefix, the SurrealDB DATABASE name, and the blob directory. school:<slug> is the control-db record id."
+  }
+ },
+ "load_order": [
+  "kind_ref",
+  "migration_mark",
+  "rate_limit",
+  "settings",
+  "slot_ref",
+  "term",
+  "user",
+  "appointment_slot",
+  "badge_award",
+  "board",
+  "chatbot_thread",
+  "class_group",
+  "course",
+  "dietary_profile",
+  "fee_plan",
+  "meal_ledger",
+  "menu",
+  "message",
+  "note",
+  "parent_link",
+  "payment_ledger",
+  "pomodoro_session",
+  "pool_question",
+  "session",
+  "work_entry",
+  "appointment",
+  "board_stroke",
+  "chatbot_message",
+  "class_blueprint",
+  "class_member",
+  "course_note",
+  "course_session",
+  "enrollment",
+  "event",
+  "exam",
+  "fee_plan_assignment",
+  "meal_attendance",
+  "meal_booking",
+  "menu_dish",
+  "note_file",
+  "solution",
+  "subject",
+  "attendance",
+  "bank_question",
+  "class_course",
+  "course_note_file",
+  "exam_attempt",
+  "exam_result",
+  "homework",
+  "registration",
+  "session_attendance",
+  "bank_question_image",
+  "exam_question",
+  "homework_result",
+  "rag_output",
+  "answer_image",
+  "exam_answer",
+  "homework_submission",
+  "question_image",
+  "homework_file"
+ ],
+ "dependencies": {
+  "user": [],
+  "session": [
+   "user"
+  ],
+  "note": [
+   "user"
+  ],
+  "message": [
+   "user"
+  ],
+  "board": [
+   "user"
+  ],
+  "board_stroke": [
+   "board",
+   "user"
+  ],
+  "note_file": [
+   "note"
+  ],
+  "course_note": [
+   "course",
+   "user"
+  ],
+  "course_note_file": [
+   "course_note"
+  ],
+  "rag_output": [
+   "course",
+   "course_note",
+   "course_note_file"
+  ],
+  "chatbot_thread": [
+   "user"
+  ],
+  "chatbot_message": [
+   "chatbot_thread",
+   "user"
+  ],
+  "rate_limit": [],
+  "event": [
+   "class_group",
+   "course",
+   "user"
+  ],
+  "attendance": [
+   "event",
+   "user"
+  ],
+  "registration": [
+   "event",
+   "user"
+  ],
+  "term": [],
+  "course": [
+   "term",
+   "user"
+  ],
+  "subject": [
+   "course"
+  ],
+  "class_group": [
+   "term",
+   "user"
+  ],
+  "class_blueprint": [
+   "course",
+   "user"
+  ],
+  "class_member": [
+   "class_group",
+   "user"
+  ],
+  "class_course": [
+   "class_blueprint",
+   "class_group",
+   "course",
+   "user"
+  ],
+  "enrollment": [
+   "class_group",
+   "course",
+   "user"
+  ],
+  "parent_link": [
+   "user"
+  ],
+  "course_session": [
+   "course",
+   "user"
+  ],
+  "session_attendance": [
+   "course",
+   "course_session",
+   "user"
+  ],
+  "work_entry": [
+   "user"
+  ],
+  "pomodoro_session": [
+   "user"
+  ],
+  "exam": [
+   "course",
+   "user"
+  ],
+  "exam_attempt": [
+   "exam",
+   "user"
+  ],
+  "exam_question": [
+   "bank_question",
+   "exam",
+   "subject"
+  ],
+  "question_image": [
+   "exam",
+   "exam_question"
+  ],
+  "bank_question": [
+   "exam",
+   "subject",
+   "user"
+  ],
+  "bank_question_image": [
+   "bank_question"
+  ],
+  "exam_answer": [
+   "exam",
+   "exam_question",
+   "user"
+  ],
+  "answer_image": [
+   "exam",
+   "exam_question",
+   "user"
+  ],
+  "exam_result": [
+   "exam",
+   "user"
+  ],
+  "pool_question": [
+   "user"
+  ],
+  "solution": [
+   "pool_question",
+   "user"
+  ],
+  "settings": [],
+  "homework": [
+   "course",
+   "subject",
+   "user"
+  ],
+  "homework_submission": [
+   "homework",
+   "homework_result",
+   "user"
+  ],
+  "homework_file": [
+   "homework_submission"
+  ],
+  "homework_result": [
+   "homework",
+   "user"
+  ],
+  "appointment_slot": [
+   "user"
+  ],
+  "appointment": [
+   "appointment_slot",
+   "user"
+  ],
+  "menu": [
+   "user"
+  ],
+  "menu_dish": [
+   "menu"
+  ],
+  "dietary_profile": [
+   "user"
+  ],
+  "meal_booking": [
+   "menu",
+   "user"
+  ],
+  "meal_attendance": [
+   "menu",
+   "user"
+  ],
+  "meal_ledger": [
+   "user"
+  ],
+  "fee_plan": [
+   "user"
+  ],
+  "fee_plan_assignment": [
+   "fee_plan",
+   "user"
+  ],
+  "payment_ledger": [
+   "user"
+  ],
+  "badge_award": [
+   "user"
+  ],
+  "kind_ref": [],
+  "slot_ref": [],
+  "migration_mark": []
+ },
+ "pitfalls": [
+  {
+   "id": "default-empty-array",
+   "severity": "high",
+   "where": "migration_sql.rs:645-657 (settings), also migration_sql.rs:369-372 (class_blueprint.courses)",
+   "what": "A required array field with DEFAULT [] on a SCHEMAFULL row. DEFAULT fires on CREATE only. Any later whole-row write (UPDATE ... CONTENT) that omits the key coerces it to NONE and the write FAILS, permanently. That is why settings.meal_slots / dietary_tags are option<> with NO DEFAULT, and why class_blueprint.courses carries no DEFAULT.",
+   "seed_rule": "Always write every array field EXPLICITLY. Never rely on DEFAULT []. The three that still carry DEFAULT [] are course.teachers, menu_dish.tags, dietary_profile.tags - write them anyway."
+  },
+  {
+   "id": "readonly-tables",
+   "severity": "high",
+   "where": "meal_ledger (migration_sql.rs:846-856), payment_ledger (migration_sql.rs:894-903), plus READONLY columns on chatbot_thread/chatbot_message/homework*/menu*/meal_*/fee_plan*",
+   "what": "READONLY is per-FIELD, not per-table. A CREATE / INSERT that sets the field for the FIRST time is allowed; any later UPDATE of it is rejected.",
+   "seed_rule": "meal_ledger and payment_ledger rows CAN be inserted - just get every value right the first time and never UPDATE them afterwards. Same for menu.date/slot, homework.course/created_by/created_at, meal_booking.menu/student/booked_by/created_at, fee_plan_assignment.*, bank_question.created_at, homework_file.file/created_at."
+  },
+  {
+   "id": "schemafull-strips",
+   "severity": "high",
+   "where": "every table (all 60 are SCHEMAFULL)",
+   "what": "An undefined key is SILENTLY STRIPPED on write (it is not an error) - except that SurrealDB rejects a write to a row that still holds a column whose definition was removed. rag_output.payload is the only FLEXIBLE object (migration_sql.rs:211).",
+   "seed_rule": "A typo in a field name loses the value with no error. Verify every field name against schema.json character by character."
+  },
+  {
+   "id": "ddl-plus-dml-same-batch",
+   "severity": "medium",
+   "where": "migration_sql.rs:41-47 (doc comment)",
+   "what": "Statements inside ONE query batch see the schema as it stood when the batch STARTED. A DEFINE FIELD next to an UPDATE writing that field silently strips the value. This is why MIGRATION_BATCHES is three separate queries.",
+   "seed_rule": "Run the seed as a query SEPARATE from any schema work, i.e. after migrate() has fully finished."
+  },
+  {
+   "id": "value-and-assert",
+   "severity": "info",
+   "where": "whole DDL",
+   "what": "There is NOT A SINGLE DEFINE FIELD ... VALUE or ... ASSERT in the schema (verified by grep). Every enum is enforced only by Rust newtypes.",
+   "seed_rule": "The database will happily accept an invalid enum string. Nothing writes over your value either. But the API will 500 on deserialization when a Rust newtype cannot parse it back - so the enum lists in this document are HARD requirements even though the DB does not enforce them."
+  },
+  {
+   "id": "no-fk-enforcement",
+   "severity": "high",
+   "where": "whole DDL",
+   "what": "record<x> is a TYPE check only - SurrealDB verifies the value is a record pointer into table x, NOT that the target row exists. There is no REFERENCE / ON DELETE clause anywhere. A dangling link is accepted silently and then breaks reads at the application layer (e.g. the on-time backfill's traversal yields no value).",
+   "seed_rule": "Insert strictly in the topological load_order. (partially unverified: exact SurrealDB 3.2 coercion behaviour for a non-existent target was not executed - but no REFERENCE clause exists, so nothing can enforce it.)"
+  },
+  {
+   "id": "unique-indexes",
+   "severity": "high",
+   "where": "see indexes in each table",
+   "what": "UNIQUE indexes that a naive generator will collide on: user_username; session_token; menu_date_slot (date+slot); dietary_profile_student; attendance_event_user; registration_event_user; class_member_class_user; class_course_class_course; enrollment_course_user; parent_link_parent_student; session_attendance_session_user; meal_attendance_menu_student; exam_attempt_exam_user_seq; exam_answer_question_user_seq; exam_result_exam_user_seq; school_slug + builder_username + builder_session_token (control db).",
+   "seed_rule": "Most of these are ALREADY implied by the composite record id, so a duplicate id and a duplicate index entry are the same bug. user_username and session_token are the two that are NOT implied by the id - guard those separately."
+  },
+  {
+   "id": "counters-must-match",
+   "severity": "critical",
+   "where": "see counters section",
+   "what": "Every counter is the AUTHORITY, not a cache (db/cap.rs:1-31). A course whose enrollment_count is wrong denies real students a place and can never be deleted ((enrollment_count ?? 0) = 0 guard).",
+   "seed_rule": "Write every counter consistently, or omit it (absent reads as zero) only where the backfill will recompute it. Only course.enrollment_count and board.total_stroke_count are recomputed on every boot. term.class_count, class_group.*_count, course_note.file_count, user.board_count, user.marks_given_total and the other staff/student badge tallies have NO backfill and will stay wrong forever."
+  },
+  {
+   "id": "profile-counters-mark",
+   "severity": "high",
+   "where": "migration_sql.rs:1432-1461",
+   "what": "The five student badge counters are seeded ONCE per volume under migration_mark:profile_counters, and the first line of that block is UPDATE user SET homework_submitted_total = 0, homework_on_time_total = 0, exam_sat_total = 0, pomodoro_finished_total = 0, pomodoro_focus_ms_total = 0 - a full reset.",
+   "seed_rule": "If you seed BEFORE the first boot, migrate() will recompute those five from your rows (good). If you seed AFTER the mark is written, your values stand as written and nothing checks them. Prefer: create the school (which runs migrate), then seed, and set all counters yourself."
+  },
+  {
+   "id": "id-escaping",
+   "severity": "critical",
+   "where": "hand-written .surql only",
+   "what": "Every minted key is a ULID or starts with one, so it BEGINS WITH A DIGIT. The codebase never spells an id into SQL text - it binds a RecordId - so the escaping question is new to a seed file. The only literal ids in the repo are safe ones (migration_mark:board_roster, settings:school).",
+   "seed_rule": "Write user:\\u27e801J...\\u27e9 (angle brackets), user:`01J...` (backticks), or type::record('user','01J...'). Never bare user:01J...."
+  },
+  {
+   "id": "parenthesise-nullish",
+   "severity": "medium",
+   "where": "db/cap.rs:554, db/cap.rs:766, db/board_stroke.rs:155",
+   "what": "In SurrealQL, n ?? 0 < $cap parses as n ?? (0 < $cap), which is truthy for every row. Always (n ?? 0) < $cap.",
+   "seed_rule": "Relevant only if the seed script writes its own guarded UPDATEs."
+  },
+  {
+   "id": "day-number-not-millis",
+   "severity": "medium",
+   "where": "user.study_streak_last_day, user.pomodoro_counted_day",
+   "what": "These two int columns are NOT unix ms. They are chrono num_days_from_ce() - days from the Common Era epoch, where 1970-01-01 = 719163 (domain/timestamp.rs:88-97, test at :145).",
+   "seed_rule": "day_number = floor(unix_ms / 86400000) + 719163"
+  },
+  {
+   "id": "open-row-ids",
+   "severity": "medium",
+   "where": "work_entry, pomodoro_session",
+   "what": "An IN-PROGRESS work entry or pomodoro stint lives at the FIXED id open_<user ULID>; closing it writes a fresh ULID-keyed row. A second open row for one user is impossible by construction.",
+   "seed_rule": "Never give a user two rows whose id is open_<their ulid>, and never use a ULID id for a row with finished_at = NONE / check_out = NONE."
+  },
+  {
+   "id": "seq-1-bare",
+   "severity": "high",
+   "where": "domain/key.rs:16-22",
+   "what": "For exam_attempt / exam_answer / exam_result / answer_image, the FIRST sitting's id is the bare {scope}_{user} with NO _1 suffix, while the seq COLUMN is still 1.",
+   "seed_rule": "Never write ..._1 as an id. seq=1 -> bare key; seq=2 -> key_2."
+  },
+  {
+   "id": "no-password-hash-literal",
+   "severity": "high",
+   "where": "whole repo",
+   "what": "There is no hardcoded argon2 hash anywhere. Every in-repo SQL user insert uses the placeholder 'x', which can never verify.",
+   "seed_rule": "Generate a real $argon2id$v=19$m=19456,t=2,p=1$... hash for every account that must be able to log in. One shared hash for 250 students is fine and fast."
+  },
+  {
+   "id": "settings-lazy",
+   "severity": "medium",
+   "where": "db/settings.rs:9-12, tenant.rs:390-447",
+   "what": "School creation does NOT write a settings row. An absent settings:school row reads as the built-in defaults everywhere.",
+   "seed_rule": "Seed settings:school ONLY if you need a non-default vocabulary. If you do, write EVERY required field (exam_kinds, exam_kinds.*.name, exam_kinds.*.weight, attendance_statuses, grade_bands) - they are non-option and a missing one fails the write."
+  },
+  {
+   "id": "kind-ref-slot-ref",
+   "severity": "high",
+   "where": "migration_sql.rs:1265-1271",
+   "what": "kind_ref:<exam kind> and slot_ref:<meal slot> rows are created lazily by the first exam_result / menu. They ARE seeded by the backfill on boot - but only once, guarded by count = NONE.",
+   "seed_rule": "Either seed them yourself (count = the matching row count) or let the boot backfill do it. Do not do both with different numbers."
+  },
+  {
+   "id": "audience-users-removed",
+   "severity": "low",
+   "where": "migration_sql.rs:286",
+   "what": "event.audience.users was REMOVED. Writing it will be silently stripped (SCHEMAFULL) and the row will read as a broken audience.",
+   "seed_rule": "Use {kind:'registration'} + registration rows instead."
+  },
+  {
+   "id": "exam-question-subject-required",
+   "severity": "medium",
+   "where": "migration_sql.rs:511, migration_sql.rs:987",
+   "what": "exam_question.subject is a REQUIRED record<subject>. The boot backfill DELETES every exam_question with subject = NONE (and its answers first).",
+   "seed_rule": "Every exam_question must name a real subject, and that subject's course should be the exam's course."
+  },
+  {
+   "id": "rate-limit-and-http-seeding",
+   "severity": "low",
+   "where": "constant.rs:681-683",
+   "what": "DEFAULT_AUTH_RATE_LIMIT = 10/min/IP and DEFAULT_API_RATE_LIMIT = 300/min/IP. A 250-student seed driven over HTTP will 429.",
+   "seed_rule": "Prefer direct SurrealQL over the API for bulk seeding, or raise the env knobs."
+  }
+ ]
+}

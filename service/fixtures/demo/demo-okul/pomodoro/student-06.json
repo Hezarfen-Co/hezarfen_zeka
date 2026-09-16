@@ -1,0 +1,50 @@
+[
+ {
+  "id": "01HF3QNQC00000000000000000",
+  "user": "student-1",
+  "started_at": 1699858800000,
+  "finished_at": 1699860300000,
+  "duration_ms": 1500000,
+  "counted": true
+ },
+ {
+  "id": "01HF1590C00000000000000000",
+  "user": "student-1",
+  "started_at": 1699772400000,
+  "finished_at": 1699773900000,
+  "duration_ms": 1500000,
+  "counted": true
+ },
+ {
+  "id": "01HEYJW9C00000000000000000",
+  "user": "student-1",
+  "started_at": 1699686000000,
+  "finished_at": 1699687500000,
+  "duration_ms": 1500000,
+  "counted": true
+ },
+ {
+  "id": "01HEW0FJC00000000000000000",
+  "user": "student-1",
+  "started_at": 1699599600000,
+  "finished_at": 1699601100000,
+  "duration_ms": 1500000,
+  "counted": true
+ },
+ {
+  "id": "01HESE2VC00000000000000000",
+  "user": "student-1",
+  "started_at": 1699513200000,
+  "finished_at": 1699514700000,
+  "duration_ms": 1500000,
+  "counted": true
+ },
+ {
+  "id": "01HEPVP4C00000000000000000",
+  "user": "student-1",
+  "started_at": 1699426800000,
+  "finished_at": 1699428300000,
+  "duration_ms": 1500000,
+  "counted": true
+ }
+]

@@ -1,0 +1,33 @@
+[
+ {
+  "course": {
+   "id": "course-1",
+   "creator": {
+    "id": "teacher-1",
+    "username": "teacher-1",
+    "display_name": "teacher-1"
+   },
+   "teachers": [
+    {
+     "id": "teacher-1",
+     "username": "teacher-1",
+     "display_name": "teacher-1"
+    }
+   ],
+   "title": "Ders",
+   "description": "",
+   "kind": "course",
+   "term": null,
+   "capacity": null
+  },
+  "counts": {
+   "present": 95,
+   "absent": 5,
+   "late": 0,
+   "excused": 0,
+   "custom": {},
+   "total": 100,
+   "rate": null
+  }
+ }
+]
