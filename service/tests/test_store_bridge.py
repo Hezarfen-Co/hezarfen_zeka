@@ -48,6 +48,8 @@ from src.store import (
     RecordingCaller,
 )
 
+from .fakes import ReplyingCaller
+
 DAY = clock.DAY_MS
 NOW = 1_699_963_200_000  # 2023-11-14 12:00 UTC
 SCHOOL = "okul-a"
@@ -125,9 +127,6 @@ def make_profile(student: str, *, now_ms: int = NOW) -> StudentSegmentProfile:
         computed_at=now_ms,
         confidence=Confidence.STABLE,
     )
-
-
-from .fakes import ReplyingCaller
 
 
 class StoreFixture(unittest.IsolatedAsyncioTestCase):
@@ -245,6 +244,20 @@ class TestRecommendationWrite(StoreFixture):
         self.assertEqual(
             row["retain_until"], NOW + 30 * DAY
         )
+
+
+class TestEvidenceGate(StoreFixture):
+    async def test_evidence_free_recommendation_is_rejected_not_written(self) -> None:
+        """Kanıtsız satır yazılmaz; sayısı raporda REJECTED görünür."""
+        rec = make_recommendation("s1")
+        # `Recommendation` boş kanıtla kurulamaz; sözlükten kurulmuş bir
+        # satırı taklit etmek için alan sonradan boşaltılır.
+        object.__setattr__(rec, "evidence", {})
+        report = await self.store.store_for(SCHOOL).write_recommendations([rec])
+        self.assertEqual(report.written, 0)
+        self.assertEqual(report.rejected, 1)
+        # Hiç satır gitmedi: red yerel kapıda durdu.
+        self.assertEqual(self.calls, [])
 
 
 class TestSegmentWrite(StoreFixture):
