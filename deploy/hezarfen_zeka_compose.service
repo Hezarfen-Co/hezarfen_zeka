@@ -14,9 +14,21 @@
 # yer oldugunu olcer (main.yml "KAPASITE ON KONTROLU": >= 512 MB RAM,
 # >= 2 GB disk) ve yetmezse nedeniyle birlikte reddeder.
 #
-# HEZARFEN_TAG compose.yaml'da `${HEZARFEN_TAG:-current}` olarak gecir; bu
-# unit'te SONRAKI --env-file kazanir: once operatorun ayar dosyasi, sonra
-# deploy sahipli stack.env.
+# ORTAM IKI KANALDAN GELIR -- bu bir tercih degil, saglayicinin siniridir:
+#   * operatorun ayar dosyasi -> `EnvironmentFile=` (systemd dosyayi unit'in
+#     ORTAMINA koyar; compose interpolasyonu ORTAM DEGISKENLERINE bakar)
+#   * deploy sahipli stack.env (HEZARFEN_TAG) -> tek `--env-file`
+#
+# NEDEN: `podman compose --env-file A --env-file B` bu saglayicida A'yi HIC
+# OKUMAZ. `--env-file` tek degerli bir argumandir (podman_compose.py:2941-2946)
+# ve yalniz SON dosya cozulur (:2559 `dotenv_path = os.path.realpath(args.env_file)`).
+# Iki dosyali eski cagri operator dosyasini tamamen dusuruyordu; compose.yaml'da
+# uc sir `${VAR:?}` oldugu icin `up` DAHA BASLAMADAN "required variable ... is
+# missing a value" ile reddediliyordu (canlida yasandi, 2026-09-17). Docker
+# Compose v2'nin "sonraki dosya cakisan anahtarda kazanir" davranisi bu
+# saglayici icin GECERLI DEGIL. Ortam degiskeni --env-file degerlerini EZER
+# (:2562), yani iki kanal cakismaz: operator sirlari ortamdan, HEZARFEN_TAG
+# dosyadan gelir.
 #
 # Dis ag (`hezarfen_backend_default`) backend compose'u tarafindan kurulur;
 # yoksa once olusturun: podman network create hezarfen_backend_default
@@ -34,14 +46,19 @@ Wants=network-online.target
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=%h/hezarfen_zeka
-# Sonraki --env-file cakisan anahtarda kazanir: once operatorun ayar dosyasi,
-# sonra deploy sahipli stack.env (HEZARFEN_TAG).
-ExecStart=/usr/bin/podman compose --env-file %h/hezarfen_zeka/hezarfen_zeka.env --env-file %h/hezarfen_zeka/stack.env up -d --no-build
-# Env dosyalari BURADA DA verilir: compose her komutta dosyayi COZER ve ZEKA
-# compose.yaml'inda uc sir `${VAR:?}` bicimindedir; env'siz bir `down`
-# "required variable ... is missing a value" ile duser ve kap DURMAZ.
+# Operatorun ayar dosyasi unit'in ORTAMINA girer (0600; satirlar duz
+# KEY=value, systemd kabuk genisletmesi YAPMAZ). Dosya yoksa unit baslamaz --
+# compose.yaml'in `${VAR:?}` kapisi zaten orada durur, sessiz bir varsayilana
+# dusmez.
+EnvironmentFile=%h/hezarfen_zeka/hezarfen_zeka.env
+# Tek --env-file: yalniz deploy sahipli stack.env (HEZARFEN_TAG).
+ExecStart=/usr/bin/podman compose --env-file %h/hezarfen_zeka/stack.env up -d --no-build
+# ExecStop de tek dosya: `${VAR:?}` degiskenleri EnvironmentFile'dan gelir,
+# HEZARFEN_TAG'in varsayilani var (`:-current`), stack.env yoksa da `down`
+# calisir -- saglayici eksik env dosyasini bos sozluk sayar
+# (podman_compose.py:2247-2250).
 # `-v` yok: zeka-fixtures isimli volume stop'ta yasamali.
-ExecStop=/usr/bin/podman compose --env-file %h/hezarfen_zeka/hezarfen_zeka.env --env-file %h/hezarfen_zeka/stack.env down
+ExecStop=/usr/bin/podman compose --env-file %h/hezarfen_zeka/stack.env down
 TimeoutStartSec=180
 
 [Install]

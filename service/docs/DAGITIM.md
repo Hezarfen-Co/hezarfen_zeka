@@ -140,19 +140,43 @@ patlar** ve servis hic ayaga kalkmaz.
 | Degisken | Ne ise yarar |
 |---|---|
 | `AI_SHARED_TOKEN` | Backend ile paylasilan sir. Bu olmadan `Hello` cercevesi reddedilir, kayit yapilamaz. |
-| `DEEPSEEK_API_KEY` | Segment hattinin LLM saglayici anahtari. |
+| `LLM_API_KEY` | Segment hattinin LLM saglayici anahtari (filo standardi ad). |
 
-> **Durust not:** `src/bridge.py` `DEEPSEEK_API_KEY`'i **okumaz**; yalnizca
-> `src/segment/config.py` okur (oncelik: `DEEPSEEK_API_KEY` -> `LLM_API_KEY`
-> -> `SEGMENT_API_KEY`). Yani anahtarsiz bir kopru teknik olarak ayaga
-> kalkardi ve ancak segment hatti kosulunca patlardi. `:?` ile hata
+> **Durust not:** `src/bridge.py` `LLM_API_KEY`'i **okumaz**; yalnizca
+> `src/segment/config.py` okur. Adlar 2026-09-17'de filo standardina gecti ve
+> **eski adlar artik OKUNMAZ**: `DEEPSEEK_API_KEY`, `SEGMENT_API_KEY`,
+> `SEGMENT_BASE_URL`, `SEGMENT_MODEL_*` ortamda kalirsa acilis `SegmentConfigError`
+> ile REDDEDER (uyari degil, durma). Yani kopruyu kosturmak icin bile dosyada
+> eski ad BIRAKILMAZ.
+> Adres `LLM_BASE_URL` (varsayilan `https://api.deepseek.com`; herhangi bir
+> OpenAI uyumlu gecit olabilir), modeller `LLM_MODEL_FLASH` / `LLM_MODEL_PRO` /
+> `LLM_MODEL_REASONER` ve `LLM_MODEL_ROLE`. `:?` ile anahtar hatasi
 > **dagitim anina** cekiliyor: acilista tek satir hata, uretimde saatler
 > sonra sasirtici bir cokme yerine. Yalnizca kopruyu kosturmak isteyen bir
 > dagitimda bu degisken bilincli olarak sahte bir degerle gecilebilir.
 
 **Sirlar dosyaya gomulmez.** `compose.yaml` yalnizca interpolasyon icerir;
-degerler operatorun ortamindan ya da `--env-file` ile verilen (gitignore'lu)
-bir `.env` dosyasindan gelir. CI her kosuda bu bicimi denetler.
+degerler KONTEYNER BASLARKEN surecte bulunur. Iki kanal var ve ikisi de
+zorunlu:
+
+* **operatorun ayar dosyasi** (`~/hezarfen_zeka/hezarfen_zeka.env`) —
+  systemd unit'inde `EnvironmentFile=` ile unit'in ORTAMINA girer; deploy ise
+  ayni dosyayi satir satir okuyup surece alir. Kabuk genisletmesi yoktur:
+  dosya duz `KEY=value` bicimindedir.
+* **deploy sahipli `stack.env`** — compose'a giden TEK `--env-file` odur ve
+  yalniz `HEZARFEN_TAG` tasir.
+
+Neden iki kanal: podman-compose 1.6.0'da `--env-file` **tek degerli** bir
+argumandir (`podman_compose.py:2941-2946`) ve yalniz SON dosya cozulur
+(`:2559`); `--env-file A --env-file B` cagrisi A'yi tamamen dusurur ve
+`${VAR:?}` sirlarini reddettirir. Ortam degiskeni `--env-file` degerlerini
+Ezer (`:2562`), yani iki kanal cakismaz. Docker Compose v2'nin "sonraki dosya
+cakisan anahtarda kazanir" davranisi bu saglayici icin gecerli DEGIL.
+
+Degerleri degistirdikten sonra yeniden olusturun:
+`systemctl --user restart hezarfen_zeka_compose` (unit `EnvironmentFile`i
+yeniden okur). CI her kosuda hem bicimi hem de "operator sirlari konteynere
+gercekten ulasti mi" iddiasini denetler.
 
 ### Onemli istege bagli degiskenler
 
