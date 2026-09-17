@@ -98,7 +98,7 @@ class ParsingTests(unittest.TestCase):
     def test_defaults_are_the_documented_ones(self):
         with _env(AI_SHARED_TOKEN="t"):
             settings = config.Config()
-        self.assertEqual(settings.host, "hezarfen-backend")
+        self.assertEqual(settings.host, "hezarfen_backend")
         self.assertEqual(settings.port, 8090)
         self.assertEqual(settings.service, "zeka")
         self.assertEqual(settings.source_mode, "bridge")

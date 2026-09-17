@@ -91,7 +91,7 @@ podman compose up -d
 ### tek kap olarak
 
 ```bash
-podman run -d --name hezarfen-zeka-bridge \
+podman run -d --name hezarfen_zeka \
   --network hezarfen_backend_default \
   -e AI_SHARED_TOKEN=... \
   -e ZEKA_PG_DSN=postgres://<kullanici>:<parola>@<host>:5432/<okul_veritabani> \
@@ -159,8 +159,8 @@ bir `.env` dosyasindan gelir. CI her kosuda bu bicimi denetler.
 | Degisken | Varsayilan | Not |
 |---|---|---|
 | `HEZARFEN_NET` | `hezarfen_backend_default` | Katilinacak **dis** agin adi. |
-| `AI_BRIDGE_HOST` / `AI_BRIDGE_PORT` | `hezarfen-backend` / `8090` | QUIC ucu. |
-| `AI_BACKEND_URL` | `http://hezarfen-backend:8080` | Sertifika cekilen HTTP ucu. |
+| `AI_BRIDGE_HOST` / `AI_BRIDGE_PORT` | `hezarfen_backend` / `8090` | QUIC ucu. |
+| `AI_BACKEND_URL` | `http://hezarfen_backend:7656` | Sertifika cekilen HTTP ucu. |
 | `AI_TLS_FINGERPRINT` | *(bos)* | **Bos = TOFU.** Asagiya bakin. |
 | `AI_MAX_CONCURRENT` | `4` | Backend clamp'i: `1..=AI_MAX_CONCURRENT_PER_WORKER`. |
 | `AI_RECONNECT_SECS` / `AI_RECONNECT_MAX_SECS` | `3` / `120` | Geri cekilme taban ve tavani. |
@@ -193,9 +193,9 @@ networks:
     name: ${HEZARFEN_NET:-hezarfen_backend_default}
 ```
 
-Ag adi **parametriktir**. Kardes servis Celebi bunu sabit yaziyor ve ag baska
-bir adla kuruldugunda compose patliyor. CI, `HEZARFEN_NET`'in gercekten
-gecersiz kilinabildigini kosturarak dogrular.
+Ag adi **parametriktir**. Kardes servisler (podcast, Celebi) de ayni deseni
+kullanir; ag farkli adla kurulduysa `HEZARFEN_NET` ile verilir. CI, bunun
+gercekten gecersiz kilinabildigini kosturarak dogrular.
 
 Ag mevcut degilse once olusturun:
 

@@ -71,7 +71,7 @@ env:
   # Operatorun ayar dosyasi; deploy yalniz varligini kontrol eder, yazmaz.
   ENV_FILE_NAME: hezarfen_zeka.env
   # compose.yaml'daki `container_name` (bkz. service/compose.yaml:11).
-  CONTAINER_NAME: hezarfen-zeka-bridge
+  CONTAINER_NAME: hezarfen_zeka
   # Saglik kapisinin on kosulu: backend'in HTTP sertifika ucu. Backend'in host
   # loopback portu (README: `127.0.0.1:7656:7656`).
   CERT_PATH: /ai/certificate

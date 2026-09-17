@@ -13,14 +13,14 @@ services:
     # yazilsaydi deploy yeni imaji yukleyip ESKI imaji kosmaya devam ederdi --
     # tag rotasyonu ve geri donus (previous_tag) bu satira baglidir.
     image: localhost/hezarfen-zeka:${HEZARFEN_TAG:-current}
-    container_name: hezarfen-zeka-bridge
+    container_name: hezarfen_zeka
     init: true
     command: ["python", "-m", "src.bridge"]
     environment:
       # --- kopru adresi ---
-      AI_BRIDGE_HOST: ${AI_BRIDGE_HOST:-hezarfen-backend}
+      AI_BRIDGE_HOST: ${AI_BRIDGE_HOST:-hezarfen_backend}
       AI_BRIDGE_PORT: ${AI_BRIDGE_PORT:-8090}
-      AI_BACKEND_URL: ${AI_BACKEND_URL:-http://hezarfen-backend:8080}
+      AI_BACKEND_URL: ${AI_BACKEND_URL:-http://hezarfen_backend:7656}
       AI_TLS_SERVER_NAME: ${AI_TLS_SERVER_NAME:-localhost}
       # --- kimlik ---
       # Zorunlu. Interpolasyon kullanilir, literal sir YAZILMAZ.
@@ -126,5 +126,5 @@ networks:
   backend_net:
     external: true
     # PARAMETRIK: ag adi dagitimdan dagitima degisir (podcast'in deseni).
-    # Celebi bunu sabit yaziyor ve ag baska adla kuruldugunda compose patliyor.
+    # Kardes servisler (podcast, Celebi) de ayni deseni kullanir.
     name: ${HEZARFEN_NET:-hezarfen_backend_default}

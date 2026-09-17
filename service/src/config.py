@@ -139,10 +139,10 @@ class Config:
         # --- kopru adresi --------------------------------------------------
         # Backend QUIC *sunucusudur*, servis ona dial-out eder
         # (`ai/protocol.rs:5-7`). Bu yuzden ZEKA port acmaz.
-        self.host = env_str("AI_BRIDGE_HOST", "hezarfen-backend")
+        self.host = env_str("AI_BRIDGE_HOST", "hezarfen_backend")
         self.port = env_int("AI_BRIDGE_PORT", 8090, 1, 65535)
         # Sertifikayi cektigimiz HTTP adresi; QUIC adresinden ayridir.
-        self.backend_url = env_str("AI_BACKEND_URL", "http://hezarfen-backend:8080").rstrip("/")
+        self.backend_url = env_str("AI_BACKEND_URL", "http://hezarfen_backend:7656").rstrip("/")
         self.server_name = env_str("AI_TLS_SERVER_NAME", "localhost")
 
         # --- kimlik ---------------------------------------------------------
