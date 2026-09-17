@@ -4,7 +4,8 @@
 # Uc sey denetlenir ve UCU DE cift yonludur; yalnizca "gecerli mi" diye
 # sormak, asil kusurlari kacirir:
 #
-#   1. Zorunlu sirlar gercekten zorunlu mu?
+#   1. Zorunlu sirlar gercekten zorunlu mu? (AI_SHARED_TOKEN, DEEPSEEK_API_KEY,
+#      ZEKA_PG_DSN -- tam liste compose.yaml'da.)
 #      `${VAR:?}` yerine `${VAR:-}` yazilirsa compose yine gecerli olur ama
 #      servis bos bir token'la ayaga kalkar ve backend'e kaydolamaz. Bu
 #      yuzden env YOKKEN `config`in PATLAMASINI da sinariz.
@@ -38,14 +39,21 @@ gec() { echo "  [ok]   $1"; }
 kal() { echo "  [HATA] $1"; HATA=1; }
 
 # --- 1a. zorunlu env EKSIKKEN patlamali -----------------------------------
-if env -u AI_SHARED_TOKEN -u DEEPSEEK_API_KEY "${COMPOSE[@]}" config >/dev/null 2>&1; then
+# ZORUNLU SIRLAR LISTESI compose.yaml'DAN OKUNUR -- su an uctur
+# (AI_SHARED_TOKEN, DEEPSEEK_API_KEY, ZEKA_PG_DSN). Ucuncusu eklendiginde bu
+# betik ve `ci.yml`'in konteyner katmani iki sirla kalmis, ikisi de "sirlar
+# verilse bile patliyor" diyerek KIRMIZI kalmisti. Sir eklerseniz bu listeyi
+# ve ci.yml/main.yml adimini BIRLIKTE guncelleyin.
+if env -u AI_SHARED_TOKEN -u DEEPSEEK_API_KEY -u ZEKA_PG_DSN \
+     "${COMPOSE[@]}" config >/dev/null 2>&1; then
   kal "zorunlu sirlar olmadan gecti -- \${VAR:?} yerine \${VAR:-} yazilmis olabilir"
 else
-  gec "zorunlu sirlar olmadan REDDEDILDI (AI_SHARED_TOKEN / DEEPSEEK_API_KEY)"
+  gec "zorunlu sirlar olmadan REDDEDILDI (AI_SHARED_TOKEN / DEEPSEEK_API_KEY / ZEKA_PG_DSN)"
 fi
 
 # --- 1b. zorunlu env VARKEN gecerli olmali --------------------------------
-CIKTI="$(AI_SHARED_TOKEN=ci-sahte DEEPSEEK_API_KEY=ci-sahte "${COMPOSE[@]}" config 2>&1)"
+ZORUNLU_ENV=(AI_SHARED_TOKEN=ci-sahte DEEPSEEK_API_KEY=ci-sahte ZEKA_PG_DSN=postgres://ci:ci@127.0.0.1:5432/ci)
+CIKTI="$(env "${ZORUNLU_ENV[@]}" "${COMPOSE[@]}" config 2>&1)"
 if [ $? -ne 0 ]; then
   kal "zorunlu sirlar verildiginde bile config basarisiz:"
   echo "$CIKTI" | tail -10
@@ -63,8 +71,13 @@ fi
 # --- 3. ag adi parametrik mi ----------------------------------------------
 if grep -q 'name: ${HEZARFEN_NET:-' compose.yaml; then
   gec "dis ag adi parametrik: \${HEZARFEN_NET:-hezarfen_backend_default}"
-  OZEL="$(HEZARFEN_NET=baska_ag AI_SHARED_TOKEN=x DEEPSEEK_API_KEY=x "${COMPOSE[@]}" config 2>/dev/null | grep -A2 '^networks:' | grep 'name:')"
-  if echo "$OZEL" | grep -q 'baska_ag'; then
+  # SIRA BAGIMSIZ arama: `networks:` blogunda anahtar sirasi saglayiciya gore
+  # degisir (podman-compose `external`i `name`den ONCE basar). Ilk surum
+  # `grep -A2 '^networks:'` ile pencere aciyordu ve ad satirini kacirip HATA
+  # veriyordu -- probe'un kendisi yanlisti, yapilandirma degil.
+  OZEL="$(env HEZARFEN_NET=baska_ag "${ZORUNLU_ENV[@]}" "${COMPOSE[@]}" config 2>/dev/null \
+          | grep -E '^[[:space:]]+name:[[:space:]]*baska_ag[[:space:]]*$' | head -1)"
+  if [ -n "$OZEL" ]; then
     gec "HEZARFEN_NET gecersiz kilinabiliyor (test: baska_ag ->$OZEL)"
   else
     kal "HEZARFEN_NET gecersiz kilinamadi; parametre ise yaramiyor"

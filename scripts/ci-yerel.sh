@@ -63,7 +63,13 @@ kosu "sozdizimi" "$PYTHON" -m compileall -q -x '(__pycache__|\.venv|venv)' \
 katman "2/5 testler" \
   "375+ birim testi; saf unittest, HICBIR bagimlilik gerektirmez"
 # `-t .` onemli: test kokunu servise sabitler, `src.` import'lari boylece cozulur.
-kosu "birim testleri" bash -c "cd '$SERVIS' && '$PYTHON' -m unittest discover -s tests -t . -v 2>&1 | tail -20"
+#
+# `set -o pipefail` ICERIDE: `bash -c` yeni bir kabuk acar ve dis script'in
+# `pipefail` secenegi oraya GECMEZ. Onsuz boru hattinin cikis durumu `tail`in
+# durumudur -- yani 686 testten 3'u patlarken bile bu satir GECTI basardi
+# (olculdu: `Ran 686 tests ... FAILED`, katman yine yesil). Yesil gorunen ama
+# olcmeyen kapi, kapi degildir.
+kosu "birim testleri" bash -c "set -o pipefail; cd '$SERVIS' && '$PYTHON' -m unittest discover -s tests -t . -v 2>&1 | tail -20"
 
 if [ "$HIZLI" -eq 1 ]; then
   echo ""

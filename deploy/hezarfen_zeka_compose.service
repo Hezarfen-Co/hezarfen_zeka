@@ -1,0 +1,48 @@
+# systemd KULLANICI unit'i: ZEKA koprusunu podman compose ile calistirir.
+# %h/hezarfen_zeka icinde beklenen dosyalar:
+#   compose.yaml                bu repodan (deploy artefaktindan gelir)
+#   hezarfen_zeka.env           0600, deploy/hezarfen_zeka.env.example'dan
+#                               ELLE yazilir -- otomasyon olusturmaz/ezmez
+#   stack.env                   deploy sahipli; HEZARFEN_TAG tasir
+#
+# Unit `--no-build` ile baslar, yani imaj sunucuda zaten olmali:
+#   podman compose build            # burada derle
+#   podman load -i image.tar        # ya da hazir imaji yukle (deploy bunu yapar)
+#
+# KAPASITE: ZEKA hafiftir -- olculen imaj 152 MB (docs/DAGITIM.md), model
+# dosyasi yok, calisma zamani tek bir Python sureci (kopru). Dagitim yine de
+# yer oldugunu olcer (main.yml "KAPASITE ON KONTROLU": >= 512 MB RAM,
+# >= 2 GB disk) ve yetmezse nedeniyle birlikte reddeder.
+#
+# HEZARFEN_TAG compose.yaml'da `${HEZARFEN_TAG:-current}` olarak gecir; bu
+# unit'te SONRAKI --env-file kazanir: once operatorun ayar dosyasi, sonra
+# deploy sahipli stack.env.
+#
+# Dis ag (`hezarfen_backend_default`) backend compose'u tarafindan kurulur;
+# yoksa once olusturun: podman network create hezarfen_backend_default
+#
+# Sadece ortam degiskeni degistiginde yeniden baslatma (ExecStart'i yeniden
+# kosar, ortami degisen konteynerı yeniden olusturur):
+#   systemctl --user restart hezarfen_zeka_compose
+
+[Unit]
+Description=Hezarfen ZEKA bridge (student analysis + recommendations over the school database)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=%h/hezarfen_zeka
+# Sonraki --env-file cakisan anahtarda kazanir: once operatorun ayar dosyasi,
+# sonra deploy sahipli stack.env (HEZARFEN_TAG).
+ExecStart=/usr/bin/podman compose --env-file %h/hezarfen_zeka/hezarfen_zeka.env --env-file %h/hezarfen_zeka/stack.env up -d --no-build
+# Env dosyalari BURADA DA verilir: compose her komutta dosyayi COZER ve ZEKA
+# compose.yaml'inda uc sir `${VAR:?}` bicimindedir; env'siz bir `down`
+# "required variable ... is missing a value" ile duser ve kap DURMAZ.
+# `-v` yok: zeka-fixtures isimli volume stop'ta yasamali.
+ExecStop=/usr/bin/podman compose --env-file %h/hezarfen_zeka/hezarfen_zeka.env --env-file %h/hezarfen_zeka/stack.env down
+TimeoutStartSec=180
+
+[Install]
+WantedBy=default.target

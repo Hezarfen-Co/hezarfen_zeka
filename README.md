@@ -297,3 +297,64 @@ günler sonra boş bir tablo yerine.
 
 DSN hiçbir yerde loglanmaz; `pg_client._describe()` yalnız host/port/veritabanı
 döndürür, kullanıcı adı ve parola asla.
+
+---
+
+## 11. Dağıtım — VPS, yeşil push'ta otomatik
+
+`.github/workflows/main.yml` — ailedeki Çelebi deploy'uyla **aynı şekil**:
+
+```
+Katman 1..5 (paralel)  ->  Build and test  ->  Deploy (SSH, health gate, tag rollback)
+```
+
+| İş | Ne yapar |
+|---|---|
+| **Katman 1..5** | `ci.yml`'deki beş katmanın kendisi; komutlar birebir aynı. Hepsi yeşil olmadan imaj üretilmez. |
+| **Build and test** | İmajı bu koşunun SHA'sıyla derler (`localhost/hezarfen-zeka:$GITHUB_SHA`), imaj tarball'ı + `compose.yaml` + systemd unit'i + `tag` dosyasını `release` artefaktı olarak yükler (30 gün). |
+| **Deploy** | SSH: kapasite ön kontrolü → imajı yükle → `stack.env`'in `HEZARFEN_TAG`'ini bu SHA'ya çevir → compose + unit'i kur → `systemctl --user restart` → **servisin kendi sağlık betiğiyle** doğrula → olmazsa önceki tag'e dön → bağımsız son doğrulama. |
+
+**Yeşil bir `main` push'u servisi otomatik dağıtır.** Elle yeniden dağıtım
+(süiti tekrar koşmadan, en yeni yeşil build'i):
+
+```bash
+gh workflow run main.yml --ref main
+```
+
+`main` dalına push yalnızca `main.yml`'de koşar; **diğer dallar ve pull
+request'ler** beş katmanı `ci.yml`'den alır (aynı kapı iki kez koşmaz).
+
+### Ön koşullar (bir kez, depo/sunucu dışında yapılır)
+
+1. **Repo secret'ları** — backend ve frontend deploy'unun kullandığı üç isim:
+   `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER`.
+2. **Sunucuda `loginctl enable-linger <kullanıcı>`** — kullanıcı unit'i için.
+3. **Sunucuda podman + bir compose sağlayıcı** (`podman compose version`).
+4. **Operatörün ayar dosyası** — deploy onu **oluşturmaz, yazmaz**, yalnız
+   varlığını kontrol eder ve izni 0600'e çeker:
+
+   ```bash
+   mkdir -p ~/hezarfen_zeka
+   cp deploy/hezarfen_zeka.env.example ~/hezarfen_zeka/hezarfen_zeka.env
+   # AI_SHARED_TOKEN / ZEKA_PG_DSN / DEEPSEEK_API_KEY zorunlu
+   chmod 0600 ~/hezarfen_zeka/hezarfen_zeka.env
+   ```
+
+5. **Backend tarafı açık olmalı**: `hezarfen_backend.env` içinde
+   `AI_QUIC_ADDR=0.0.0.0:8090` ve `AI_SHARED_TOKEN` bu köprününkiyle **aynı**.
+   Bu bir **kapı değildir**: ZEKA backend yokken çıkmaz, bekler ve backend
+   düzeltilince kendiliğinden kaydolur (bkz. `docs/DAGITIM.md`). Deploy bunu
+   yalnız **uyarı** olarak bildirir — kayıt şartı aransaydı ZEKA'nın kendi
+   tanımından daha sıkı bir kapı uydurmuş olurduk.
+
+### Kapı, rollback ve kapsam
+
+- **Sağlık kapısı = `scripts/saglik.py`**, konteynerde. Ölçtüğü şey köprü
+  sürecinin **yaşaması**; backend'e *kayıtlı* olduğunu ölçmez — bu bilinçli
+  (backend'in her yeniden dağıtımı ZEKA'yı `unhealthy` işaretlemesin diye).
+- **Kapasite ön kontrolü**: ≥ 512 MB boşta RAM ve ≥ 2 GB disk; yetmezse
+  **nedeniyle birlikte reddeder** (ölçülen: imaj 152 MB, model yok).
+- **Rollback**: `previous_tag`'e döner; ilk dağıtımda geri dönülecek imaj
+  yoksa stack durdurulur (`down`, `-v` **yok** — `zeka-fixtures` volume'u kalır).
+- **Manuel yol duruyor**: `cd service && podman compose up -d` (bkz. §7) —
+  deploy'a ihtiyaç duymadan tek makinede kaldırmak için değişen bir şey yok.

@@ -66,7 +66,8 @@ DESENLER: list[tuple[str, re.Pattern[str], str]] = [
             r"""(?x)
             ^\s*(?:export\s+)?
             (DEEPSEEK_API_KEY|LLM_API_KEY|SEGMENT_API_KEY|AI_SHARED_TOKEN
-             |ZEKA_DB_PASSWORD|[A-Z0-9_]*(?:API_KEY|SECRET|PASSWORD|TOKEN))
+             |ZEKA_DB_PASSWORD|ZEKA_PG_DSN
+             |[A-Z0-9_]*(?:API_KEY|SECRET|PASSWORD|TOKEN))
             \s*[:=]\s*
             (?!\$)                 # ${VAR} interpolasyonu degil
             ["']?([^\s"'#]{12,})["']?\s*$
@@ -240,10 +241,14 @@ def main() -> int:
     # --- compose sirlarinin bicimi ------------------------------------------
     # Zorunlu sirlar `${VAR:?...}` ile gelmeli; duz deger ya da `:-varsayilan`
     # bir sirri dosyaya gomer.
+    #
+    # LISTE compose.yaml'DAN OKUNUR: `ZEKA_PG_DSN` ucuncu sir olarak
+    # eklendiginde burasi ve `scripts/ci-compose.sh` iki sirla kalmisti.
+    # DSN bir parola tasir -- duz deger yazilabilseydi sir dosyaya girerdi.
     compose = KOK / "service" / "compose.yaml"
     if compose.exists():
         icerik = io.open(compose, encoding="utf-8").read()
-        for degisken in ("AI_SHARED_TOKEN", "DEEPSEEK_API_KEY"):
+        for degisken in ("AI_SHARED_TOKEN", "DEEPSEEK_API_KEY", "ZEKA_PG_DSN"):
             satirlar = [s for s in icerik.splitlines() if s.strip().startswith(degisken + ":")]
             if not satirlar:
                 uyarilar.append(f"compose.yaml icinde {degisken} tanimli degil")

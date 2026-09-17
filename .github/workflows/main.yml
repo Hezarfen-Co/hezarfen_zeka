@@ -1,0 +1,611 @@
+# VPS deploy -- ZEKA kopru servisi. Sekil, ailedeki Celebi/RAG deploy'uyla
+# AYNI (hata toparlama ucuz olsun):
+#
+#   Katman 1..5     --  ci.yml'deki BES katmanin KENDISI; push'ta burada kosar.
+#                       Komutlar oradakiyle birebir aynidir (tek dogruluk
+#                       kaynagi: scripts/ci-yerel.sh).
+#   Build and test  --  bes katman yesilse imaji derler ve kosunun artefaktini
+#                       (imaj tarball'i + compose.yaml + systemd unit'i + tag)
+#                       yukler. Ad BILEREK "Build and test": workflow_dispatch
+#                       yolu en yeni yesil kosuyu tam bu ISIN ADIYLA arar
+#                       (`gh run view ... select(.name=="Build and test")`).
+#   Deploy          --  SSH: kapasite on kontrolu, imaji yukle, deploy sahipli
+#                       stack.env'in HEZARFEN_TAG'ini ona cevir, compose.yaml +
+#                       unit'i kur, stack'i yeniden baslat, servisin KENDI
+#                       saglik betigiyle dogrula, olmazsa onceki tag'e don,
+#                       ardindan bagimsiz dogrulama.
+#
+# KATMANLAR NEDEN AYRI ISLER -- gerekce ci.yml'in basindan aynen:
+#   "Katmanlar bilincli olarak AYRI islerdir, tek bir dev is degil: bir kosucu
+#    konteyner derleyemiyorsa testler yine de kosar, ve sozlesme denetimi
+#    kirildiginda 'testler gecti ama sozlesme kaldi' bilgisi tek bakista
+#    gorunur."
+# Push'ta ayni kapi IKI KEZ kosmasin diye ci.yml'in push tetikleyicisi main
+# dalini DISLAR (bkz. ci.yml `on:`): main push'u boylece tam olarak bir kez
+# kosar; diger dallar ve PR'lar katmanlari ci.yml'den alir.
+#
+# YESIL BIR MAIN PUSH'U OTOMATIK DAGITIR (Celebi'nin sekli; RAG'da dagitim
+# bilerek elleydi cunku orada ~4,5 GB model ve GPU'suz makinede gecmeyen bir
+# urun kapisi var -- ZEKA hafif bir koprudur, o gerekce burada yok).
+#
+# Elle yeniden dagitim -- Actions -> Run workflow, ya da:
+#   gh workflow run main.yml --ref main
+# Bu yol suiti TEKRAR kosmaz: "Build and test" isi yesil olan en yeni kosunun
+# artefaktini dagitir (asagidaki "Find the newest green build" adimi).
+#
+# Bir seferlik on kosullar (workflow'un erisimi disinda):
+#   * repo secret'lari SSH_PRIVATE_KEY / SSH_HOST / SSH_USER -- backend ve
+#     frontend deploy'unun kullandigi uc isim;
+#   * sunucuda `loginctl enable-linger <user>` (kullanici unit'leri icin);
+#   * sunucuda podman + bir compose saglayici (deploy ikisini de kontrol eder);
+#   * operatorun ~/hezarfen_zeka/hezarfen_zeka.env dosyasi (0600; sablon:
+#     deploy/hezarfen_zeka.env.example). Deploy onu ASLA olusturmaz, yazmaz;
+#     yalniz varligini kontrol eder ve iznini 0600'e ceker;
+#   * backend tarafi acik olmali: hezarfen_backend.env icinde
+#     AI_QUIC_ADDR=0.0.0.0:8090 ve AI_SHARED_TOKEN bu koprununkiyle AYNI.
+#     Bu bir KAPI DEGILDIR -- asagida gerekcesiyle yazilidir.
+
+name: VPS deploy
+
+on:
+  push:
+    branches:
+      - main
+  # Elle yeniden deploy kapisi -- yukaridaki baslik yorumuna bakin.
+  workflow_dispatch:
+
+# Deploy serilestirmesi workflow'da degil deploy isinde: yeni bir push, ucustaki
+# VPS degisimine dokunmadan bayat katman/Build kosularini iptal edebilmeli.
+permissions:
+  contents: read
+  # workflow_dispatch yolu `gh run list/view` ile en yeni yesil kosuyu arar ve o
+  # kosunun artefaktini indirir; ikisi de Actions API'sidir ve YAZMA GEREKMEZ.
+  actions: read
+
+env:
+  # systemd kullanici unit'i. Bkz. deploy/hezarfen_zeka_compose.service.
+  SERVICE: hezarfen_zeka_compose
+  # Deploy, SSH kullanicisinin home'u altindaki bu alt dizinde yasar ($HOME
+  # sunucuda cozulur).
+  DEPLOY_SUBDIR: hezarfen_zeka
+  # Operatorun ayar dosyasi; deploy yalniz varligini kontrol eder, yazmaz.
+  ENV_FILE_NAME: hezarfen_zeka.env
+  # compose.yaml'daki `container_name` (bkz. service/compose.yaml:11).
+  CONTAINER_NAME: hezarfen-zeka-bridge
+  # Saglik kapisinin on kosulu: backend'in HTTP sertifika ucu. Backend'in host
+  # loopback portu (README: `127.0.0.1:7656:7656`).
+  CERT_PATH: /ai/certificate
+  BACKEND_HTTP_PORT: "7656"
+
+jobs:
+  # =========================================================================
+  # KATMAN 1..5 -- ci.yml'deki bes katman. Adlar, adim metinleri ve komutlar
+  # oradan BIREBIR tasindi; burada degisen tek sey `if` ve `concurrency`:
+  # dispatch bu suiti tekrar odemez (bkz. dosya basi).
+  # =========================================================================
+  sozdizimi:
+    name: "Katman 1 -- sozdizimi (her .py ayristirilabiliyor mu)"
+    if: github.event_name == 'push'
+    concurrency:
+      group: ci-${{ github.workflow }}-${{ github.ref }}-sozdizimi
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: "Butun kaynaklar ayristirilabiliyor mu"
+        # Testlerden ONCE kosar: bozuk bir dosya, testlerin toplanmasini
+        # engelleyip anlamsiz bir toplama hatasi uretir. Burada hangi dosya
+        # ve hangi satir oldugu tek satirda gorunur.
+        run: |
+          python -m compileall -q -x '(__pycache__|\.venv|venv)' \
+            service/src service/tests scripts
+
+  # =========================================================================
+  testler:
+    name: "Katman 2 -- birim testleri (saf unittest, bagimliliksiz)"
+    if: github.event_name == 'push'
+    concurrency:
+      group: ci-${{ github.workflow }}-${{ github.ref }}-testler
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: "python -m unittest discover"
+        # BAGIMLILIK KURULMAZ. Bu kasitli: test paketi saf `unittest`
+        # kullanir ve `requirements.txt` gerektirmez. Boylece bu is,
+        # bagimlilik cozumleme sorunlarindan BAGIMSIZ olarak kirmizi/yesil
+        # bilgisi verir; ag kesintisi testleri dusuremez.
+        #
+        # `aioquic` gerektiren canli kopru testleri kendiliginden ATLANIR
+        # (tests/test_bridge_live.py basindaki SkipTest). Onlari acikca
+        # kosturan is ayri dosyada: `istege-bagli-testler.yml`.
+        working-directory: service
+        run: python -m unittest discover -s tests -t . -v
+
+  # =========================================================================
+  sozlesme:
+    name: "Katman 3 -- sozlesme (model<->fiyat, yol<->izin listesi)"
+    if: github.event_name == 'push'
+    concurrency:
+      group: ci-${{ github.workflow }}-${{ github.ref }}-sozlesme
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: "Sozlesme denetimi"
+        # BU DENETIM BU PROJEDE IKI KEZ SESSIZ KUSUR YAKALARDI:
+        #
+        #  1. Model adi uyusmazligi. `cost_usd()` bilinmeyen bir model adi
+        #     gorunce hata vermez, sessizce EN PAHALI tarifeye duser
+        #     (provider.py:124-125). Butce raporu yanlis cikar, hicbir test
+        #     kirilmaz.
+        #
+        #  2. Izin listesi sapmasi. `protocol.py:AI_API_ALLOWLIST`,
+        #     backend'in `constant.rs:656-676` listesinin ELLE tutulan
+        #     kopyasidir. Ayristiklarinda cagri `path_not_allowed` ile tele
+        #     cikmadan reddedilir; testler de ayni kopyayi dogruladigi icin
+        #     yesil kalir.
+        #
+        # NOT: GitHub kosucusunda backend deposu YOKTUR, bu yuzden gercek
+        # `constant.rs` karsilastirmasi burada ATLANIR ve betik bunu bir
+        # "not" olarak basar (hata degil). Depo ici pinli anlik goruntuye
+        # (tests/test_protocol.py:BACKEND_SNAPSHOT) karsi denetim yine kosar.
+        # Gercek karsilastirma yerelde yapilir:
+        #   HEZARFEN_BACKEND=/yol/hezarfen_backend-main python scripts/ci-sozlesme.py
+        run: python scripts/ci-sozlesme.py
+
+  # =========================================================================
+  sirlar:
+    name: "Katman 4 -- sir taramasi (sizmis API anahtari)"
+    if: github.event_name == 'push'
+    concurrency:
+      group: ci-${{ github.workflow }}-${{ github.ref }}-sirlar
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: "Sir taramasi"
+        # `.env` `.gitignore` icinde, ama bu yalnizca YENI dosyalari korur:
+        # `git add -f` ile ya da `.gitignore`'dan once eklenmis bir dosya
+        # izlenmeye devam eder. Tarayici `sk-` / `sk_` desenlerini, ozel
+        # anahtar govdelerini ve yapilandirma dosyalarina gomulmus duz
+        # degerleri arar; ayrica compose'daki zorunlu sirlarin `${VAR:?}`
+        # bicimini korudugunu dogrular.
+        #
+        # Bulunan deger ASLA tam basilmaz -- yoksa CI kaydinin kendisi sir
+        # sizdiran yer olurdu.
+        run: python scripts/ci-sir-tara.py
+
+  # =========================================================================
+  konteyner:
+    name: "Katman 5 -- konteyner (derleniyor VE kosuyor mu)"
+    if: github.event_name == 'push'
+    concurrency:
+      group: ci-${{ github.workflow }}-${{ github.ref }}-konteyner
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Imaji derle"
+        # Taban imaj digest'e pinlidir (Containerfile:15); bu is ayni zamanda
+        # o digest'in hala cekilebildigini de dogrular.
+        working-directory: service
+        run: podman build -t hezarfen-zeka:ci -f Containerfile .
+
+      - name: "Imaj boyutu"
+        run: podman images --format '{{.Repository}}:{{.Tag}} {{.Size}}' hezarfen-zeka:ci
+
+      - name: "Kosu kaniti -- kap cikmiyor, non-root, saglik kontrolu olcuyor"
+        # DERLENDI, KOSTU DEMEK DEGILDIR. Denetimde kardes servis RAG'in
+        # konteynerinin hic ayaga kalkmadigi bulundu: komut bir metin basip
+        # cikiyor ve `restart: unless-stopped` ile sonsuz crash-loop
+        # uretiyordu. Bu adim farki olcer:
+        #   - kap 50 sn sonra hala kosuyor mu,
+        #   - backend YOKKEN cikmak yerine USTEL geri cekilmeyle yeniden
+        #     deniyor mu (bekleme suresi buyuyor mu),
+        #   - surec non-root mu (uid 10002),
+        #   - saglik kontrolu kopru yasarken geciyor VE kopru yokken
+        #     kaliyor mu (her zaman 0 donen bir kontrol hicbir sey kanitlamaz).
+        run: bash scripts/ci-konteyner-kanit.sh podman hezarfen-zeka:ci
+
+      - name: "compose.yaml gecerli mi ve zorunlu sirlar zorunlu mu"
+        # Iki yonlu denetim: (1) zorunlu env YOKKEN `config` PATLAMALI,
+        # (2) VARKEN gecerli bir yapilandirma uretmeli. Yalnizca ikincisini
+        # denetlemek, `${VAR:?}` yerine `${VAR:-}` yazilmasini yakalamaz.
+        #
+        # ZORUNLU SIRLAR LISTESI compose.yaml'IN KENDISINDEN OKUNUR: ucuncu
+        # sir `ZEKA_PG_DSN` (compose.yaml:82) eklendiginde bu adim ve yerel
+        # esdegeri `scripts/ci-compose.sh` iki sirla kalmis, adim "sirlar
+        # verilse bile patliyor" diyerek KIRMIZI kalmisti. Liste artik tamdir;
+        # compose.yaml'a sir eklerken burayi da guncelleyin (ve
+        # scripts/ci-compose.sh'i; yerel esdeger AYNI kapi olmali).
+        working-directory: service
+        run: |
+          echo "--- zorunlu env eksikken patlamali ---"
+          if env -u AI_SHARED_TOKEN -u DEEPSEEK_API_KEY -u ZEKA_PG_DSN \
+               docker compose config >/dev/null 2>&1; then
+            echo "HATA: zorunlu sirlar olmadan gecti;"
+            echo "      zorunlu sirlar \${VAR:?} bicimini kaybetmis olabilir."
+            exit 1
+          fi
+          echo "ok: zorunlu env olmadan reddedildi"
+          echo "--- zorunlu env varken gecerli olmali ---"
+          AI_SHARED_TOKEN=ci-sahte DEEPSEEK_API_KEY=ci-sahte \
+            ZEKA_PG_DSN=postgres://ci:ci@127.0.0.1:5432/ci docker compose config
+          echo "--- port ACILMAMALI (disa arama servisi) ---"
+          if AI_SHARED_TOKEN=ci-sahte DEEPSEEK_API_KEY=ci-sahte \
+               ZEKA_PG_DSN=postgres://ci:ci@127.0.0.1:5432/ci docker compose config \
+               | grep -qE '^\s+ports:'; then
+            echo "HATA: compose port aciyor; ZEKA backend'e dial-out eder, port ACMAZ."
+            exit 1
+          fi
+          echo "ok: hicbir port yayimlanmiyor"
+
+  # =========================================================================
+  build:
+    name: Build and test
+    # Push'ta kosar. Dispatch, suiti tekrar odemek yerine en yeni yesil
+    # artefakti kullanir (bkz. deploy'un "Find the newest green build" adimi).
+    if: github.event_name == 'push'
+    # BES KATMANIN HEPSI yesil olmadan artefakt uretilmez: bozuk bir build
+    # sunucuya ASLA ulasmamali. Suiti burada TEKRAR kosmuyoruz -- `needs:`
+    # zinciri Katman 2'yi zaten sart kostu; bu isin ekledigi sey, ayni agactan
+    # uretilen SURUM paketidir.
+    needs: [sozdizimi, testler, sozlesme, sirlar, konteyner]
+    concurrency:
+      group: ci-${{ github.workflow }}-${{ github.ref }}-build
+      cancel-in-progress: true
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build the image
+        # Laptop ve CI ayni Containerfile'i kullanir: ayri bir CI ikizi yok.
+        # Baglam `service/` -- Containerfile oradadir.
+        working-directory: service
+        run: |
+          set -euo pipefail
+          podman build -t localhost/hezarfen-zeka:$GITHUB_SHA -f Containerfile .
+
+      - name: Stage the release bundle
+        # Sunucuda kurulacak her sey burada olmali; eksik parca burada,
+        # sunucuda degil, patlar.
+        run: |
+          set -euo pipefail
+          mkdir -p stage
+          podman save localhost/hezarfen-zeka:$GITHUB_SHA | gzip > stage/hezarfen_zeka.tar.gz
+          cp service/compose.yaml stage/compose.yaml
+          cp deploy/hezarfen_zeka_compose.service stage/
+          echo -n "$GITHUB_SHA" > stage/tag
+          test -f stage/hezarfen_zeka.tar.gz
+          test -f stage/compose.yaml
+          test -f stage/hezarfen_zeka_compose.service
+          test -f stage/tag
+          ls -lh stage
+
+      # Deploy isi (ve elle yeniden deploy) bunu tuketir. 30 gun, dispatch
+      # kapisinin geri uzanma penceresidir.
+      - name: Upload the release
+        uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: stage
+          retention-days: 30
+
+  # =========================================================================
+  deploy:
+    name: Deploy
+    # Zincirin tamami kapi olur: build'in `needs` listesi bes katmani kapsar,
+    # yani `needs: [build]` "bes katman + imaj yesil" demektir.
+    needs: [build]
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    # Push: yalniz Build and test yesilse. Dispatch: iki CI isi bilerek
+    # atlanir (if'lerine bakin) ve `always()` bu atlamanin bu kapidan
+    # gecmesini saglar.
+    if: >-
+      always() &&
+      ((github.event_name == 'push' && needs.build.result == 'success') ||
+       (github.event_name == 'workflow_dispatch' && needs.build.result == 'skipped'))
+    runs-on: ubuntu-24.04
+    steps:
+      # Push deploy'u bu kosunun urettigi ve kapiladigi surumu alir.
+      - name: Fetch this run's release
+        if: github.event_name == 'push'
+        uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: stage
+
+      # Elle yeniden deploy, BUILD isi yesil olan en yeni kosuyu alir -- en
+      # yeni tamamen yesil kosuyu degil: bir kosu saglik kapisinda dusmus
+      # olabilir ama build'i tam da geri almak istedigimiz surumdur.
+      - name: Find the newest green build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_id=""
+          for rid in $(gh run list --workflow main.yml --branch main --event push --limit 15 --json databaseId --jq '.[].databaseId'); do
+            if [ "$(gh run view "$rid" --json jobs --jq '.jobs[] | select(.name=="Build and test") | .conclusion')" = "success" ]; then
+              run_id=$rid
+              break
+            fi
+          done
+          if [ -z "$run_id" ]; then
+            echo 'no run on main has a green Build-and-test job (or its artifact has expired)' >&2
+            exit 1
+          fi
+          echo "redeploying the release from run $run_id"
+          echo "run_id=$run_id" >> "$GITHUB_ENV"
+
+      - name: Fetch the green release
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: stage
+          run-id: ${{ env.run_id }}
+          github-token: ${{ github.token }}
+
+      # Dispatch yolu gunler oncesine ait bir artefakt indirebilir; sunucuya
+      # dokunmadan once paketin butun oldugunu yeniden kontrol et.
+      - name: Check the release is complete
+        run: |
+          set -euo pipefail
+          test -f stage/hezarfen_zeka.tar.gz
+          test -f stage/compose.yaml
+          test -f stage/hezarfen_zeka_compose.service
+          test -f stage/tag
+
+      - name: Install SSH keys
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+
+      - name: Upload the release
+        run: |
+          set -euo pipefail
+          ssh_target="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
+
+          # Sunucunun login shell'i bash degil, ssh bu betigi ona verirdi;
+          # `bash -s` betigi stdin'den alir, login shell yalniz tek duz komut
+          # gorur.
+          ssh "$ssh_target" "bash -se -- '$DEPLOY_SUBDIR'" <<'REMOTE'
+          set -euo pipefail
+          case "$1" in
+            ''|/*|*..*)
+              echo "Refusing a broad deploy subdirectory: '$1'" >&2
+              exit 1
+              ;;
+          esac
+          deploy_path=$HOME/$1
+          # Bu dizin operatorun hezarfen_zeka.env dosyasini, compose
+          # dosyalarini ve tag dosyalarini tutar; hicbiri toptan silinmez.
+          mkdir -p -- "$deploy_path"
+          REMOTE
+          # stdin paketi tasiyor, betik tasiyamaz; cikarma yine bash -c ile
+          # cunku login shell bash degil ve $HOME'u genisletmez. Sunucuya
+          # yalnizca dort deploy dosyasi kurulur.
+          tar -C stage -czf - hezarfen_zeka.tar.gz compose.yaml hezarfen_zeka_compose.service tag | ssh "$ssh_target" "bash -c 'exec tar -xzf - -C \"\$HOME/\$1\"' -- '$DEPLOY_SUBDIR'"
+
+      - name: Load the image and restart the bridge
+        run: |
+          set -euo pipefail
+          ssh_target="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
+
+          # bash -s, yukaridakiyle ayni sebeple: login shell bu betigi asla
+          # gormemeli.
+          ssh "$ssh_target" "bash -se -- '$DEPLOY_SUBDIR' '$SERVICE' '$ENV_FILE_NAME' '$CONTAINER_NAME' '$CERT_PATH' '$BACKEND_HTTP_PORT'" <<'REMOTE'
+          set -euo pipefail
+          deploy_path=$HOME/$1
+          service=$2
+          env_file=$deploy_path/$3
+          container=$4
+          cert_path=$5
+          backend_http_port=$6
+          export XDG_RUNTIME_DIR=/run/user/$(id -u)
+          # compose.yaml calisma dizininden cozulur: unit'in ExecStart'i
+          # WorkingDirectory tasir ama rollback'in compose up'i ve ilk
+          # deploy'un down'i tam buradan kosar.
+          cd -- "$deploy_path"
+
+          # Hicbir sey oynamadan once oku: ayar dosyasi operatorun, sunucuda,
+          # elle bir kez yazilir (anahtarlar icin bkz.
+          # deploy/hezarfen_zeka.env.example). Deploy onu ASLA olusturmaz,
+          # ezmez.
+          if [ ! -f "$env_file" ]; then
+            echo "missing $env_file -- create it (0600) from deploy/hezarfen_zeka.env.example" >&2
+            exit 1
+          fi
+          chmod 0600 -- "$env_file"
+
+          # KAPASITE ON KONTROLU -- aile deseni (RAG'in ayni adimi 12 GB / 20 GB
+          # esikleri kullaniyor; orada ~4,5 GB model + birkac GB RSS var ve
+          # GPU'suz makinede urun kapisi gecmiyor). ZEKA hafiftir: olculen imaj
+          # 152 MB (docs/DAGITIM.md), calisma zamani tek bir Python sureci,
+          # model yok. Esikler bu yuzden olculenin ~10 katidir: pay birakip
+          # gereksiz reddetmemek icin. Yetersizse OOM ile canli stack'i
+          # dusurmek yerine burada, NEDENIYLE reddedilir.
+          avail_mb=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)
+          disk_gb=$(df -BG --output=avail "$deploy_path" | tail -1 | tr -dc '0-9')
+          if [ "$avail_mb" -lt 512 ] || [ "$disk_gb" -lt 2 ]; then
+            echo "refusing to deploy: ${avail_mb} MB RAM available (need >= 512) and ${disk_gb} GB disk (need >= 2)." >&2
+            echo 'ZEKA is light (152 MB image, one Python process, no models) but a host without headroom will not get it; free space or deploy elsewhere.' >&2
+            exit 1
+          fi
+
+          # Rootless podman + compose saglayici; uc adim sonra ciplak
+          # command-not-found yerine cozumu soyle.
+          command -v podman >/dev/null || {
+            echo "podman not found -- install podman and a compose provider (e.g. dnf install podman podman-compose)" >&2
+            exit 1
+          }
+          podman compose version >/dev/null 2>&1 || {
+            echo "'podman compose' unavailable -- install a compose provider (podman-compose or docker-compose)" >&2
+            exit 1
+          }
+
+          # ON KOSUL, KAPI DEGIL: backend'in kopru dinleyicisi acik mi
+          # (AI_QUIC_ADDR=0.0.0.0:8090) -- sertifika ucu bunun kanitidir.
+          # Celebi bunu KAPI yapar; ZEKA'da bilerek UYARIDIR, cunku kopru
+          # backend yokken CIKMAZ: ustel geri cekilmeyle bekler ve backend
+          # duzeltilince kendiliginden kaydolur
+          # (src/bridge.py::run_forever, docs/DAGITIM.md "Servis ne yapar").
+          # Backend bakimda diye ZEKA'nin dagitimini reddetmek, servisin kendi
+          # sozlesmesinden DAHA SIKI bir sart koymak olurdu -- yani urunun
+          # tanimadigi bir "kayit" kapisi.
+          served_cert=$(curl -fsS "http://127.0.0.1:${backend_http_port}${cert_path}" 2>/dev/null) || true
+          case "$served_cert" in
+            *certificate_pem*) echo "ok: backend sertifikayi sunuyor (kopru kayit olabilir)" ;;
+            *)
+              echo "UYARI: backend ${cert_path} sertifika dondurmedi -- AI koprusu kapali olabilir (hezarfen_backend.env icinde AI_QUIC_ADDR=0.0.0.0:8090). Kopru baglanana kadar bekleyecek; bu TASARIM GEREGI bir bekleme halidir, ariza degil." >&2
+              ;;
+          esac
+
+          # BU build'in imajini yukle ve build'in damgaladigi tag'i oku
+          # (build zamani ile deploy zamani neyin gittiginde anlasmali).
+          gunzip -c "$deploy_path/hezarfen_zeka.tar.gz" | podman load
+          tag=$(cat -- "$deploy_path/tag")
+
+          # Tag rotasyonu: previous_tag geri donus hedefidir (ilk deploy'da
+          # yok); current_tag su an calismasi gerekeni kaydeder.
+          if [ -f "$deploy_path/current_tag" ]; then
+            cp -- "$deploy_path/current_tag" "$deploy_path/previous_tag"
+          fi
+          printf '%s\n' "$tag" > "$deploy_path/current_tag"
+
+          # stack.env deploy sahipli (operatorun ayar dosyasindan farkli):
+          # yalniz imaj tag'ini tasir ve --env-file sirasi HEZARFEN_TAG'de onu
+          # kazanan yapar (compose.yaml: `localhost/hezarfen-zeka:${HEZARFEN_TAG:-current}`).
+          printf 'HEZARFEN_TAG=%s\n' "$tag" > "$deploy_path/stack.env"
+
+          chmod 0644 -- "$deploy_path/compose.yaml" "$deploy_path/hezarfen_zeka_compose.service"
+          # Imaj tarball'i yalniz tasiyiciydi; imaj artik podman deposunda.
+          rm -f -- "$deploy_path/hezarfen_zeka.tar.gz"
+
+          compose_up() {
+            podman compose --env-file "$env_file" --env-file "$deploy_path/stack.env" up -d --no-build
+          }
+          rollback() {
+            if [ -f "$deploy_path/previous_tag" ]; then
+              prev=$(cat -- "$deploy_path/previous_tag")
+              printf 'HEZARFEN_TAG=%s\n' "$prev" > "$deploy_path/stack.env"
+              printf '%s\n' "$prev" > "$deploy_path/current_tag"
+              compose_up
+              echo "rolled back to $prev" >&2
+            else
+              # Ilk deploy: geri donulecek bir sey yok, yari ayakta stack'i
+              # durdur. Duz down -- `-v` YOK: zeka-fixtures isimli volume
+              # stop'ta yasamali.
+              podman compose --env-file "$env_file" --env-file "$deploy_path/stack.env" down
+              echo 'first deploy failed; stack stopped, volumes kept' >&2
+            fi
+          }
+
+          # Unit surumuyle birlikte gelir: yeni kurulmus bir kutuda ilk
+          # deploy'a kadar unit yoktur ve degisen unit onu gerektiren compose
+          # ile iner.
+          mkdir -p -- "$HOME/.config/systemd/user"
+          install -m 0644 -- "$deploy_path/hezarfen_zeka_compose.service" "$HOME/.config/systemd/user/$service.service"
+          systemctl --user daemon-reload
+
+          # Unit RemainAfterExit'li bir oneshot: aktif (exited) unit'te `start`
+          # no-op olurdu -- her deploy ExecStart'i yeniden kosmak icin restart
+          # eder. Dusen bir restart (kotu interpolasyon, saglayici aksakligi)
+          # yine de asagidaki saglik kapisina ulasmali: karari o verir.
+          systemctl --user enable -- "$service"
+          systemctl --user restart "$service" || true
+
+          # SAGLIK KAPISI -- SERVISIN KENDI betigi. `scripts/saglik.py`
+          # konteynerde her 30 saniyede kosan kontrolun TA KENDISIDIR; portu
+          # olmayan bir serviste disaridan yoklanacak bir ucu yoktur.
+          #
+          # NE ARAR: kopru surecinin YASADIGINI (zombi degil). NE ARAMAZ:
+          # backend'e KAYITLI oldugunu -- bu KASITLIDIR ve compose.yaml'daki
+          # `healthcheck` blogunun gerekcesidir: hazir olma sarti aransaydi
+          # backend'in her yeniden dagitimi ZEKA'yi `unhealthy` isaretler ve
+          # restart politikasi kacinmaya calistigimiz crash-loop'u geri
+          # getirirdi. Deploy da bir kayit kapisi UYDURMAZ; uyduracagi kapi
+          # servisin kendi tanimindan daha siki olurdu.
+          #
+          # 60 deneme: yorumlayici + aioquic import'u ve kap acilisi icin
+          # comert.
+          ready_ok=0
+          for _ in $(seq 1 60); do
+            if podman exec "$container" python scripts/saglik.py >/dev/null 2>&1; then
+              ready_ok=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready_ok" -ne 1 ]; then
+            echo "the health script never passed ('src.bridge' process is not alive); rolling back" >&2
+            podman logs --tail 30 "$container" >&2 || true
+            rollback
+            exit 1
+          fi
+
+          # Eski bir stack de saglikli olabilir; calisan konteyner BU build'in
+          # imaji olmali, yoksa geri donulur.
+          image=$(podman inspect -f '{{.Config.Image}}' "$container")
+          case "$image" in
+            *"$tag"*) ;;
+            *)
+              echo "the health gate passed, but the container runs '$image' -- not this build ($tag); rolling back" >&2
+              rollback
+              exit 1
+              ;;
+          esac
+          echo 'hezarfen_zeka_compose is up'
+          REMOTE
+
+      # Bagimsiz son kontrol: cevap veren konteyner hala guncel tag'in olmali
+      # ve kopru yasiyor olmali -- servisin KENDI saglik betigiyle, yeniden.
+      - name: Verify the bridge is alive
+        run: |
+          set -euo pipefail
+          ssh_target="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
+          ssh "$ssh_target" "bash -se -- '$DEPLOY_SUBDIR' '$CONTAINER_NAME'" <<'REMOTE'
+          set -euo pipefail
+          deploy_path=$HOME/$1
+          container=$2
+          export XDG_RUNTIME_DIR=/run/user/$(id -u)
+          cd -- "$deploy_path"
+          tag=$(cat -- "$deploy_path/current_tag")
+          image=$(podman inspect -f '{{.Config.Image}}' "$container")
+          case "$image" in
+            *"$tag"*) ;;
+            *)
+              echo "container runs '$image', not the current tag '$tag'" >&2
+              exit 1
+              ;;
+          esac
+          status=$(podman inspect -f '{{.State.Status}}' "$container")
+          [ "$status" = "running" ] || { echo "container status is '$status', not running" >&2; exit 1; }
+          podman exec "$container" python scripts/saglik.py || {
+            echo "the bridge process is not alive (scripts/saglik.py failed)" >&2
+            exit 1
+          }
+          echo 'bridge alive, container is this build'
+          REMOTE
+
+      - name: Cleaning
+        run: rm -rf ~/.ssh

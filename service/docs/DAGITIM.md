@@ -286,7 +286,11 @@ kullanildigi durum icin bir yedektir.
 Katmanli. Her katman ayri bir istir; bir katman kirmiziya dondugunde neyin
 bozuldugu is listesinden okunur.
 
-### `.github/workflows/ci.yml` -- her degisiklikte
+### `.github/workflows/ci.yml` -- pull request'ler ve `main` DIŞINDAKİ dallar
+
+`main`'e push burada **koşmaz**: aynı beş katman `main.yml` içinde koşar ve
+deploy'u kapılar (bkz. bir sonraki başlık). Böylece push başına aynı kapı iki
+kez koşmaz; PR'lar ve dal push'ları tam katmanlı süiti buradan alır.
 
 | Katman | Ne denetler |
 |---|---|
@@ -295,6 +299,44 @@ bozuldugu is listesinden okunur.
 | **3 -- sozlesme** | Model adi <-> fiyat tablosu; `source.py` yollari <-> izin listesi. Ayrinti asagida. |
 | **4 -- sir taramasi** | `sk-` / `sk_` desenleri, ozel anahtar govdeleri, AWS anahtarlari, yapilandirma dosyalarina gomulmus duz degerler; compose sirlarinin `${VAR:?}` bicimini korudugu. |
 | **5 -- konteyner** | Imaj derleniyor **ve kosuyor** mu; non-root mu; saglik kontrolu gercekten olcuyor mu; `compose config` gecerli mi ve port acilmiyor mu. |
+
+### `.github/workflows/main.yml` -- `main` push'u, otomatik dağıtım
+
+Ailedeki Çelebi deploy'uyla aynı şekil; is grafiği:
+
+```
+Katman 1..5 (paralel)  ->  Build and test  ->  Deploy (SSH)
+```
+
+| İş | Tetik | Neyi kanıtlar / ne yapar |
+|---|---|---|
+| `sozdizimi`, `testler`, `sozlesme`, `sirlar`, `konteyner` | push (`main`) | `ci.yml`'deki beş katmanın **aynısı** (Komutlar birebir; tek doğruluk kaynağı `scripts/ci-yerel.sh`). Beşi de yeşil olmadan imaj üretilmez. |
+| `build` (adı **Build and test**) | push, beş katmanı `needs` ile bekler | İmajı `localhost/hezarfen-zeka:$GITHUB_SHA` olarak derler; imaj tarball'ı (`podman save`), `service/compose.yaml`, `deploy/hezarfen_zeka_compose.service` ve `tag` dosyasını `release` artefaktı olarak yükler (30 gün). Eksik parça burada — sunucuda değil — patlar. |
+| `deploy` | push'ta yalnız `Build and test` yeşilse; `workflow_dispatch`'te en yeni yeşil build'in artefaktıyla | SSH ile: kapasite ön kontrolü (≥ 512 MB RAM, ≥ 2 GB disk) → operatörün `~/hezarfen_zeka/hezarfen_zeka.env` dosyasını kontrol (0600'e çeker, **yazmaz**) → imajı `podman load` → tag rotasyonu (`current_tag`→`previous_tag`) → `stack.env`'e `HEZARFEN_TAG` → unit kurulumu + `daemon-reload` + `enable` + `restart` → **`scripts/saglik.py` ile sağlık kapısı** (60 sn) → konteynerin imajı bu tag mi → olmazsa önceki tag'e dön (ilk dağıtımda `down`, `-v` yok) → bağımsız son doğrulama → `rm -rf ~/.ssh`. |
+
+**Yeşil bir `main` push'u otomatik dağıtır.** Elle yeniden dağıtım (süiti tekrar
+koşmadan): `gh workflow run main.yml --ref main`.
+
+Kapı hakkında dürüst not: **sağlık kapısı köprü sürecinin yaşadığını ölçer**,
+backend'e *kayıtlı* olduğunu ölçmez — `scripts/saglik.py`'nin ta kendisi
+kullanılır ve nedeni orada yazılıdır (kayıt şartı aransaydı backend'in her
+yeniden dağıtımı ZEKA'yı `unhealthy` işaretler ve crash-loop üretirdi). Backend
+sertifika ucu deploy'da yalnızca **uyarı** olarak kontrol edilir; Celebi'deki
+gibi bir ön kapı değildir, çünkü ZEKA'nın backend yokken beklemesi tasarım
+gereğidir.
+
+Bir seferlik ön koşullar:
+
+1. Repo secret'ları `SSH_PRIVATE_KEY` / `SSH_HOST` / `SSH_USER`.
+2. Sunucuda `loginctl enable-linger <kullanıcı>`.
+3. Sunucuda `podman` + bir compose sağlayıcı.
+4. Operatörün `~/hezarfen_zeka/hezarfen_zeka.env` dosyası (0600; şablon
+   `deploy/hezarfen_zeka.env.example`, zorunlu üç sır: `AI_SHARED_TOKEN`,
+   `ZEKA_PG_DSN`, `DEEPSEEK_API_KEY`).
+5. Sunucuda `hezarfen_backend_default` ağı (backend compose'u kurar) ve
+   backend tarafında `AI_QUIC_ADDR=0.0.0.0:8090`.
+
+Manuel yol değişmedi: `cd service && podman compose up -d` (§3).
 
 ### `.github/workflows/istege-bagli-testler.yml` -- elle tetiklenir
 
@@ -416,6 +458,23 @@ KATMAN 5/5 konteyner+compose  -> GECTI
 BUTUN KATMANLAR GECTI
 ```
 
+> **Bu kayit 519 testlik hale aittir; durum o gunden beri degisti.** Bugun 686
+> test var ve **ucu temiz bir kopyada KIRMIZI** cunku depoda **olmayan**
+> uretilmis tohum artefaktlarini istiyorlar (`work/` ve `seed/*.surql`
+> `.gitignore`'da; tohum depoda degil, yalnizca ureticisi var):
+>
+> ```
+> ERROR  tests.test_segment_pipeline.TestRealDataLoaders.test_items_enriched_yuklenir
+> ERROR  tests.test_segment_validate.TestGoldSet.test_gercek_veride_741_pozitif
+> FAIL   tests.test_segment_pipeline.TestRealDataLoaders.test_cevaplar_surql_dosyasindan_okunur
+> ```
+>
+> Yani Katman 2 GitHub kosucusunda da kirmizidir ve deploy fail-closed
+> davranip **hic dagitmaz**. Tohumu uretmeden bu katman yesile donmez; iki yol
+> var: (a) bu uc test de diger 120 ortam bagimli test gibi eksik artefaktta
+> `SkipTest` ile atlar, (b) tohum artefaktlari kosuya verilir. Bu bir CI/deploy
+> isi degil, test verisi isidir.
+
 ---
 
 ## Kanitlanmayanlar
@@ -453,40 +512,47 @@ Durustluk bolumu. Asagidakiler **kosturulmadi** ya da **dogrulanamadi**;
 
 ### Kanitlanmayan -- CI
 
-7. **GitHub Actions is akislari GitHub'da hic kosmadi.** Depo bir git deposu
-   bile degil. YAML el ile yazildi; `actions/checkout@v4`,
+7. **GitHub Actions is akislari GitHub'da hic kosmadi.** Depo artik bir git
+   deposu (origin: `Hezarfen-Co/hezarfen_zeka`), ama hicbir is akisi gercek bir
+   kosucuda **kosturulmadi**. YAML el ile yazildi; `actions/checkout@v4`,
    `actions/setup-python@v5` ve kosucudaki `podman` varliginin gercek bir
    kosucuda dogrulanmasi **yapilmadi**. Kosturulmus olan, ayni komutlari
    cagiran `scripts/ci-yerel.sh`'dir.
 
-8. **`docker compose` yolu.** `ci.yml` icindeki compose adimi
+8. **`main.yml` deploy zinciri hic kosturulmadi.** SSH, `podman load`, unit
+   kurulumu, saglik kapisi, tag rotasyonu ve rollback yollari **okundu ve yerel
+   olarak kismen dogrulandi** (compose interpolasyonu, kapasite aritmetigi,
+   sağlık betiginin konteynerde iki yonlu davranisi), ama gercek bir sunucuya
+   karsi **hic kosmadi**. Ilk gercek kosu bu maddeleri kapatacaktir.
+
+9. **`docker compose` yolu.** `ci.yml` icindeki compose adimi
    `docker compose` cagirir; yerelde `podman compose` zaten docker-compose'a
    devrettigi icin **ayni ikili** kosturuldu, ama GitHub kosucusundaki
    surumle **dogrulanmadi**.
 
-9. **Makefile.** Bu makinede `make` **kurulu degil**; hicbir hedef
+10. **Makefile.** Bu makinede `make` **kurulu degil**; hicbir hedef
    kosturulamadi. Hedefler `scripts/` betiklerini cagiran ince sarmalayicilar
    olsa da, Makefile'in kendisi **sinanmamistir**. Guvenilir yol dogrudan
    `bash scripts/ci-yerel.sh` kullanmaktir.
 
-10. **`istege-bagli-testler.yml` isleri.** Ne `kopru-canli` ne `veritabani`
+11. **`istege-bagli-testler.yml` isleri.** Ne `kopru-canli` ne `veritabani`
     isi kosturuldu. `tests/test_bridge_live.py` yerelde `aioquic` kurulu
     olmadigi icin **atlandi**; canli kopru testlerinin gectigi
     **gorulmedi**.
 
-11. *(Bu madde kapatildi -- negatif sinama yapildi, bkz. asagisi.)*
+12. *(Bu madde kapatildi -- negatif sinama yapildi, bkz. asagisi.)*
 
 ### Kanitlanmayan -- guvenlik
 
-12. **Fiyat tablosunun dogrulugu.** `PRICING_VERIFIED = False`. Fiyatlar
+13. **Fiyat tablosunun dogrulugu.** `PRICING_VERIFIED = False`. Fiyatlar
     `2026-08-28` tarihli ve saglayicinin dokumantasyonuna karsi elle
     **dogrulanmamistir**. Butce hesaplari bu tabloya dayanir.
 
-13. **Sir taramasinin kapsami.** Tarayici `.gitignore` tarafindan korunan
+14. **Sir taramasinin kapsami.** Tarayici `.gitignore` tarafindan korunan
     dosyalari **atlar** (ve `.env` ailesinin gercekten korundugunu ayrica
-    denetler). Depo bir git deposu olmadigi icin `git check-ignore` yerine
+    denetler). `git check-ignore` hala kullanilmaz; yerine
     `.gitignore` desenleri **elle** yorumlanir; karmasik desenlerde (negasyon
     `!`, dizin-koku `/` ayrimi) git ile birebir ayni davranmayabilir.
 
-14. **Gecmis tarama yok.** Tarayici yalnizca **calisma agacini** okur. Git
+15. **Gecmis tarama yok.** Tarayici yalnizca **calisma agacini** okur. Git
     gecmisine bir zamanlar islenmis bir anahtar bulunamaz.

@@ -7,7 +7,12 @@ services:
     build:
       context: .
       dockerfile: Containerfile
-    image: localhost/hezarfen-zeka:current
+    # HEZARFEN_TAG deploy tarafindan yazilan stack.env'den gelir (--env-file
+    # sirasi onu kazanan yapar). Yerelde/elle `up` icin varsayilan `current`:
+    # yani `podman compose up -d --build` yine calisiyor. Sabit bir `:current`
+    # yazilsaydi deploy yeni imaji yukleyip ESKI imaji kosmaya devam ederdi --
+    # tag rotasyonu ve geri donus (previous_tag) bu satira baglidir.
+    image: localhost/hezarfen-zeka:${HEZARFEN_TAG:-current}
     container_name: hezarfen-zeka-bridge
     init: true
     command: ["python", "-m", "src.bridge"]
