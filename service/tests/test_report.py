@@ -31,7 +31,6 @@ from typing import Any
 
 from src import cli
 from src.compute import clock
-from src.compute.model import Audience, Confidence, Recommendation, StudentSummary
 from src.pipeline import run_school
 from src.report import build as build_mod
 from src.report import filters, load, render, text, writer
@@ -46,7 +45,7 @@ from src.report.gate import (
     has_attention_field,
 )
 from src.report.reader import MemoryReader
-from src.store import BridgeStore, RecordingCaller
+from src.store import BridgeStore
 
 from .fakes import NOW
 DAY = clock.DAY_MS

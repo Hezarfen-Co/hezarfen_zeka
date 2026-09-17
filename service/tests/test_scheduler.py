@@ -23,7 +23,6 @@ from pathlib import Path
 from typing import Any
 
 from src.compute import clock
-from src.report.capture import CapturingCaller
 from src.scheduler import WINDOW_END_HOUR, WINDOW_START_HOUR, Scheduler, in_window
 from src.source import FileSource
 from src.store import (

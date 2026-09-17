@@ -41,11 +41,6 @@ NOW = 1_699_963_200_000  # 2023-11-14 12:00 UTC
 TERM_START = NOW - 150 * DAY
 
 
-def _dataset(n: int = 12) -> dict[str, dict]:
-    """Bir şube, bir ders, `n` öğrenci. Biri belirgin biçimde düşük."""
-    return dataset(n)
-
-
 def _rows(caller: RecordingCaller, capability: str) -> list[dict]:
     """Toplanan çağrılardan bir yeteneğin satırlarını düzleştir."""
     rows: list[dict] = []
@@ -94,7 +89,7 @@ class PipelineTestCase(unittest.IsolatedAsyncioTestCase):
 
 class TestEndToEnd(PipelineTestCase):
     async def test_full_run_succeeds(self) -> None:
-        result, caller = await self._run(_dataset())
+        result, caller = await self._run(dataset())
         self.assertEqual(result.status, "ok")
         self.assertEqual(result.students_total, 12)
         self.assertEqual(result.students_ok, 12)
@@ -103,16 +98,16 @@ class TestEndToEnd(PipelineTestCase):
         self.assertTrue(caller.calls)
 
     async def test_insight_run_row_is_written_twice(self) -> None:
-        _, caller = await self._run(_dataset())
-        runs = [run for run in _run_calls(caller)]
+        _, caller = await self._run(dataset())
+        runs = _run_calls(caller)
         self.assertEqual(len(runs), 2)  # başlangıç ("running") + bitiş
 
     async def test_run_key_is_tr_date_scoped(self) -> None:
-        result, _ = await self._run(_dataset())
+        result, _ = await self._run(dataset())
         self.assertEqual(result.run_key(), f"okul_{clock.tr_date_key(NOW)}")
 
     async def test_summaries_carry_retention(self) -> None:
-        _, caller = await self._run(_dataset())
+        _, caller = await self._run(dataset())
         row = _rows(caller, CAP_SUMMARY)[0]
         self.assertEqual(
             row["retain_until"],
@@ -121,7 +116,7 @@ class TestEndToEnd(PipelineTestCase):
 
     async def test_cleanup_calls_go_out_once(self) -> None:
         """Koşu sonunda süpürme ve mezuniyet temizliği çağrılır."""
-        _, caller = await self._run(_dataset())
+        _, caller = await self._run(dataset())
         kinds = [capability for capability, _, _ in caller.calls]
         self.assertEqual(kinds.count(CAP_SWEEP), 1)
         purge = [
@@ -134,7 +129,7 @@ class TestEndToEnd(PipelineTestCase):
 
     async def test_low_performer_gets_review_band_via_cohort(self) -> None:
         """Kohort şube × ders düzeyinde kuruldu; düşük öğrenci ayrışıyor."""
-        _, caller = await self._run(_dataset())
+        _, caller = await self._run(dataset())
         bands: dict[str, str] = {}
         for row in _rows(caller, CAP_SUMMARY):
             placement = row["marks"]["courses"]["course-1"]["placement"]
@@ -145,7 +140,7 @@ class TestEndToEnd(PipelineTestCase):
 
 class TestPartialFailure(PipelineTestCase):
     async def test_one_failing_student_does_not_stop_the_run(self) -> None:
-        data = _dataset()
+        data = dataset()
         result, _ = await self._run(data, fail={"student-03"})
         self.assertEqual(result.students_failed, 1)
         self.assertEqual(result.students_ok, 11)
@@ -156,7 +151,7 @@ class TestPartialFailure(PipelineTestCase):
     async def test_write_failure_is_recorded_but_run_continues(self) -> None:
         caller = RecordingCaller(fail_times=10)  # ilk gruplar düşsün
         store = BridgeStore(caller)
-        data = _dataset()
+        data = dataset()
         result = await run_school(
             FakeSource(data),
             store.store_for("okul"),
@@ -171,7 +166,7 @@ class TestPartialFailure(PipelineTestCase):
 class TestBudget(PipelineTestCase):
     async def test_zero_budget_stops_and_records_pending(self) -> None:
         """Bütçe aşımında hat durur ve kalanlar bir sonraki koşuya yazılır."""
-        result, caller = await self._run(_dataset(), budget_ms=-1)
+        result, caller = await self._run(dataset(), budget_ms=-1)
         self.assertTrue(result.budget_exceeded)
         self.assertEqual(result.status, "partial")
         self.assertEqual(len(result.pending_students), 12)
@@ -181,14 +176,14 @@ class TestBudget(PipelineTestCase):
         self.assertEqual(len(_run_calls(caller)[-1]["pending_students"]), 12)
 
     async def test_generous_budget_completes(self) -> None:
-        result, _ = await self._run(_dataset(), budget_ms=60_000)
+        result, _ = await self._run(dataset(), budget_ms=60_000)
         self.assertFalse(result.budget_exceeded)
         self.assertEqual(result.pending_students, [])
 
 
 class TestPrivacyInPipelineOutput(PipelineTestCase):
     async def test_attention_rows_have_no_score(self) -> None:
-        _, caller = await self._run(_dataset())
+        _, caller = await self._run(dataset())
         rows = _rows(caller, CAP_SUMMARY)
         self.assertTrue(rows)
         for row in rows:
@@ -198,7 +193,7 @@ class TestPrivacyInPipelineOutput(PipelineTestCase):
                 self.assertNotIn("rank", item)
 
     async def test_t4_recommendations_never_address_the_student(self) -> None:
-        _, caller = await self._run(_dataset())
+        _, caller = await self._run(dataset())
         rows = _rows(caller, CAP_RECOMMENDATION)
         self.assertTrue(rows)
         for row in rows:
@@ -207,7 +202,7 @@ class TestPrivacyInPipelineOutput(PipelineTestCase):
                 self.assertNotEqual(row["audience"], row["about"])
 
     async def test_every_stored_recommendation_has_evidence(self) -> None:
-        _, caller = await self._run(_dataset())
+        _, caller = await self._run(dataset())
         rows = _rows(caller, CAP_RECOMMENDATION)
         self.assertTrue(rows)
         for row in rows:
