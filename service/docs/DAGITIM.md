@@ -94,9 +94,17 @@ podman compose up -d
 podman run -d --name hezarfen-zeka-bridge \
   --network hezarfen_backend_default \
   -e AI_SHARED_TOKEN=... \
+  -e ZEKA_PG_DSN=postgres://<kullanici>:<parola>@<host>:5432/<okul_veritabani> \
   -e DEEPSEEK_API_KEY=... \
   hezarfen-zeka:dev
 ```
+
+> `ZEKA_PG_DSN` **zorunludur ve ULASILABILIR olmalidir**: servis acilista
+> `open_store()` cagirir, DSN yoksa `RuntimeError` ile **cikar**
+> (`src/store_factory.py`). Kanit betigi (`scripts/ci-konteyner-kanit.sh`) bu
+> yuzden gercek bir Postgres kaldirip kaba gecerli bir DSN verir; 2026-09-16 ve
+> 2026-09-17 kosularinda tam bu satir eksik oldugu icin konteyner kosu kaniti
+> kirmizi kaldi (`RuntimeError: Ne ZEKA_PG_DSN ne ZEKA_DB_HTTP_URL tanimli`).
 
 **Kanitlandi.** Kap `50 saniye` boyunca gozlendi; **cikmadi**, `running`
 kaldi. Backend'e bilerek cozulemeyen bir ad verildi ve gunluklerde ustel geri
@@ -298,7 +306,7 @@ kez koşmaz; PR'lar ve dal push'ları tam katmanlı süiti buradan alır.
 | **2 -- birim testleri** | `python -m unittest discover -s tests -t .` **Bagimlilik kurulmaz** -- test paketi saf `unittest` kullanir. Boylece kirmizi/yesil bilgisi paket deposu kesintilerinden bagimsizdir. |
 | **3 -- sozlesme** | Model adi <-> fiyat tablosu; `source.py` yollari <-> izin listesi. Ayrinti asagida. |
 | **4 -- sir taramasi** | `sk-` / `sk_` desenleri, ozel anahtar govdeleri, AWS anahtarlari, yapilandirma dosyalarina gomulmus duz degerler; compose sirlarinin `${VAR:?}` bicimini korudugu. |
-| **5 -- konteyner** | Imaj derleniyor **ve kosuyor** mu; non-root mu; saglik kontrolu gercekten olcuyor mu; `compose config` gecerli mi ve port acilmiyor mu. |
+| **5 -- konteyner** | Imaj derleniyor **ve kosuyor** mu; **zorunlu uc env ile gercekten aciliyor mu** (kanit betigi gercek bir Postgres kaldirir, `open_store()` ile depoyu acar); non-root mu; saglik kontrolu gercekten olcuyor mu; `compose config` gecerli mi ve port acilmiyor mu. |
 
 ### `.github/workflows/main.yml` -- `main` push'u, otomatik dağıtım
 
@@ -337,6 +345,37 @@ Bir seferlik ön koşullar:
    backend tarafında `AI_QUIC_ADDR=0.0.0.0:8090`.
 
 Manuel yol değişmedi: `cd service && podman compose up -d` (§3).
+
+### Konteyner kosu kaniti -- yerel dogrulama (2026-09-17)
+
+Kanit betigi (`scripts/ci-konteyner-kanit.sh`) artik **gercek bir Postgres**
+kaldirir (kendi agi, IP ile DSN) ve kabi **zorunlu uc env ile** kosturur; boylece
+kanit, servisin uretimdeki acilis yolunu (`open_store()`) olcer. Duzeltmeden
+sonraki yerel kosu:
+
+```
+  [ok]   kanit Postgres'i ayakta (adres 10.89.9.2, ...)
+  [ok]   kap 50 saniye sonra hala kosuyor (durum=running)
+  [ok]   ZEKA_PG_DSN kabul edildi: kopru Postgres yolunu secti (acilis satiri logda)
+  [ok]   zorunlu env ile depo GERCEKTEN aciliyor (open_store -> kapat)
+  [ok]   ustel geri cekilme gozlendi: 2.6s -> 12.5s (6 deneme)
+  [ok]   backend ulasilamazken CIKMIYOR, yeniden deniyor (RAG kusurunun tersi)
+  [ok]   non-root dogrulandi (uid=10002)
+  [ok]   saglik kontrolu kopru yasarken GECIYOR
+  [ok]   saglik kontrolu kopru yokken BASARISIZ oluyor (yani gercekten olcuyor)
+  [ok]   motor kabi 'healthy' isaretledi
+KONTEYNER KOSU KANITI GECTI     (exit 0)
+```
+
+Negatif kontroller (kanit gercekten olcuyor):
+
+```
+$ podman run --rm -e AI_SHARED_TOKEN=x hezarfen-zeka:ci
+RuntimeError: Ne ZEKA_PG_DSN ne ZEKA_DB_HTTP_URL tanimli — ...          (exit 1)
+```
+
+Yani duzeltme oncesi kosucudaki kirmizinin TA KENDISI yerelde yeniden uretildi;
+kanit betigi o imzayi artik yakaliyor (1b iddialari).
 
 ### `.github/workflows/istege-bagli-testler.yml` -- elle tetiklenir
 
@@ -513,47 +552,61 @@ Durustluk bolumu. Asagidakiler **kosturulmadi** ya da **dogrulanamadi**;
 
 ### Kanitlanmayan -- CI
 
-7. **GitHub Actions is akislari GitHub'da hic kosmadi.** Depo artik bir git
-   deposu (origin: `Hezarfen-Co/hezarfen_zeka`), ama hicbir is akisi gercek bir
-   kosucuda **kosturulmadi**. YAML el ile yazildi; `actions/checkout@v4`,
-   `actions/setup-python@v5` ve kosucudaki `podman` varliginin gercek bir
-   kosucuda dogrulanmasi **yapilmadi**. Kosturulmus olan, ayni komutlari
-   cagiran `scripts/ci-yerel.sh`'dir.
+7. **GitHub Actions is akislari artik GERCEK kosucuda kostu -- ama tam yesil
+   degil.** `main`'e yapilan iki push'ta (run `35101227990`, 2026-09-16, sha
+   `98b2423`; run `35218219339`, 2026-09-17, sha `1027784`) katmanlar kostu:
+
+   | Kosu | 1 | 2 | 3 | 4 | 5 | Build and test | Deploy |
+   |---|---|---|---|---|---|---|---|
+   | `35101227990` | yesil | **kirmizi** | yesil | yesil | **kirmizi** | -- | -- |
+   | `35218219339` | yesil | yesil | yesil | yesil | **kirmizi** | atlandi | atlandi |
+
+   Katman 2 kirmizisi o gun tohum bagimli uc testti (bkz. yukarisi, duzeltildi);
+   Katman 5 kirmizisi konteyner kanit betiginin zorunlu `ZEKA_PG_DSN`'i
+   vermemesiydi (asagidaki 8. madde). `Build and test` ve `Deploy`'in
+   **atlanmasi** tasarim geregidir: kapilar yesil olmadan artefakt uretilmez ve
+   sunucuya dokunulmaz.
 
 8. **`main.yml` deploy zinciri hic kosturulmadi.** SSH, `podman load`, unit
    kurulumu, saglik kapisi, tag rotasyonu ve rollback yollari **okundu ve yerel
    olarak kismen dogrulandi** (compose interpolasyonu, kapasite aritmetigi,
-   sağlık betiginin konteynerde iki yonlu davranisi), ama gercek bir sunucuya
-   karsi **hic kosmadi**. Ilk gercek kosu bu maddeleri kapatacaktir.
+   saglik betiginin konteynerde iki yonlu davranisi, `podman save`/`load`
+   etiket turu), ama gercek bir sunucuya karsi **hic kosmadi**. Ilk gercek kosu
+   bu maddeleri kapatacaktir.
 
-9. **`docker compose` yolu.** `ci.yml` icindeki compose adimi
+9. **Konteyner kosu kaniti kosucuda yeniden dogrulanmadi.** Betik artik gercek
+   bir Postgres kaldirip zorunlu uc env ile kabin ACILDIGINI olcer ve bu yerelde
+   `KONTEYNER KOSU KANITI GECTI` ile dogrulandi (bkz. asagisi), ama duzeltilmis
+   haliyle GitHub kosucusunda **henuz kosmadi**.
+
+10. **`docker compose` yolu.** `ci.yml` icindeki compose adimi
    `docker compose` cagirir; yerelde `podman compose` zaten docker-compose'a
    devrettigi icin **ayni ikili** kosturuldu, ama GitHub kosucusundaki
    surumle **dogrulanmadi**.
 
-10. **Makefile.** Bu makinede `make` **kurulu degil**; hicbir hedef
+11. **Makefile.** Bu makinede `make` **kurulu degil**; hicbir hedef
    kosturulamadi. Hedefler `scripts/` betiklerini cagiran ince sarmalayicilar
    olsa da, Makefile'in kendisi **sinanmamistir**. Guvenilir yol dogrudan
    `bash scripts/ci-yerel.sh` kullanmaktir.
 
-11. **`istege-bagli-testler.yml` isleri.** Ne `kopru-canli` ne `veritabani`
+12. **`istege-bagli-testler.yml` isleri.** Ne `kopru-canli` ne `veritabani`
     isi kosturuldu. `tests/test_bridge_live.py` yerelde `aioquic` kurulu
     olmadigi icin **atlandi**; canli kopru testlerinin gectigi
     **gorulmedi**.
 
-12. *(Bu madde kapatildi -- negatif sinama yapildi, bkz. asagisi.)*
+13. *(Bu madde kapatildi -- negatif sinama yapildi, bkz. asagisi.)*
 
 ### Kanitlanmayan -- guvenlik
 
-13. **Fiyat tablosunun dogrulugu.** `PRICING_VERIFIED = False`. Fiyatlar
+14. **Fiyat tablosunun dogrulugu.** `PRICING_VERIFIED = False`. Fiyatlar
     `2026-08-28` tarihli ve saglayicinin dokumantasyonuna karsi elle
     **dogrulanmamistir**. Butce hesaplari bu tabloya dayanir.
 
-14. **Sir taramasinin kapsami.** Tarayici `.gitignore` tarafindan korunan
+15. **Sir taramasinin kapsami.** Tarayici `.gitignore` tarafindan korunan
     dosyalari **atlar** (ve `.env` ailesinin gercekten korundugunu ayrica
     denetler). `git check-ignore` hala kullanilmaz; yerine
     `.gitignore` desenleri **elle** yorumlanir; karmasik desenlerde (negasyon
     `!`, dizin-koku `/` ayrimi) git ile birebir ayni davranmayabilir.
 
-15. **Gecmis tarama yok.** Tarayici yalnizca **calisma agacini** okur. Git
+16. **Gecmis tarama yok.** Tarayici yalnizca **calisma agacini** okur. Git
     gecmisine bir zamanlar islenmis bir anahtar bulunamaz.
