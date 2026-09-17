@@ -29,6 +29,12 @@ from src.segment.validate import build_gold_set
 
 REPO = Path(__file__).resolve().parents[2]
 
+# URETILMIS tohum artefaktlari: depoda YOK, `.gitignore`'lu (`work/`,
+# `seed/*.surql`); depoda yalnizca ureticisi var. Bunlara bagli testler
+# dosya eksikken ATLANIR, artefakt uretilmisken kosar ve olcer.
+ITEMS_ENRICHED = REPO / "work" / "items_enriched.json"
+SEED_ANSWERS = REPO / "seed" / "11_exam_answer.surql"
+
 ITEMS = [
     {"question_id": "q1", "course_name": "Biyoloji", "subject_name": "Kalıtım",
      "text": "Cekinik fenotip hangi kosulda gorulur?",
@@ -253,10 +259,21 @@ class TestRunnerEndToEnd(unittest.TestCase):
 
 
 class TestRealDataLoaders(unittest.TestCase):
-    """Depodaki gercek tohum dosyalarini YALNIZCA OKUR."""
+    """Depodaki gercek tohum dosyalarini YALNIZCA OKUR.
 
+    Iki testin okudugu artefakt **.gitignore'ludur** (`work/` ve `seed/*.surql`):
+    depoda ureticisi var, ciktisi yok. Temiz bir kopyada (CI) o dosyalar
+    bulunmaz, bu yuzden o testler `skipUnless` ile ATLANIR -- ama artefakt
+    uretilmisken AYNI sekilde kosar ve olcer. Eksiklik davranisi zaten
+    `test_eksik_dosya_bos_liste` ile ayrica pinlidir.
+    """
+
+    @unittest.skipUnless(
+        ITEMS_ENRICHED.exists(),
+        "work/items_enriched.json yok (gitignore'lu uretim ciktisi); generator/main.py --scale full",
+    )
     def test_items_enriched_yuklenir(self):
-        items = load_items(REPO / "work" / "items_enriched.json")
+        items = load_items(ITEMS_ENRICHED)
         self.assertGreater(len(items), 3000)
         gold = build_gold_set(items)
         # Tohum bilissel desenle yeniden uretildi: yanilgi tablosu 14'ten 92
@@ -270,9 +287,13 @@ class TestRealDataLoaders(unittest.TestCase):
         for key in ("theta_base", "theta_trend", "gap_subjects", "archetype"):
             self.assertIn(key, sample)
 
+    @unittest.skipUnless(
+        SEED_ANSWERS.exists(),
+        "seed/11_exam_answer.surql yok (gitignore'lu uretim ciktisi); generator/main.py --scale full",
+    )
     def test_cevaplar_surql_dosyasindan_okunur(self):
         """Podman/SurrealDB BASLATILMADAN duz metin taramasiyla."""
-        rows = load_answers(REPO / "seed" / "11_exam_answer.surql", max_rows=200)
+        rows = load_answers(SEED_ANSWERS, max_rows=200)
         self.assertEqual(len(rows), 200)
         qid, uid, sel = rows[0]
         self.assertTrue(qid.startswith("exam_question:"))

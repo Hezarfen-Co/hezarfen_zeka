@@ -20,6 +20,11 @@ from src.segment.validate import (
 
 REPO = Path(__file__).resolve().parents[2]
 
+# URETILMIS tohum artefakti: depoda YOK, `.gitignore`'lu (`work/`). Temiz bir
+# kopyada (CI) bulunmaz; eksikken asagidaki test ATLANIR, artefakt
+# uretilmisken kosar ve olcer.
+ITEMS_ENRICHED = REPO / "work" / "items_enriched.json"
+
 
 def item(qid, choices, gold_text=None, p_value=0.5):
     return {"question_id": qid, "choices": choices, "text": f"{qid} kokü",
@@ -52,6 +57,10 @@ def batch(variant, segs):
 
 class TestGoldSet(unittest.TestCase):
 
+    @unittest.skipUnless(
+        ITEMS_ENRICHED.exists(),
+        "work/items_enriched.json yok (gitignore'lu uretim ciktisi); generator/main.py --scale full",
+    )
     def test_gercek_veride_741_pozitif(self):
         """OLCULEN sayi: 741 gercek anlamsal yanilgi celdiricisi.
 
@@ -60,8 +69,7 @@ class TestGoldSet(unittest.TestCase):
         `dikkat_tuzagi = var` etiketi maddelerin ~%45'ine dagitildi.
         """
         import json
-        path = REPO / "work" / "items_enriched.json"
-        items = json.loads(path.read_text(encoding="utf-8"))["items"]
+        items = json.loads(ITEMS_ENRICHED.read_text(encoding="utf-8"))["items"]
         gold = build_gold_set([i for i in items if len(i.get("choices") or []) >= 3])
         self.assertEqual(len(gold.positives), 741)
         self.assertEqual(len(gold.expected_trap), 741)

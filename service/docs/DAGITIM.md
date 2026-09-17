@@ -458,10 +458,11 @@ KATMAN 5/5 konteyner+compose  -> GECTI
 BUTUN KATMANLAR GECTI
 ```
 
-> **Bu kayit 519 testlik hale aittir; durum o gunden beri degisti.** Bugun 686
-> test var ve **ucu temiz bir kopyada KIRMIZI** cunku depoda **olmayan**
-> uretilmis tohum artefaktlarini istiyorlar (`work/` ve `seed/*.surql`
-> `.gitignore`'da; tohum depoda degil, yalnizca ureticisi var):
+> **Bu kayit 519 testlik hale aittir; durum o gunden beri degisti ve 2026-09-17
+> tarihinde duzeltildi.** Arada eklenen 686 testin **ucu**, depoda **olmayan**
+> uretilmis tohum artefaktlarini istiyordu (`work/items_enriched.json`,
+> `seed/11_exam_answer.surql`; ikisi de `.gitignore`'da -- tohum depoda degil,
+> yalnizca ureticisi var) ve temiz bir kopyada kirmizi kaliyordu:
 >
 > ```
 > ERROR  tests.test_segment_pipeline.TestRealDataLoaders.test_items_enriched_yuklenir
@@ -469,11 +470,11 @@ BUTUN KATMANLAR GECTI
 > FAIL   tests.test_segment_pipeline.TestRealDataLoaders.test_cevaplar_surql_dosyasindan_okunur
 > ```
 >
-> Yani Katman 2 GitHub kosucusunda da kirmizidir ve deploy fail-closed
-> davranip **hic dagitmaz**. Tohumu uretmeden bu katman yesile donmez; iki yol
-> var: (a) bu uc test de diger 120 ortam bagimli test gibi eksik artefaktta
-> `SkipTest` ile atlar, (b) tohum artefaktlari kosuya verilir. Bu bir CI/deploy
-> isi degil, test verisi isidir.
+> Ucu de artik **dosya eksikken** `skipUnless` ile atlanir, **artefakt
+> uretilmisken ayni sekilde kosar ve olcer**; gerekce atlama satirinda yazilidir
+> (`generator/main.py --scale full`). Eksiklik davranisi zaten
+> `test_eksik_dosya_bos_liste` ile pinliydi, kaybedilen bir denetim yok.
+> Temiz bir kopyada Katman 2: `Ran 686 tests ... OK (skipped=123)`.
 
 ---
 
