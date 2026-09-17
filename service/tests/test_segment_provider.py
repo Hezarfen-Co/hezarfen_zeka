@@ -8,6 +8,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from src.segment.cache import NullCache, ResponseCache
 from src.segment.config import (
@@ -32,6 +33,7 @@ from src.segment.provider import (
     cost_usd,
     parse_item_from_prompt,
 )
+from src.segment import provider as provider_mod
 from src.segment.schema import parse_label_json
 
 # Gercek altin ciftlerden biri (Kalitim) — sozel ikiz sik ornegi.
@@ -461,6 +463,92 @@ class TestDeepSeekProvider(unittest.TestCase):
     def test_anahtar_varsa_deepseek_secilir(self):
         p = build_provider(cfg(api_key="sahte-anahtar"), mock=False)
         self.assertEqual(p.name, "deepseek")
+
+
+def _yanit(payload):
+    """2xx govdeli `urlopen` taklidi."""
+    class _R:
+        def read(self_inner):
+            return json.dumps(payload).encode()
+
+        def __enter__(self_inner):
+            return self_inner
+
+        def __exit__(self_inner, *a):
+            return False
+
+    return _R()
+
+
+class TestGatewayBodyError(unittest.TestCase):
+    """GECIT 2xx GOVDESINDE HATA DONDUREBILIR (Kilo/OpenRouter tipi gecitler yuk
+    altinda HTTP 200 + `{"error":{"code":503,...}}` dondurur).
+
+    Durum koduna bakan istemci bunu basari sayar; `choices` bos gelince sema
+    dogrulamasi ANLASILMAZ bir hatayla duser ve yeniden deneme HIC olmaz --
+    gecici bir yuk, kosuyu aciklanamayan bir hatayla bitirir.
+    """
+
+    _SECENEK = {"choices": [{"message": {"content": "{\"etiket\": \"dogru\"}"}}],
+                "usage": {}}
+
+    def _provider(self, yanitlar, **over):
+        cagri = {"n": 0}
+
+        def _say(req, timeout=None):
+            cagri["n"] += 1
+            yanit = yanitlar[cagri["n"] - 1]
+            if isinstance(yanit, BaseException):
+                raise yanit
+            return yanit
+
+        c = cfg(api_key="sahte-anahtar", **over)
+        p = DeepSeekProvider(c, budget=BudgetGuard(10.0), sleep=lambda _s: None)
+        return p, cagri, mock.patch("src.segment.provider.urllib.request.urlopen",
+                                    side_effect=_say)
+
+    def test_govdede_gecici_hata_yeniden_denenir(self):
+        """503 = yuk; ilk yanit 200 ama govdede hata -> ikinci deneme basarili."""
+        yanitlar = [_yanit({"error": {"message": "Upstream error from Nvidia: "
+                                                 "Service temporarily overloaded",
+                                      "code": 503}}),
+                    _yanit(self._SECENEK)]
+        p, cagri, yama = self._provider(yanitlar)
+        with yama:
+            res = p.chat("x")
+        self.assertEqual(cagri["n"], 2)
+        self.assertIn("dogru", res.text)
+
+    def test_govdede_kalici_hata_ilk_denemede_saglayicinin_mesajiyla_biter(self):
+        """400 = istek yanlis; tekrar denemek yalniz kota yakar."""
+        yanitlar = [_yanit({"error": {"message": "model bulunamadi", "code": 400}})]
+        p, cagri, yama = self._provider(yanitlar, max_retry=4)
+        # `ProviderRejection` duzeltmeyle geldi; duzeltme ONCESI dosyada yoktur,
+        # yani fail-pre-fix kaniti DAVRANISSAL olsun (ImportError degil).
+        beklenen = getattr(provider_mod, "ProviderRejection", ProviderError)
+        with yama:
+            with self.assertRaises(beklenen) as ctx:
+                p.chat("x")
+        self.assertEqual(cagri["n"], 1)
+        self.assertIn("model bulunamadi", str(ctx.exception))
+
+    def test_govdede_dizge_bicimi_hata_gecici_sayilir(self):
+        yanitlar = [_yanit({"error": "temporary upstream failure"}),
+                    _yanit(self._SECENEK)]
+        p, cagri, yama = self._provider(yanitlar)
+        with yama:
+            p.chat("x")
+        self.assertEqual(cagri["n"], 2)
+
+    def test_gercek_http_5xx_hala_yeniden_denenir(self):
+        """Govde denetimi eklenirken tasima yolu BOZULMAMALI."""
+        import urllib.error
+        yanitlar = [urllib.error.HTTPError("u", 503, "m", {}, None),
+                    _yanit(self._SECENEK)]
+        p, cagri, yama = self._provider(yanitlar)
+        with yama:
+            p.chat("x")
+        self.assertEqual(cagri["n"], 2)
 
 
 class TestConfig(unittest.TestCase):

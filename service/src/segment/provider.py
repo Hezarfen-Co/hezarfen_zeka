@@ -77,6 +77,48 @@ class ProviderError(RuntimeError):
     """Saglayici cagrisi kalici olarak basarisiz."""
 
 
+class ProviderRejection(ProviderError):
+    """Saglayicinin KALICI reddi (2xx govdesindeki terminal kod).
+
+    NEDEN AYRI TIP: `BaseProvider.chat` HER istisnayi yeniden dener. Kalici bir
+    reddi (or. `400 invalid model`) dort kez denemek yalniz kota yakar ve kosuyu
+    geciktirir; bu tip deneme dongusunden ANINDA cikar.
+    """
+
+
+#: Yeniden denenebilir saglayici kodlari. Gecit yuk altinda HTTP 200 ile
+#: `{"error":{"code":503}}` dondurur; 5xx ve 429 GECICI, 4xx KALICI sayilir.
+RETRY_STATUS = (408, 409, 425, 429, 500, 502, 503, 504)
+#: Govdeden tasinan saglayici mesajinin kirpma siniri.
+BODY_SNIPPET = 200
+
+
+def provider_error_from_body(data: object) -> tuple[str, int | None] | None:
+    """2xx GOVDESINDEKI saglayici hatasini cikarir.
+
+    Kilo/OpenRouter tipi gecitler yuk altinda HTTP **200** ile
+    `{"error":{"message":"Upstream error from Nvidia: Service temporarily
+    overloaded","code":503}}` donduruyor. Yalniz durum koduna bakan istemci bunu
+    basari sayar; `choices` bos gelince sema dogrulamasi anlasilmaz bir hatayla
+    duser ve YENIDEN DENEME hic olmaz. Bu yardimci gercek nedeni yukari tasir.
+    """
+    if not isinstance(data, dict):
+        return None
+    hata = data.get("error")
+    if isinstance(hata, str) and hata.strip():
+        return f"LLM saglayici hatasi: {hata.strip()[:BODY_SNIPPET]}", None
+    if not isinstance(hata, dict):
+        return None
+    kod = hata.get("code")
+    durum = kod if isinstance(kod, int) and not isinstance(kod, bool) else None
+    mesaj = hata.get("message")
+    ayrinti = (mesaj.strip() if isinstance(mesaj, str) and mesaj.strip()
+               else json.dumps(hata, ensure_ascii=False))
+    onek = (f"LLM saglayici hatasi (HTTP {durum})" if durum is not None
+            else "LLM saglayici hatasi")
+    return f"{onek}: {ayrinti[:BODY_SNIPPET]}", durum
+
+
 @dataclass
 class Usage:
     """Bir cagrinin token kullanimi (OpenAI-uyumlu `usage` alanindan)."""
@@ -356,6 +398,10 @@ class BaseProvider:
                                      kind=kind, role=role, **kw)
                 except BudgetExceeded:
                     raise
+                except ProviderRejection:
+                    # KALICI red: yeniden denemek yalniz kota yakar ve kosuyu
+                    # geciktirir. Saglayicinin KENDI mesajiyla aninda biter.
+                    raise
                 except Exception as exc:  # noqa: BLE001
                     last = exc
                     # Ustel geri cekilme: 0.5s, 1s, 2s, 4s ...
@@ -397,6 +443,11 @@ class DeepSeekProvider(BaseProvider):
     Anahtar ortamdan (`LLM_API_KEY`). Anahtar yokken de ORNEKLENEBILIR;
     hata yalnizca gercek cagri aninda yukselir — boylece tum boru hatti
     anahtarsiz ithal edilebilir.
+
+    GECIT GOVDE HATASI: Kilo/OpenRouter tipi gecitler yuk altinda HTTP 200 ile
+    `{"error":{"code":503,...}}` dondurur. `_call` bunu `provider_error_from_body`
+    ile yakalar: kod geciciyse yeniden denenir (`ProviderError`), kalici ise ILK
+    denemede saglayicinin mesajiyla biter (`ProviderRejection`).
     """
 
     name = "deepseek"
@@ -458,6 +509,19 @@ class DeepSeekProvider(BaseProvider):
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", "replace")[:300]
             raise ProviderError(f"HTTP {exc.code}: {body}") from exc
+        # GECIT 2xx GOVDESINDE HATA DONDUREBILIR (Kilo/OpenRouter, yuk altinda
+        # HTTP 200 + `{"error":{"code":503,...}}`). Eskiden bu yanit `choices`siz
+        # bir ChatResult uretiyor, sema dogrulamasi ANLASILMAZ bir hatayla
+        # dusuyor ve yeniden deneme HIC olmuyordu -- gecici bir yuk, kosuyu
+        # aciklanamayan bir hatayla bitiriyordu.
+        hata = provider_error_from_body(data)
+        if hata is not None:
+            mesaj, durum = hata
+            # Kalici kod (4xx): ILK denemede, saglayicinin kendi mesajiyla biter.
+            if durum is not None and durum not in RETRY_STATUS:
+                raise ProviderRejection(mesaj)
+            # Gecici kod (5xx/429) ya da kodsuz hata: `chat` dongusu yeniden dener.
+            raise ProviderError(mesaj)
         latency = time.time() - t0
         choices = data.get("choices") or [{}]
         message = choices[0].get("message", {}) or {}
