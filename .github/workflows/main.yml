@@ -606,7 +606,7 @@ jobs:
           # oldugu icin BOS deger (satir sonu) eslesmez.
           container_env=$(podman inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$container")
           eksik=0
-          for ad in AI_SHARED_TOKEN ZEKA_PG_DSN AI_BRIDGE_HOST AI_SERVICE_NAME; do
+          for ad in AI_SHARED_TOKEN LLM_API_KEY AI_BRIDGE_HOST AI_SERVICE_NAME; do
             if ! printf '%s\n' "$container_env" | grep -qE "^${ad}=."; then
               echo "container env: $ad yok ya da BOS -- operator dosyasi compose'a ulasmamis" >&2
               eksik=1
@@ -617,7 +617,7 @@ jobs:
             rollback
             exit 1
           fi
-          echo 'ok: operator sirlari konteynerde (AI_SHARED_TOKEN / ZEKA_PG_DSN / AI_BRIDGE_HOST / AI_SERVICE_NAME dolu)'
+          echo 'ok: operator sirlari konteynerde (AI_SHARED_TOKEN / LLM_API_KEY / AI_BRIDGE_HOST / AI_SERVICE_NAME dolu)'
           echo 'hezarfen_zeka_compose is up'
           REMOTE
 
