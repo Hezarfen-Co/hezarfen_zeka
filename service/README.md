@@ -150,11 +150,13 @@ Tohum verisinde 217.498 sınav cevabı ve kasıtlı olarak bozuk maddeler var. Y
 
 `docs/BACKEND-GEREKSINIMLERI.md` üç maddelik listeyi gerekçeleriyle içerir:
 
-1. **`insight.*` kapıları backend'de yok.** Bugün backend yalnız `chat.reply` ve
-   `rag.index` tanır. ZEKA'nın çağırdığı dokuz operasyon ve servis ettiği üç yetenek
-   kapı bekliyor; backend'de bu iş **`InsightDoors`** hattının sahibindedir. Servis
-   ona karşı yazıldı, zarf donduruldu; kapılar gelene kadar istek üzerine tetikleme
-   kapalıdır.
+1. **`insight.*` depo yolu açıldı; sunucu-baslatımlı yön açık.** ZEKA'nın
+   çağırdığı dokuz operasyon backend'de 2026-09-17'de açıldı (`f84c29d`) ve
+   çalışır. Backend'in **çağırabildiği** adlar hâlâ yalnız `chat.reply` ve
+   `rag.index`'tir: servis ettiği üç yetenek (`insight.student`,
+   `insight.class`, `insight.refresh`) dağıtım kapısı bekliyor; backend'de bu iş
+   **`InsightDoors`** hattının sahibindedir ve o yön kapılar gelene kadar istek
+   üzerine tetikleme kapalıdır.
 2. **Sınav yolları izin listesinde yok.** Madde analizi için gereken 9 yol listelenmiştir.
 3. **Öğrenci listeleme yolu yok.** Okul listesi artık köprüden (`insight.schools.list`),
    ama kimlerin işleneceği hâlâ yapılandırmadan çözülüyor. Dönem ortası kayıt olan
@@ -173,7 +175,8 @@ Bu maddeler **başka bir ekibin sorumluluğundadır.** ZEKA onlarsız da kendi t
   davranışı doğrular. Backend ayağa kalktığında yeniden sınanmalıdır.
 - Sertifika düz HTTP ile çekiliyor (podcast ve Çelebi ile aynı). `AI_TLS_FINGERPRINT`
   verilirse parmak izi doğrulanır; verilmezse her açılışta uyarı basılır.
-- **`insight.*` kapıları backend'de henüz tanımlı değil.** Servis kendi takvimiyle
-  çalışır; çağrılar reddedilirse koşu defterine `partial` yazılır ve sessiz kalmaz.
+- **`insight.*` depo kapıları açık; backend'in ZEKA'yı çağırması henüz mümkün
+  değil.** Servis kendi takvimiyle çalışır; çağrılar reddedilirse koşu defterine
+  `partial` yazılır ve sessiz kalmaz.
 - Öğrenci kimlikleri yapılandırmadan gelir; okul listesi backend'den
   (`insight.schools.list`, `ZEKA_SCHOOLS` yalnız filtre).

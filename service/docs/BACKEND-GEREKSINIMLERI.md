@@ -19,13 +19,22 @@ istemci-baslatimli bir yetenek cercevesi tanimli degildir (Madde 1).
 
 Yani asagidaki uc madde ZEKA'nin nelerin **disinda** kaldigini tarif eder.
 
+> **DURUM (2026-09-17).** Madde 1'in **(a) servisin cagirdigi `insight.*`
+> operasyonlari** yonu backend'de **acildi** (`f84c29d`): kapi listesi
+> `/api-docs/openapi.json` icinde gorunur ve `insight.schools.list`,
+> `insight.pending.list`, `insight.retention.sweep` canli backend'e karsi
+> kosturuldu (uclu de basarili dondu). **(b) backend'in ZEKA'yi cagirmasi**
+> yonu -- dagitim tablosundaki `insight.student` / `insight.class` /
+> `insight.refresh` -- **HALA ACIKTIR**. Asagidaki "yoktur / tanimli degil"
+> ifadeleri bu iki yonu ayirmadan okunmamalidir; `src/capabilities.py` modul
+> dokumani ayni ayrimi yapar.
+
 ---
 
-## Madde 1 -- `insight.*` kapilari backend'de tanimli degil
+## Madde 1 -- `insight.*`: depo yolu ACILDI, sunucu-baslatimli yon acik
 
 **Sahibi: backend'deki `InsightDoors` hatti.** Asagidaki zarf DONMUS'TUR; servis
-ona karsi yazildi. Backend tarafinin dagitilmis oldugu **iddia edilmez** -- bu
-madde aciktir.
+ona karsi yazildi. (a) yonu 2026-09-17'de acildi (`f84c29d`); (b) yonu aciktir.
 
 ### Ne isteniyor
 
@@ -40,11 +49,12 @@ cercevededir**, payload'da degil:
 { "status": "err", "id": ..., "school": ..., "code": ..., "message": ... }
 ```
 
-**a) Servisin cagiramadigi operasyonlar (istemci-baslatimli akis).** Bugun
-koprunun istemci-baslatimli iki sekli vardir: `ApiRequest` (izin listesindeki
-GET yollari) ve `BlobRequest` (bayt). Yazma icin bir yol **yoktur** -- oysa
-ZEKA'nin kendi satirlarini yazmasi ve okumasi gerekir. Istenen operasyon listesi
-(`service/src/store.py`):
+**a) Servisin cagirdigi operasyonlar (istemci-baslatimli akis).** [ACILDI --
+2026-09-17, `f84c29d`.] Istenen sekil: istemci-baslatimli bir yetenek
+cercevesi. O zaman koprunun istemci-baslatimli iki sekli vardi -- `ApiRequest`
+(izin listesindeki GET yollari) ve `BlobRequest` (bayt) -- ve yazma icin bir
+yol **yoktu**; oysa ZEKA'nin kendi satirlarini yazmasi ve okumasi gerekiyordu.
+Istenen operasyon listesi (`service/src/store.py`):
 
 | Yetenek | Ne yapar |
 |---|---|
@@ -89,7 +99,8 @@ Payload sozlesmeleri `service/src/capabilities.py` icinde tip olarak tanimlidir
 
 ### Neden
 
-Backend'in bugun tanidigi yetenek adlari **yalnizca ikidir**:
+Backend'in bugun **cagirabildigi** yetenek adlari **yalnizca ikidir** (yani
+ZEKA'ya `Request` gondermek icin kullanabilecegi adlar):
 
 | Sabit | Deger | Kaynak |
 |---|---|---|
@@ -98,9 +109,9 @@ Backend'in bugun tanidigi yetenek adlari **yalnizca ikidir**:
 
 Yonlendirme **tam eslesmedir** (`src/ai/protocol.rs:91-94`): yaklasik eslesme,
 on-ek eslesmesi ya da geri dusme yoktur. ZEKA baglanip `insight.student` ilan
-etse bile, o adi arayan bir `Request` ureten kod backend'de **yoktur**; ayni
-sekilde servisin cagirdigi `insight.*` operasyonlarini karsilayacak bir
-istemci-baslatimli cerceve de **yoktur**.
+etse bile, o adi arayan bir `Request` ureten kod backend'de **yoktur**.
+(Servisin backend'i cagirdigi ters yon -- (a) -- 2026-09-17'de acildi; asagidaki
+ifade yalnizca bu (b) yonunu anlatir.)
 
 Bu, podcast servisinin yasadigi sorunun aynisidir: `podcast.submit`,
 `podcast.status`, `podcast.result`, `podcast.cancel` adlarinin hicbiri backend

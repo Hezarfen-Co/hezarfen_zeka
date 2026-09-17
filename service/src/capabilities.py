@@ -1,20 +1,27 @@
 """ZEKA'nin ilan edecegi yetenekler ve payload sozlesmeleri.
 
-!!! BACKEND BU YETENEKLERI TANIMIYOR !!!
+IKI YON VARDIR; karistirilmamalidir:
 
-Backend'in tanidigi yetenek adlari yalnizca ikidir (`constant.rs:568` ve
-`constant.rs:574`):
+1. **Sunucu-baslatimli (backend -> ZEKA).** Backend'in ZEKA'ya `Request`
+   gondermesi icin asagidaki adlari DAGITIM tablosunda tanimasi gerekir.
+   Bugun backend'in cagirabildigi tek iki ad `chat.reply` ve `rag.index`'tir
+   (`constant.rs:568` ve `constant.rs:574`); asagidaki `insight.*` adlarinin
+   hicbiri orada YOKTUR. Yonlendirme TAM ESLESME iledir (`ai/protocol.rs:91-94`,
+   `ai/registry.rs`): ZEKA baglanip bu adlari ilan etse bile backend onlara
+   hicbir `Request` gondermez. Bu yon HALA ACIKTIR. Kopru tarafi (`bridge.py`)
+   gelen cerceveleri karsilamaya hazirdir ki backend bu adlari tanidigi gun
+   tek satir degisiklik gereksin.
 
-    AI_CHAT_CAPABILITY      = "chat.reply"
-    AI_RAG_INDEX_CAPABILITY = "rag.index"
+2. **Istemci-baslatimli (ZEKA -> backend, depo yolu).** ZEKA'nin kendi `zeka_*`
+   satirlarini yazip okudugu yol budur: `store.BridgeStore`,
+   `BridgeProtocol.call_capability` ile `insight.schools.list`,
+   `insight.pending.list`, `insight.retention.sweep` gibi operasyonlari cagirir.
+   Bu yon backend'de 2026-09-17'de ACILDI (f84c29d) ve calisir.
+   `BACKEND_CALLABLE_CAPABILITIES` kumesi onu KAPSAMAZ: o kume yalnizca 1. yonu,
+   yani backend'in cagirabildigi adlari anlatir.
 
-Yetenek yonlendirmesi TAM ESLESME ile yapilir (`ai/protocol.rs:91-94`,
-`ai/registry.rs`). Yani ZEKA baglanip asagidaki adlari ilan etse bile backend
-onlara HICBIR `Request` gondermez: gonderecek bir dagitim kodu yoktur.
-
-Bu dosya bu yuzden bugun **sozlesme**dir, calisan bir yol degil. Kopru tarafi
-(`bridge.py`) gelen `Request` cercevelerini dogru sekilde karsilamaya hazirdir
-ki backend bu adlari tanidigi gun tek satir degisiklik gerekmesin.
+Bu dosya 1. yon icin **sozlesme**dir (calisan bir yol degil); 2. yonun
+sozlesmesi `store.py` ve `protocol.py` icindedir.
 
 Gereksinim backend ekibine `docs/BACKEND-GEREKSINIMLERI.md` madde 1 ile
 iletilir.
@@ -47,10 +54,12 @@ INSIGHT_REFRESH = "insight.refresh"
 NAMES: tuple[str, ...] = (INSIGHT_STUDENT, INSIGHT_CLASS, INSIGHT_REFRESH)
 
 
-#: Backend'in bugun tanidigi yetenekler (`constant.rs:568,574`). ZEKA'nin
-#: hicbiri bu kumede degildir; kesisim bos oldugu surece backend ZEKA'yi
-#: cagiramaz. `tests/test_capabilities.py` bu gercegi pinler.
-BACKEND_KNOWN_CAPABILITIES: tuple[str, ...] = ("chat.reply", "rag.index")
+#: Backend'in ZEKA'ya `Request` GONDEREBILDIGI yetenek adlari
+#: (`constant.rs:568,574`) -- dagitim tablosunun tamami. Servisin cagirdigi
+#: `insight.*` depo operasyonlarini KAPSAMAZ (bkz. modul dokumani, 2. yon).
+#: ZEKA'nin hicbiri bu kumede degildir; kesisim bos oldugu surece backend
+#: ZEKA'yi cagiramaz. `tests/test_capabilities.py` bu gercegi pinler.
+BACKEND_CALLABLE_CAPABILITIES: tuple[str, ...] = ("chat.reply", "rag.index")
 
 
 # --- payload sozlesmeleri --------------------------------------------------
@@ -200,10 +209,19 @@ def require_text(payload: dict[str, Any], key: str) -> str:
 
 
 def summary() -> str:
-    """Acilis logu icin tek satir. Backend'in tanimadigini acikca soyler."""
-    unknown = [n for n in NAMES if n not in BACKEND_KNOWN_CAPABILITIES]
+    """Acilis logu icin tek satir: iki yonu AYRI soyler.
+
+    Onceki hali "(backend'in tanidigi: chat.reply, rag.index; N yetenek
+    TANIMSIZ, istek gelmeyecek)" idi ve depo yolu (2. yon) calismaya
+    basladiktan sonra backend'in `insight` hakkinda hicbir sey bilmedigi
+    okunuyordu. Liste backend'in **cagirabildikleridir**; servisin
+    **cagirdigi** operasyonlari kapsamaz.
+    """
+    not_callable = [n for n in NAMES if n not in BACKEND_CALLABLE_CAPABILITIES]
     return (
-        f"ilan edilen yetenekler: {', '.join(NAMES)} "
-        f"(backend'in tanidigi: {', '.join(BACKEND_KNOWN_CAPABILITIES)}; "
-        f"{len(unknown)} yetenek backend'de TANIMSIZ, istek gelmeyecek)"
+        f"backend'in cagirabildigi yetenekler: "
+        f"{', '.join(BACKEND_CALLABLE_CAPABILITIES)} "
+        f"(servis->backend depo yolu: kopru/insight.* -- bu liste onu kapsamaz); "
+        f"servis tarafi isler ({', '.join(NAMES)}) backend tarafindan HENUZ "
+        f"cagrilmiyor ({len(not_callable)} ad dagitim tablosunda yok)"
     )

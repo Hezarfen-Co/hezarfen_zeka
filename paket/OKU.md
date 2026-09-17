@@ -84,8 +84,8 @@ olmayan kolonlar, ilgili kaydın ULID damgasından türetilir. `exam_result.grad
 özellikle: **"notlandırma gecikmesi" gibi bir ölçüm için kullanılamaz.**
 ZEKA hiçbirini okumaz — köprü izin listesinde o yollar yoktur.
 
-**Bir kapı açık kalıyor:** `insight.*` yetenek kapıları backend'de henüz
-tanımlı değildir. Servis kendi takvimivle koşar, satırlarını yazmayı bu
-kapılardan ister ve kapılar gelene kadar koşuyu `partial` yazar. Gereksinim
-listesi: `service/docs/BACKEND-GEREKSINIMLERI.md`, sahibi backend'deki
-`InsightDoors` hattı.
+**Bir kapı açık kalıyor:** backend'in ZEKA'yı çağırması (`insight.student`,
+`insight.class`, `insight.refresh`) için dağıtım kapısı henüz yoktur. Servisin
+backend'i çağırdığı `insight.*` depo yolu ise 2026-09-17'de açıldı (`f84c29d`)
+ve çalışır. Gereksinim listesi: `service/docs/BACKEND-GEREKSINIMLERI.md`,
+sahibi backend'deki `InsightDoors` hattı.

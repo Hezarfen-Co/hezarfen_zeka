@@ -415,7 +415,7 @@ bu tuzak yapısal olarak imkânsızdır.
    gerekir (`SEGMENT-CIKTI.md` §8).
 5. **`T3.segment_class_gap` gerçek bir sınıfta hiç ateşlemedi** — yalnız yapay
    pozitif kontrolde. Ekranı kurulabilir, ama boş kalabileceği varsayılmalıdır.
-6. **`insight.*` kapıları backend'de henüz tanımlı değil.** Servis kendi
-   takvimiyle çalışır ve satırlarını yazmayı bu kapılardan ister; kapılar
-   gelene kadar gece koşusu `partial` yazılır. Sahibi backend'deki
-   `InsightDoors` hattı — `docs/BACKEND-GEREKSINIMLERI.md` Madde 1.
+6. **`insight.*` depo kapıları açıldı (`f84c29d`); backend'in ZEKA'yı çağırması
+   hâlâ kapalı.** Servis satırlarını bu depo kapılarından yazar; sunucu-baslatımlı
+   üç yetenek için dağıtım kapısı gelene kadar gece koşusu `partial` yazılır.
+   Sahibi backend'deki `InsightDoors` hattı — `docs/BACKEND-GEREKSINIMLERI.md` Madde 1.

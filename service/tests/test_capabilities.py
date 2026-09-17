@@ -1,8 +1,10 @@
 """Yetenek defterinin testleri.
 
 Buradaki en onemli test bir EKSIKLIGI pinler: backend ZEKA'nin yeteneklerinin
-hicbirini tanimiyor, dolayisiyla ZEKA'ya hic `Request` gondermiyor. Backend
-tarafi duzeldiginde bu test guncellenecek ve degisiklik goze carpacak.
+hicbirini **cagiramaz** (dagitim tablosunda bu adlar yok), dolayisiyla ZEKA'ya
+hic `Request` gondermez. Bu, servisin backend'i cagirdigi depo yolundan (2. yon,
+`insight.*` -- calisir) AYRI bir yondur. Backend tarafi duzeldiginde bu test
+guncellenecek ve degisiklik goze carpacak.
 """
 
 from __future__ import annotations
@@ -20,15 +22,15 @@ class CapabilityNameTests(unittest.TestCase):
             ("insight.student", "insight.class", "insight.refresh"),
         )
 
-    def test_backend_knows_none_of_them(self):
-        # constant.rs:568 ve :574 -- backend'in tanidigi tek iki ad.
+    def test_backend_can_call_none_of_them(self):
+        # constant.rs:568 ve :574 -- backend'in cagirabildigi tek iki ad.
         self.assertEqual(
-            capabilities.BACKEND_KNOWN_CAPABILITIES, ("chat.reply", "rag.index")
+            capabilities.BACKEND_CALLABLE_CAPABILITIES, ("chat.reply", "rag.index")
         )
         self.assertEqual(
-            set(capabilities.NAMES) & set(capabilities.BACKEND_KNOWN_CAPABILITIES),
+            set(capabilities.NAMES) & set(capabilities.BACKEND_CALLABLE_CAPABILITIES),
             set(),
-            "backend artik bir ZEKA yetenegini taniyorsa bu testi ve "
+            "backend artik bir ZEKA yetenegini cagirabiliyorsa bu testi ve "
             "docs/BACKEND-GEREKSINIMLERI.md madde 1'i guncelleyin",
         )
 
@@ -78,8 +80,16 @@ class DispatchTests(unittest.TestCase):
             capabilities.dispatch("insight.class", "demo", ["liste"])
         self.assertEqual(caught.exception.code, "bad_request")
 
-    def test_summary_says_the_backend_does_not_know_them(self):
-        self.assertIn("TANIMSIZ", capabilities.summary())
+    def test_summary_names_the_callable_direction_only(self):
+        text = capabilities.summary()
+        # Liste backend'in CAGIRABILDIGIDIR ...
+        self.assertIn("backend'in cagirabildigi yetenekler: chat.reply, rag.index", text)
+        self.assertIn("HENUZ cagrilmiyor", text)
+        # ... ve depo yolunu (2. yon) kapsamadigi acikca yazilidir.
+        self.assertIn("servis->backend depo yolu: kopru/insight.*", text)
+        # Eski hali depo yolu calismaya basladiktan sonra "backend insight'i
+        # hic bilmiyor" diye okunuyordu.
+        self.assertNotIn("TANIMSIZ", text)
 
 
 if __name__ == "__main__":
