@@ -148,7 +148,7 @@ class Recommendation:
             )
 
     def record_key(self) -> str:
-        """Kompozit kayıt anahtarı → UPSERT idempotenttir, çoğaltma olmaz.
+        """Kompozit kayıt anahtarı → yazma idempotenttir, çoğaltma olmaz.
 
         `MODULLER.md` §2.11 adım 1: kompozit anahtar tekilliği yapısal kılar.
 
@@ -156,7 +156,7 @@ class Recommendation:
         Öğretmene giden kurallar (T3, T4) öğrenci başına bir kez ateşler:
         bir öğretmen, bir kural, bir ders altında otuz öğrenci. Anahtar
         `scope or course or about` biçiminde tek bir yuvaya sıkıştırıldığında
-        otuzu da aynı anahtarı üretiyordu; UPSERT sonuncuyu tutuyor, öğretmen
+        otuzu da aynı anahtarı üretiyordu; son yazılan tutuluyor, öğretmen
         **tek öğrenci** görüyor ve yirmi dokuzu hiçbir yerde hata vermeden
         kayboluyordu. Ölçüldü: beş öğrenci → bir anahtar.
 

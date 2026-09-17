@@ -2,9 +2,8 @@
 #
 # NEDEN AYRI: `ci.yml` hicbir bagimlilik kurmaz ve hicbir sokete dokunmaz;
 # boylece kirmizi/yesil bilgisi ag ve paket deposu kesintilerinden bagimsiz
-# kalir. Buradaki isler ise `aioquic` kurar ya da bir veritabani kaldirir;
-# yavastir ve dis etkenlere aciktir. Zorunlu kapiya konulsalardi CI
-# guvenilmez olur, guvenilmez CI da yok sayilir.
+# kalir. Buradaki is ise `aioquic` kurar; yavastir ve dis etkenlere aciktir.
+# Zorunlu kapiya konulsaydi CI guvenilmez olur, guvenilmez CI da yok sayilir.
 #
 # BURADA GERCEK LLM CAGRISI YAPILMAZ. Segment testleri `MockProvider`
 # kullanir; asagida ayrica bir koruma vardir ki bir gun gercek bir anahtar
@@ -15,11 +14,6 @@ name: Istege bagli testler
 
 on:
   workflow_dispatch:
-    inputs:
-      veritabani:
-        description: "SurrealDB entegrasyon testlerini de kosayim mi"
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -65,36 +59,3 @@ jobs:
         # baglanti kurulmaz ve sabit port isgal edilmez.
         working-directory: service
         run: python -m unittest discover -s tests -t . -v
-
-  # =========================================================================
-  veritabani:
-    name: "SurrealDB entegrasyon testleri"
-    if: ${{ inputs.veritabani }}
-    runs-on: ubuntu-latest
-    services:
-      surrealdb:
-        image: surrealdb/surrealdb:v3
-        ports: ["8000:8000"]
-        options: >-
-          --health-cmd "/surreal is-ready"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      - name: "Semayi yukle ve testleri kos"
-        # `tests/zeka_db.py` bu degiskenler tanimli degilse butun
-        # entegrasyon testlerini `skipUnless` ile atlar; burada acikca
-        # tanimlayip kosturuyoruz.
-        working-directory: service
-        env:
-          ZEKA_TEST_DB_URL: ws://127.0.0.1:8000/rpc
-          ZEKA_TEST_DB_NS: hezarfen_test
-          ZEKA_TEST_DB_USER: root
-          ZEKA_TEST_DB_PASSWORD: root
-        run: |
-          pip install --requirement requirements.txt
-          python -m unittest discover -s tests -t . -v

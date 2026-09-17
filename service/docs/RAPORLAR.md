@@ -1,6 +1,6 @@
 # ZEKA Raporları
 
-> ZEKA sonuç üretiyor ama kimse göremiyordu: analizler kendi veritabanına
+> ZEKA sonuç üretiyor ama kimse göremiyordu: analizler okulun veritabanına
 > yazılıyor ve orada kalıyordu. Frontend'de değişiklik yapılmayacağı için
 > teslim biçimi **rapor**dur. Bu belge o katmanı anlatır.
 >
@@ -11,8 +11,9 @@
 
 ## 0. Beş cümlede
 
-1. Rapor **yalnız ZEKA'nın kendi beş tablosunu okur**: köprüye gitmez, okul
-   veritabanına dokunmaz, hiçbir şeye yazmaz.
+1. Rapor **hattı olduğu gibi koşturup yazılan satırları bellekten yakalar**:
+   ne açılan bir veritabanı, ne bir sürücü, ne bir bağlantı dizesi. Taşıma `store.py`'nin
+   köprü deposudur; rapor onun yerine bir yakalayıcı koyar.
 2. Dört rapor vardır: `okul` (yönetim), `ogretmen`, `ogrenci` (öğrenci/veli),
    `ham` (teknik ekip).
 3. Üç biçim vardır: **JSON** (makine okunabilir), **HTML** (tek dosya, gömülü
@@ -31,15 +32,15 @@ python -m src.cli report --school ataturk-anadolu \
     --type okul|ogretmen|ogrenci|ham \
     --format json|html|csv \
     --out DIZIN [--about ÖĞRENCİ] [--teacher ÖĞRETMEN] \
-    [--db-url http://hzk-zeka:8000 | --fixtures service/fixtures/demo] [--now MS]
+    --fixtures service/fixtures/demo [--now MS]
 ```
 
 * `--about` öğrenci raporunda **zorunludur**, `--teacher` öğretmen raporunda.
-* Veri kaynağı iki türlü verilir:
-  * `--db-url` (ya da `ZEKA_DB_HTTP_URL`) → gerçek ZEKA veritabanı;
-  * `--fixtures` → veritabanı yoksa hattı fikstürden koşturur, yazılan
-    satırları bellekte yakalar (`report/capture.py`) ve raporu onlardan
-    üretir. Aynı rapor kodu koşar; yalnız taşıma değişir.
+* `--fixtures` **zorunludur**: rapor, hattı fikstürden koşturup yazılan
+  satırları bellekte yakalar (`report/capture.py`) ve raporu onlardan üretir.
+  Aynı rapor kodu koşar; yalnız taşıma değişir — canlı bir dağıtımı okumak için
+  bir bayrak yoktur ve olmayacaktır (rapor bir teslim biçimidir, bir yönetim
+  konsolu değil).
 
 Çıktı dosya adları öngörülebilir ve tarihlidir:
 
@@ -64,7 +65,7 @@ iki nokta Windows'ta geçerli bir dosya adı karakteri değildir.
 | `okul` | Yönetim | `toplu_gorunum`, `sube_ders`, `kosu_defteri`, `dikkat_listesi`, `tavsiye_dagilimi`, `uretilemeyenler` |
 | `ogretmen` | Öğretmen | `siniflarim`, `dikkat_listesi`, `isi_haritasi`, `tavsiyeler`, `uretilemeyenler` |
 | `ogrenci` | Öğrenci/veli | `dersler`, `calisma`, `teslim`, `yaklasan`, `segment`, `tavsiyeler` |
-| `ham` | Teknik ekip | `tables` (beş tablo, JSON gövde), `recommendation`, `student_segment_profile`, `uretilemeyenler` |
+| `ham` | Teknik ekip | `tables` (ham satırlar, JSON gövde), `recommendation`, `student_segment_profile`, `uretilemeyenler` |
 
 **Öğretmenin kapsamı** hakkında tavsiye aldığı öğrencilerden çözülür
 (`recommendation.audience = öğretmen`, `about = öğrenci`): şube üyeliği ve
@@ -204,7 +205,7 @@ bölümlü "Neden?" bir tablo değildir, hücreye sıkıştırılırsa okunmaz o
 
 ### JSON
 
-Zarf §2'dedir. `ham` raporunda beş tablonun satırları olduğu gibi durur, üç
+Zarf §2'dedir. `ham` raporunda satırlar olduğu gibi durur, üç
 istisnayla:
 
 * `recommendation`: kapatılmış / süresi geçmiş / kanıtsız satırlar çıkarılır —

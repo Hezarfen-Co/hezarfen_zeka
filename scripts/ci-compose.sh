@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # COMPOSE DENETIMI -- yapilandirmanin gecerli VE guvenli oldugunu dogrular.
 #
-# Uc sey denetlenir ve UCU DE cift yonludur; yalnizca "gecerli mi" diye
+# Dort sey denetlenir ve DORDU DE cift yonludur; yalnizca "gecerli mi" diye
 # sormak, asil kusurlari kacirir:
 #
-#   1. Zorunlu sirlar gercekten zorunlu mu? (AI_SHARED_TOKEN, LLM_API_KEY,
-#      ZEKA_PG_DSN -- tam liste compose.yaml'da.)
-#      `${VAR:?}` yerine `${VAR:-}` yazilirsa compose yine gecerli olur ama
-#      servis bos bir token'la ayaga kalkar ve backend'e kaydolamaz. Bu
-#      yuzden env YOKKEN `config`in PATLAMASINI da sinariz.
+#   1. Zorunlu sirlar gercekten zorunlu mu? LISTE compose.yaml'DAN OKUNUR
+#      (`${VAR:?}` ile gecen her degisken). `${VAR:?}` yerine `${VAR:-}`
+#      yazilirsa compose yine gecerli olur ama servis bos bir token'la ayaga
+#      kalkar ve backend'e kaydolamaz. Bu yuzden env YOKKEN `config`in
+#      PATLAMASINI da sinariz. Liste elle yazilmaz: sir ekleyen kisi bu
+#      betigi de guncellemek zorunda kalmasin (bu tam olarak bir kez yasandi).
 #
 #   2. Port aciliyor mu? ACILMAMALI. ZEKA backend'in QUIC'ine DIAL-OUT eden
 #      bir istemcidir (`ai/protocol.rs:3-7`); port acmak NAT ardinda
@@ -16,6 +17,12 @@
 #
 #   3. Ag adi parametrik mi? Kardes serviste sabit yazildigi icin ag baska
 #      bir adla kuruldugunda compose patliyordu.
+#
+#   4. VERITABANI IZI YOK MU? ZEKA uygulama veritabanina ULASMAZ (daimi
+#      kural): ne bir DSN, ne bir veritabani parolasi. Ayrica
+#      `env_file:` de YASAK -- operator ayarlari ORTAMDAN gelir; deploy
+#      tarafi TEK bir `--env-file` (stack.env) verir ve bu saglayicida ikinci
+#      dosya zaten sessizce duser (podman_compose.py:2941-2946, :2559).
 
 set -uo pipefail
 
@@ -38,23 +45,30 @@ HATA=0
 gec() { echo "  [ok]   $1"; }
 kal() { echo "  [HATA] $1"; HATA=1; }
 
+# --- zorunlu sirlar: LISTE compose.yaml'DAN OKUNUR -------------------------
+mapfile -t SIRLAR < <(
+  grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*:\?' compose.yaml \
+    | sed -E 's/^\$\{//; s/:\?$//' | sort -u
+)
+if [ "${#SIRLAR[@]}" -eq 0 ]; then
+  kal "compose.yaml hicbir sirri \${VAR:?} ile zorunlu tutmuyor"
+fi
+
+EKSIK=()
+for degisken in "${SIRLAR[@]}"; do EKSIK+=(-u "$degisken"); done
+
 # --- 1a. zorunlu env EKSIKKEN patlamali -----------------------------------
-# ZORUNLU SIRLAR LISTESI compose.yaml'DAN OKUNUR -- su an uctur
-# (AI_SHARED_TOKEN, LLM_API_KEY, ZEKA_PG_DSN). Ucuncusu eklendiginde bu
-# betik ve `ci.yml`'in konteyner katmani iki sirla kalmis, ikisi de "sirlar
-# verilse bile patliyor" diyerek KIRMIZI kalmisti. Sir eklerseniz bu listeyi
-# ve ci.yml/main.yml adimini BIRLIKTE guncelleyin.
-if env -u AI_SHARED_TOKEN -u LLM_API_KEY -u ZEKA_PG_DSN \
-     "${COMPOSE[@]}" config >/dev/null 2>&1; then
+if env "${EKSIK[@]}" "${COMPOSE[@]}" config >/dev/null 2>&1; then
   kal "zorunlu sirlar olmadan gecti -- \${VAR:?} yerine \${VAR:-} yazilmis olabilir"
 else
-  gec "zorunlu sirlar olmadan REDDEDILDI (AI_SHARED_TOKEN / LLM_API_KEY / ZEKA_PG_DSN)"
+  gec "zorunlu sirlar olmadan REDDEDILDI (${SIRLAR[*]})"
 fi
 
 # --- 1b. zorunlu env VARKEN gecerli olmali --------------------------------
-ZORUNLU_ENV=(AI_SHARED_TOKEN=ci-sahte LLM_API_KEY=ci-sahte ZEKA_PG_DSN=postgres://ci:ci@127.0.0.1:5432/ci)
-CIKTI="$(env "${ZORUNLU_ENV[@]}" "${COMPOSE[@]}" config 2>&1)"
-if [ $? -ne 0 ]; then
+DOLU=()
+for degisken in "${SIRLAR[@]}"; do DOLU+=("$degisken=ci-sahte"); done
+
+if ! CIKTI="$(env "${DOLU[@]}" "${COMPOSE[@]}" config 2>&1)"; then
   kal "zorunlu sirlar verildiginde bile config basarisiz:"
   echo "$CIKTI" | tail -10
   exit 1
@@ -75,7 +89,7 @@ if grep -q 'name: ${HEZARFEN_NET:-' compose.yaml; then
   # degisir (podman-compose `external`i `name`den ONCE basar). Ilk surum
   # `grep -A2 '^networks:'` ile pencere aciyordu ve ad satirini kacirip HATA
   # veriyordu -- probe'un kendisi yanlisti, yapilandirma degil.
-  OZEL="$(env HEZARFEN_NET=baska_ag "${ZORUNLU_ENV[@]}" "${COMPOSE[@]}" config 2>/dev/null \
+  OZEL="$(env HEZARFEN_NET=baska_ag "${DOLU[@]}" "${COMPOSE[@]}" config 2>/dev/null \
           | grep -E '^[[:space:]]+name:[[:space:]]*baska_ag[[:space:]]*$' | head -1)"
   if [ -n "$OZEL" ]; then
     gec "HEZARFEN_NET gecersiz kilinabiliyor (test: baska_ag ->$OZEL)"
@@ -84,6 +98,21 @@ if grep -q 'name: ${HEZARFEN_NET:-' compose.yaml; then
   fi
 else
   kal "dis ag adi SABIT yazilmis; dagitimdan dagitima kirilir"
+fi
+
+# --- 4a. veritabani izi yok ------------------------------------------------
+# Adlar yazilmaz, DESEN aranir: hangi DSN/parola adiyla gelirse gelsin yakalanir.
+if grep -nEi 'postgres|PG_DSN|_DB_DSN|ZEKA_DB' compose.yaml; then
+  kal "compose.yaml'da veritabani izi var; ZEKA uygulama veritabanina ULASMAZ"
+else
+  gec "compose.yaml'da DSN/parola izi yok (kopru deposu)"
+fi
+
+# --- 4b. `env_file:` yok: operator ayarlari TEK kanaldan --------------------
+if grep -qE '^[[:space:]]+env_file:' compose.yaml; then
+  kal "compose env_file: kullaniyor; operator ayarlari ORTAMDAN gelmeli (deploy TEK --env-file verir)"
+else
+  gec "compose env_file: kullanmiyor (ayarlar ortamdan, tek --env-file deploy tarafinda)"
 fi
 
 echo ""

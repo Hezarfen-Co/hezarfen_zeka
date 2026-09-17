@@ -205,17 +205,12 @@ class Emitter:
 
     FLEXIBLE = {"rag_output": ("payload",)}
 
-    def __init__(self, out_dir: str, mirror=None):
+    def __init__(self, out_dir: str):
         self.out_dir = out_dir
         self.parts_dir = os.path.join(out_dir, "_parts")
         os.makedirs(self.parts_dir, exist_ok=True)
         self._writers = {}
         self.counts = {}
-        # İkinci bir çıkış (`pg_emit.PgEmitter`) verilirse AYNI satırları o da
-        # görür. Ayrı bir geçiş değil aynı geçiş: iki çıktının aynı veriyi
-        # anlatması, ikisini ayrı ayrı üretip sonra karşılaştırmaya çalışmaktan
-        # çok daha ucuz bir garanti.
-        self.mirror = mirror
 
     def writer(self, table: str) -> PartWriter:
         w = self._writers.get(table)
@@ -226,16 +221,11 @@ class Emitter:
 
     def add(self, table: str, row: dict) -> None:
         self.writer(table).add(row)
-        if self.mirror is not None:
-            self.mirror.add(table, row)
 
     def add_many(self, table: str, rows) -> None:
-        # DİKKAT: `self.add()` üzerinden geçer. Doğrudan `w.add(row)` çağırmak
-        # aynayı (`self.mirror`) atlıyordu ve Postgres çıktısında 31 tablo,
-        # 139.416 satır sessizce eksik kalıyordu. Toplam satır sayısı yine de
-        # doğru görünüyordu, çünkü o sayı SurrealQL yazıcısından okunuyor.
-        # Eksiklik ancak yükleme sırasında bir yabancı anahtar hatası olarak
-        # ortaya çıktı — yani veritabanı olmasa hiç görülmeyecekti.
+        # DİKKAT: `self.add()` üzerinden geçer; doğrudan `w.add(row)` çağırmak
+        # yazıcıyı atlar ve satır sessizce düşer. Toplam sayı yazıcıdan
+        # okunduğu için eksiklik ancak yükleme sırasında görülürdü.
         for row in rows:
             self.add(table, row)
 

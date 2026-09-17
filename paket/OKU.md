@@ -1,146 +1,91 @@
-# Sunucuya gönderilecek paket
+# Sunucuya verilecek paket
 
-İki ayrı şey var ve **farklı yerlere** gidiyorlar. Karıştırılırsa biri eksik kalır.
-
-> **Bu klasörde depoda duran şey:** `20260916000001_zeka.sql`, iki betik ve bu
-> belge. SQL veri dosyaları (`pg_school.sql` 101 MB, `pg_control.sql`,
-> `pg_dogrula.sql`) **gitignore'ludur** — GitHub'ın tek dosya sınırı 100 MB ve
-> deterministik üretildikleri için depoda tutmanın kazandıracağı bir şey yok:
->
-> ```sh
-> python generator/main.py --scale full --postgres --out paket/
-> ```
->
-> `migrations/` de depoda değil: backend'in kendi şemasının kopyasıdır ve iki
-> yerde duran bir şema er ya da geç ayrışır. Yükleyici gerçek checkout'u alır:
->
-> ```sh
-> BACKEND=/yol/hezarfen_backend-main bash load_pg_seed.sh .
-> ```
+> **Kime:** backend ekibi. Bu klasörde teslim edilen şey artık bir **not**tur:
+> ZEKA hiçbir şema uygulamaz, hiçbir veritabanı bağlantısı açmaz ve sunucuda
+> çalıştırılacak bir yükleme betiği **yoktur**.
 
 ---
 
-## 1. ZEKA'nın tabloları → her okul veritabanına
+## 1. ZEKA'nın tabloları — backend deposunda
 
-`20260916000001_zeka.sql` — dokuz tablo (`zeka_*`).
+Dokuz `zeka_*` tablosunun DDL'i **backend deposundadır**:
 
-Bu dosya iki yere birden konmalı:
-
-**a) `migrations/school/` klasörüne** — yeni açılacak okullar ve şablon için.
-Backend ekibi commit edip deploy etmeli. Mevcut dört migration dosyasına
-**dokunulmuyor**: sqlx bunları sağlama toplamıyla izliyor, birini düzenlemek
-uygulanmış veritabanlarını kırar.
-
-**b) `apply_zeka_tables.sh` ile mevcut okullara** — çünkü (a) onları kapsamaz.
-
-```sh
-HEZARFEN_PG_CONTAINER=hezarfen_backend_postgres \
-POSTGRES_USER=hezarfen POSTGRES_DB=hezarfen_control \
-bash apply_zeka_tables.sh
+```
+hezarfen_backend/migrations/school/20260917000002_zeka.sql
 ```
 
-### (b) neden gerekiyor
+Hepsi her **okulun kendi veritabanında** durur; şablon ve yeni açılan okullar
+için `migrate_school` uygular. Dosya mevcut dört okul migration'ına **dokunmaz**:
+yalnız yeni tablo ve indeks kurar, sqlx bunları sağlama toplamıyla izlediği için
+birini düzenlemek uygulanmış veritabanlarını kırardı.
 
-Backend'in kendi kaynağı (`database.rs:126`):
+Tabloların sahibi backend'dir: **süpürmeyi ve ayrılan temizliğini de backend
+koşturur**, çünkü satırlar okulun veritabanındadır. ZEKA yalnız `insight.*`
+yetenek çağrılarıyla "şu satırları yaz" der.
 
-> *"The schema is the caller's business — `migrate_school` for a mint,
-> **nothing for a re-dial of an existing school**."*
-
-Ve `reconcile_provisioning` yalnız `provisioning` durumundaki okullara bakıyor.
-Yani sunucuda **zaten duran** bir okul, migration dosyası eklense bile `zeka_*`
-tablolarını asla kendiliğinden almaz. Betik o boşluğu kapatır.
-
-Betik yalnız `CREATE TABLE` / `CREATE INDEX` çalıştırır, hiçbir mevcut tabloya
-dokunmaz, hiçbir satırı değiştirmez. Tabloları zaten olan okulu **atlar**.
-Okulları control kütüğünden çözer, ad deseninden değil.
+Tabloların hangisi ne tutar, alan alan: `service/docs/CIKTI-SOZLESMESI.md`.
 
 ---
 
-## 2. Demo verisi → kendi yeni veritabanına
+## 2. Demo verisi
 
-`pg_school.sql` (101 MB) + `pg_control.sql` (150 KB) + `pg_dogrula.sql`
+Depoda **tohumun kendisi yok, üreticisi var**. Deterministik üretildiği için
+~170 MB'lık çıktıyı depoda tutmanın kazandıracağı bir şey yok (ve GitHub'ın tek
+dosya sınırını aşıyor).
 
 ```sh
-HEZARFEN_PG_CONTAINER=hezarfen_backend_postgres \
-POSTGRES_USER=hezarfen POSTGRES_DB=hezarfen_control \
-bash load_pg_seed.sh .
+python generator/main.py --scale full --out /tmp/seed
 ```
 
-Ne yapar:
-
-1. Okul veritabanını backend'in **kendi** adlandırma kuralıyla kurar
-   (`tenant.rs:112` → `{control}_school_{uuid.simple}`)
-2. `migrations/` içindeki şemayı uygular (ZEKA'nınki dahil)
-3. `pg_school.sql`'i döker — 576.487 satır
-4. **48 bütünlük denetimini koşturur**; bir tanesi bile ihlal bulursa orada durur
-5. Control kaydını **en sona** yazar
-
-(5) bilinçli: backend okulu `active` görür görmez istek kabul etmeye başlıyor,
-veri hazır olmadan kaydı yazmak yarım bir okul açmak olurdu.
-
-### Demo okulu
+Üretilen: demo okulunun bütün veri seti, tablo başına satır sayısıyla
+`MANIFEST.json`, gizli gerçeği taşıyan `_seed_manifest.json` ve 48 bütünlük
+sorgusu. **Yüklemesi backend ekibinin işidir.**
 
 | | |
 |---|---|
 | slug | `hezarfen-demo` |
 | uuid | `01930000-0000-7000-8000-00000000de70` |
-| öğrenci | 250 (563 kullanıcı) |
-| kapsam | 2025-09-07 → 2026-04-13, 27 öğretim haftası |
-| satır | okul 576.487, control 1.148 |
+| öğrenci | 250 (563 kullanıcı: + 24 öğretmen, 285 veli, 4 yönetici) |
+| kapsam | 2025-09-07 → 2026-04-13 (217 gün, 27 öğretim haftası) |
+| modüller | 21'inin tamamı açık |
 
-**Mevcut okullara dokunmaz.** Kendi veritabanını kurar, control'e bir satır
-ekler. Okul kaydı slug ile çakışırsa `DO NOTHING` — üzerine yazmaz.
+Ayrı bir okuldur; başka bir okulun verisine dokunmaz.
+
+### uuid neden sabit
+
+Okul veritabanının **adı slug'dan değil uuid'den** türer (`tenant.rs:112` —
+`"{control}_school_{uuid.simple}"`). Yani tohumu hangi veritabanına
+yazacağımızı, backend okulu yaratmadan önce bilmemiz gerekiyor. Sabit uuid bunu
+mümkün kılar.
 
 ---
 
-## Giriş
+## 3. Giriş zinciri
 
-Yeni backend'de parola okul veritabanında **değil**, control'deki `person`
-satırında: `person` → `person_school` → `app_user.person`.
+Parola okul veritabanında **değil**, control'deki `person` satırındadır:
 
-Tohum bu zinciri kuruyor (563 `person`, 563 `person_school`). Kurulmasaydı veri
-görünür, sistem kullanılamaz olurdu.
+```
+person → person_school → app_user.person
+```
+
+Tohum bu zinciri kurar: 563 `person`, 563 `person_school` ve her `app_user`
+satırında dolu bir `person` alanı. Ölçüldü: **563/563 eşleşiyor.** Bu
+kurulmasaydı veri görünür, sistem kullanılamaz olurdu.
 
 `person_school.school` bir alt sorgudur (`SELECT id FROM school WHERE slug=...`),
 sabit uuid değil — okulu backend yaratmış olsa bile üyelik doğru okula bağlanır.
 
 ---
 
-## Sıra
+## 4. Bilinmesi gerekenler
 
-```sh
-# 0) YEDEK — önce
-~/hezarfen_backend/backup-postgres.sh
-
-# 1) mevcut okullara ZEKA tabloları
-bash apply_zeka_tables.sh
-
-# 2) demo verisi
-bash load_pg_seed.sh .
-
-# 3) migration dosyasını backend deposuna commit et (yeni okullar için)
-```
-
-Adım 1 ve 2 birbirinden bağımsız; sırası önemli değil. Adım 3 backend ekibinin.
-
----
-
-## Bilinmesi gerekenler
-
-**Yükleme tekrarlanamaz.** Birincil anahtarlar deterministik; ikinci çalıştırma
-çakışır ve hiçbir şey yazmaz. Yeniden yüklemek için okul veritabanını düşürmek
-gerekir. Demo için doğru davranış, ama "bir daha çalıştırayım" refleksi işe
-yaramaz.
-
-**Yüklenen okulda `_sqlx_migrations` tablosu yok.** Şemayı elle uyguladığımız
-için. Bugün zararsız: backend aktif bir okulu yeniden migrate etmiyor. İleride
-bu davranış değişirse o okul "relation already exists" ile düşer — sessiz
-değil, gürültülü bir hata.
-
-**Beş zaman damgası yaklaşık.** Yeni şemanın eklediği, tohumda karşılığı olmayan
-kolonlar ilgili kaydın ULID damgasından türetiliyor. `exam_result.graded_at`
+**Beş zaman damgası yaklaşıktır.** Yeni şemanın eklediği ve tohumda karşılığı
+olmayan kolonlar, ilgili kaydın ULID damgasından türetilir. `exam_result.graded_at`
 özellikle: **"notlandırma gecikmesi" gibi bir ölçüm için kullanılamaz.**
-Ayrıntısı `generator/pg_map.DERIVED_COLUMNS` içinde. ZEKA hiçbirini okumuyor.
+ZEKA hiçbirini okumaz — köprü izin listesinde o yollar yoktur.
 
-**ZEKA servisinin veritabanı kullanıcısı** üretimde yalnız dokuz `zeka_*`
-tablosuna yazma, kalanına salt okuma yetkisine daraltılmalı.
+**Bir kapı açık kalıyor:** `insight.*` yetenek kapıları backend'de henüz
+tanımlı değildir. Servis kendi takvimivle koşar, satırlarını yazmayı bu
+kapılardan ister ve kapılar gelene kadar koşuyu `partial` yazar. Gereksinim
+listesi: `service/docs/BACKEND-GEREKSINIMLERI.md`, sahibi backend'deki
+`InsightDoors` hattı.

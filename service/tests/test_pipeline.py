@@ -1,7 +1,11 @@
-"""Uçtan uca hat testleri: `FakeSource` → hesap → tavsiye → `Store`.
+"""Uçtan uca hat testleri: `FakeSource` → hesap → tavsiye → `BridgeStore`.
 
 `FakeSource` imzaları `Source` protokolüyle birebir aynıdır; köprü ajanının
 `FileSource`'u geldiğinde bu testler değişmeden çalışmalıdır.
+
+Yazma yolu artık **köprüden** geçer: satırları `RecordingCaller` toplar
+(`capture` testlerinde `CapturingCaller` tablolara da yazar). Gerçek bir
+veritabanı yoktur — ZEKA'nın veritabanı yoktur.
 """
 
 from __future__ import annotations
@@ -12,62 +16,47 @@ from pathlib import Path
 
 from src.compute import clock
 from src.pipeline import RunResult, discover_students, run_school
+from src.report.capture import CapturingCaller
 from src.source import FileSource
-from src.store import RETENTION_DAYS, CollectingClient, Store
-
-from . import zeka_db
+from src.store import (
+    CAP_PURGE,
+    CAP_RECOMMENDATION,
+    CAP_RUN,
+    CAP_SUMMARY,
+    CAP_SWEEP,
+    RETENTION_DAYS,
+    BridgeStore,
+    RecordingCaller,
+)
 
 from .fakes import (
     FakeSource,
-    course_attendance,
-    course_marks,
+    dataset,
     homework,
-    pomodoro,
-    profile,
-    report_entry,
+    write_fixtures,
 )
 
 DAY = 86_400_000
-HOUR = 3_600_000
 NOW = 1_699_963_200_000  # 2023-11-14 12:00 UTC
 TERM_START = NOW - 150 * DAY
 
 
-def _student(uid: str, class_id: str, marks: list[int], present: int, absent: int):
-    """Bir öğrencinin tüm kaynak verisi."""
-    base = NOW - 100 * DAY
-    return {
-        "profile": profile(uid, [class_id], ["course-1"]),
-        "marks": [course_marks("course-1", marks, base, teachers=["teacher-1"])],
-        "attendance": [course_attendance("course-1", present=present, absent=absent)],
-        "pomodoro": [
-            pomodoro((clock.tr_day(NOW) - d) * DAY + 10 * HOUR - clock.TR_OFFSET_MS)
-            for d in range(1, 7)
-        ],
-        "homework_report": [
-            report_entry(f"hw-{uid}-{i}", "course-1", NOW - (i + 1) * DAY,
-                         submitted=True)
-            for i in range(6)
-        ],
-        "homework_list": [homework("upcoming", "course-1", NOW + 6 * HOUR, [uid])],
-    }
-
-
 def _dataset(n: int = 12) -> dict[str, dict]:
     """Bir şube, bir ders, `n` öğrenci. Biri belirgin biçimde düşük."""
-    data: dict[str, dict] = {}
-    for i in range(n):
-        uid = f"student-{i:02d}"
-        if i == 0:
-            data[uid] = _student(uid, "class-A", [40, 41, 39, 42, 40, 38], 60, 40)
-        else:
-            data[uid] = _student(uid, "class-A", [70, 72, 71, 69, 70, 71], 95, 5)
-    data["_school"] = {
-        "homework_list": [
-            homework("hw-school", "course-1", NOW + DAY, list(data.keys()))
-        ]
-    }
-    return data
+    return dataset(n)
+
+
+def _rows(caller: RecordingCaller, capability: str) -> list[dict]:
+    """Toplanan çağrılardan bir yeteneğin satırlarını düzleştir."""
+    rows: list[dict] = []
+    for kind, _, payload in caller.calls:
+        if kind == capability:
+            rows.extend(payload.get("rows") or [])
+    return rows
+
+
+def _run_calls(caller: RecordingCaller) -> list[dict]:
+    return [payload["run"] for kind, _, payload in caller.calls if kind == CAP_RUN]
 
 
 class TestDiscoverStudents(unittest.TestCase):
@@ -86,9 +75,9 @@ class TestDiscoverStudents(unittest.TestCase):
 
 
 class PipelineTestCase(unittest.IsolatedAsyncioTestCase):
-    async def _run(self, data: dict, **kw) -> tuple[RunResult, CollectingClient]:
-        client = CollectingClient()
-        store = Store(client)
+    async def _run(self, data: dict, **kw) -> tuple[RunResult, RecordingCaller]:
+        caller = RecordingCaller()
+        store = BridgeStore(caller)
         fail = kw.pop("fail", set())
         ids = [k for k in data if not k.startswith("_")]
         args = {
@@ -98,28 +87,24 @@ class PipelineTestCase(unittest.IsolatedAsyncioTestCase):
         }
         args.update(kw)
         result = await run_school(
-            FakeSource(data, fail=fail), store, "okul", **args
+            FakeSource(data, fail=fail), store.store_for("okul"), "okul", **args
         )
-        return result, client
+        return result, caller
 
 
 class TestEndToEnd(PipelineTestCase):
     async def test_full_run_succeeds(self) -> None:
-        result, client = await self._run(_dataset())
+        result, caller = await self._run(_dataset())
         self.assertEqual(result.status, "ok")
         self.assertEqual(result.students_total, 12)
         self.assertEqual(result.students_ok, 12)
         self.assertEqual(result.students_failed, 0)
         self.assertGreater(result.rows_written, 0)
-        self.assertTrue(client.statements)
+        self.assertTrue(caller.calls)
 
     async def test_insight_run_row_is_written_twice(self) -> None:
-        _, client = await self._run(_dataset())
-        runs = [
-            s
-            for s in client.statements
-            if "insight_run" in s[0] and not s[0].startswith("DELETE")
-        ]
+        _, caller = await self._run(_dataset())
+        runs = [run for run in _run_calls(caller)]
         self.assertEqual(len(runs), 2)  # başlangıç ("running") + bitiş
 
     async def test_run_key_is_tr_date_scoped(self) -> None:
@@ -127,40 +112,33 @@ class TestEndToEnd(PipelineTestCase):
         self.assertEqual(result.run_key(), f"okul_{clock.tr_date_key(NOW)}")
 
     async def test_summaries_carry_retention(self) -> None:
-        _, client = await self._run(_dataset())
-        summary = next(
-            variables
-            for sql, variables in client.statements
-            if "student_summary" in sql and "DELETE" not in sql
-        )
-        row = summary["v0"]
+        _, caller = await self._run(_dataset())
+        row = _rows(caller, CAP_SUMMARY)[0]
         self.assertEqual(
             row["retain_until"],
             NOW + RETENTION_DAYS["student_summary"] * DAY,
         )
 
-    async def test_sweep_runs_for_every_table(self) -> None:
-        _, client = await self._run(_dataset())
-        deletes = [sql for sql, _ in client.statements if sql.startswith("DELETE")]
-        for table in RETENTION_DAYS:
-            self.assertTrue(any(table in sql for sql in deletes), table)
+    async def test_cleanup_calls_go_out_once(self) -> None:
+        """Koşu sonunda süpürme ve mezuniyet temizliği çağrılır."""
+        _, caller = await self._run(_dataset())
+        kinds = [capability for capability, _, _ in caller.calls]
+        self.assertEqual(kinds.count(CAP_SWEEP), 1)
+        purge = [
+            payload
+            for capability, _, payload in caller.calls
+            if capability == CAP_PURGE
+        ]
+        self.assertEqual(len(purge), 1)
+        self.assertEqual(len(purge[0]["students"]), 12)
 
     async def test_low_performer_gets_review_band_via_cohort(self) -> None:
         """Kohort şube × ders düzeyinde kuruldu; düşük öğrenci ayrışıyor."""
-        _, client = await self._run(_dataset())
-        rows = [
-            variables
-            for sql, variables in client.statements
-            if "student_summary" in sql and "DELETE" not in sql
-        ]
+        _, caller = await self._run(_dataset())
         bands: dict[str, str] = {}
-        for batch in rows:
-            index = 0
-            while f"v{index}" in batch:
-                row = batch[f"v{index}"]
-                placement = row["marks"]["courses"]["course-1"]["placement"]
-                bands[row["student"]] = str(placement["band"])
-                index += 1
+        for row in _rows(caller, CAP_SUMMARY):
+            placement = row["marks"]["courses"]["course-1"]["placement"]
+            bands[row["student"]] = str(placement["band"])
         self.assertEqual(bands["student-00"], "review")
         self.assertEqual(bands["student-01"], "on_track")
 
@@ -176,13 +154,12 @@ class TestPartialFailure(PipelineTestCase):
         self.assertGreater(result.rows_written, 0)
 
     async def test_write_failure_is_recorded_but_run_continues(self) -> None:
-        client = CollectingClient()
-        client.fail_times = 10  # ilk gruplar düşsün
-        store = Store(client)
+        caller = RecordingCaller(fail_times=10)  # ilk gruplar düşsün
+        store = BridgeStore(caller)
         data = _dataset()
         result = await run_school(
             FakeSource(data),
-            store,
+            store.store_for("okul"),
             "okul",
             now_ms=NOW,
             student_ids=[k for k in data if not k.startswith("_")],
@@ -194,11 +171,14 @@ class TestPartialFailure(PipelineTestCase):
 class TestBudget(PipelineTestCase):
     async def test_zero_budget_stops_and_records_pending(self) -> None:
         """Bütçe aşımında hat durur ve kalanlar bir sonraki koşuya yazılır."""
-        result, _ = await self._run(_dataset(), budget_ms=-1)
+        result, caller = await self._run(_dataset(), budget_ms=-1)
         self.assertTrue(result.budget_exceeded)
         self.assertEqual(result.status, "partial")
         self.assertEqual(len(result.pending_students), 12)
         self.assertEqual(result.students_ok, 0)
+        # Koşu defteri satırı devredenleri taşır: bir sonraki koşu buradan
+        # devam eder.
+        self.assertEqual(len(_run_calls(caller)[-1]["pending_students"]), 12)
 
     async def test_generous_budget_completes(self) -> None:
         result, _ = await self._run(_dataset(), budget_ms=60_000)
@@ -208,75 +188,61 @@ class TestBudget(PipelineTestCase):
 
 class TestPrivacyInPipelineOutput(PipelineTestCase):
     async def test_attention_rows_have_no_score(self) -> None:
-        _, client = await self._run(_dataset())
-        for sql, variables in client.statements:
-            if "student_summary" not in sql or "DELETE" in sql:
-                continue
-            index = 0
-            while f"v{index}" in variables:
-                for item in variables[f"v{index}"]["attention"]:
-                    self.assertIn("trigger", item)
-                    self.assertNotIn("score", item)
-                    self.assertNotIn("rank", item)
-                index += 1
+        _, caller = await self._run(_dataset())
+        rows = _rows(caller, CAP_SUMMARY)
+        self.assertTrue(rows)
+        for row in rows:
+            for item in row["attention"]:
+                self.assertIn("trigger", item)
+                self.assertNotIn("score", item)
+                self.assertNotIn("rank", item)
 
     async def test_t4_recommendations_never_address_the_student(self) -> None:
-        _, client = await self._run(_dataset())
-        for sql, variables in client.statements:
-            if "recommendation" not in sql or "DELETE" in sql:
-                continue
-            index = 0
-            while f"v{index}" in variables:
-                row = variables[f"v{index}"]
-                if row["product"] == "T4":
-                    self.assertEqual(row["audience_role"], "teacher")
-                    self.assertNotEqual(row["audience"], row["about"])
-                index += 1
+        _, caller = await self._run(_dataset())
+        rows = _rows(caller, CAP_RECOMMENDATION)
+        self.assertTrue(rows)
+        for row in rows:
+            if row["product"] == "T4":
+                self.assertEqual(row["audience_role"], "teacher")
+                self.assertNotEqual(row["audience"], row["about"])
 
     async def test_every_stored_recommendation_has_evidence(self) -> None:
-        _, client = await self._run(_dataset())
-        seen = 0
-        for sql, variables in client.statements:
-            if "recommendation" not in sql or "DELETE" in sql:
-                continue
-            index = 0
-            while f"v{index}" in variables:
-                row = variables[f"v{index}"]
-                payload = {
-                    k: v for k, v in row["evidence"].items() if k != "limitation"
-                }
-                self.assertTrue(payload, row["rule_id"])
-                seen += 1
-                index += 1
-        self.assertGreater(seen, 0)
+        _, caller = await self._run(_dataset())
+        rows = _rows(caller, CAP_RECOMMENDATION)
+        self.assertTrue(rows)
+        for row in rows:
+            payload = {k: v for k, v in row["evidence"].items() if k != "limitation"}
+            self.assertTrue(payload, row["rule_id"])
 
 
 # ===========================================================================
-# `FileSource` FIKSTURLERIYLE UCTAN UCA + GERCEK SurrealDB
+# `FileSource` FIKSTURLERIYLE UCTAN UCA + KOPRU TABLOLARI
 # ===========================================================================
 #
 # Yukaridaki testler `FakeSource` ile kosar (hizli, bellek ici). Asagidakiler
-# ayni hatti **diskteki JSON fiksturlerle** ve `FileSource` ile kosturur:
-# "imzalar ayni" iddiasi boylece iddia olmaktan cikip kanita donusur.
+# ayni hatti **diskteki JSON fiksturlerle** ve `FileSource` ile kosturur;
+# `CapturingCaller` satirlari tablolara yazar, boylece satirlari OKUYARAK
+# dogrulariz. Veritabani gerekmez.
 
 
 class TestFileSourceEndToEnd(unittest.IsolatedAsyncioTestCase):
-    """Disk fiksturu -> `FileSource` -> hat. Veritabani gerekmez."""
+    """Disk fikstürü → `FileSource` → hat. Veritabanı gerekmez."""
 
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
         self.root = Path(self._tmp.name)
-        self.data = zeka_db.dataset(6)
-        self.students = zeka_db.write_fixtures(self.root, "okul-a", self.data)
+        self.data = dataset(6)
+        self.students = write_fixtures(self.root, "okul-a", self.data)
+        self.caller = CapturingCaller()
+        self.store = BridgeStore(self.caller)
 
     def tearDown(self) -> None:
         self._tmp.cleanup()
 
     async def test_run_from_disk_fixtures(self) -> None:
-        client = CollectingClient()
         result = await run_school(
             FileSource(self.root),
-            Store(client),
+            self.store.store_for("okul-a"),
             "okul-a",
             now_ms=NOW,
             term_start_ms=TERM_START,
@@ -294,7 +260,7 @@ class TestFileSourceEndToEnd(unittest.IsolatedAsyncioTestCase):
         )
         result = await run_school(
             FileSource(self.root),
-            Store(CollectingClient()),
+            self.store.store_for("okul-a"),
             "okul-a",
             now_ms=NOW,
             term_start_ms=TERM_START,
@@ -305,35 +271,38 @@ class TestFileSourceEndToEnd(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(result.rows_written, 0)
 
 
-@zeka_db.requires_db
-class TestPipelineAgainstSurreal(unittest.IsolatedAsyncioTestCase):
-    """Hat gercekten yaziyor mu: satirlari OKUYARAK dogrula."""
+class TestPipelineWritesThroughTheBridge(unittest.IsolatedAsyncioTestCase):
+    """Satırlar gerçekten yazıldı mı: yakalanan tabloları OKUYARAK dogrula."""
 
     async def asyncSetUp(self) -> None:
-        self.client = zeka_db.fresh_schema_client("hat")
-        self.store = Store(self.client)
+        self.caller = CapturingCaller()
+        self.store = BridgeStore(self.caller)
         self._tmp = tempfile.TemporaryDirectory()
         self.root = Path(self._tmp.name)
-        self.data = zeka_db.dataset(12)
-        zeka_db.write_fixtures(self.root, "okul-a", self.data)
+        self.data = dataset(12)
+        write_fixtures(self.root, "okul-a", self.data)
 
     async def asyncTearDown(self) -> None:
         self._tmp.cleanup()
 
-    async def _run(self, **kw):
+    async def _run(self, **kw) -> RunResult:
         args = {"now_ms": NOW, "term_start_ms": TERM_START}
         args.update(kw)
         return await run_school(
-            FileSource(self.root), self.store, "okul-a", **args
+            FileSource(self.root), self.store.store_for("okul-a"), "okul-a", **args
         )
+
+    @property
+    def tables(self) -> dict[str, list[dict]]:
+        return self.caller.as_tables()
 
     async def test_end_to_end_rows_land_and_match_the_report(self) -> None:
         result = await self._run()
         self.assertEqual(result.status, "ok")
         self.assertEqual(result.students_ok, 12)
 
-        summaries = zeka_db.count_rows(self.client, "student_summary")
-        recs = zeka_db.count_rows(self.client, "recommendation")
+        summaries = len(self.tables["student_summary"])
+        recs = len(self.tables["recommendation"])
         self.assertEqual(summaries, 12)
         self.assertGreater(recs, 0)
         # `rows_written` gercekten yazilan satir sayisidir.
@@ -341,7 +310,7 @@ class TestPipelineAgainstSurreal(unittest.IsolatedAsyncioTestCase):
 
     async def test_insight_run_is_written_and_ends_ok(self) -> None:
         result = await self._run()
-        rows = zeka_db.select(self.client, "SELECT * FROM insight_run;")
+        rows = self.tables["insight_run"]
         self.assertEqual(len(rows), 1)  # basta 'running', sonda 'ok' -- ayni anahtar
         row = rows[0]
         self.assertEqual(row["status"], "ok")
@@ -351,18 +320,17 @@ class TestPipelineAgainstSurreal(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(row["budget_exceeded"])
         self.assertEqual(row["pending_students"], [])
 
-    async def test_nested_compute_output_survives_the_round_trip(self) -> None:
-        """FLEXIBLE alanlar: ic ice hesap ciktisi kaybolmadan geri okunuyor."""
+    async def test_nested_compute_output_survives_the_bridge(self) -> None:
+        """Ic ice hesap ciktisi satirda kaybolmadan duruyor."""
         await self._run()
-        row = zeka_db.select(
-            self.client,
-            "SELECT * FROM student_summary WHERE student = 'student-00';",
-        )[0]
+        row = self.tables["student_summary"][0]
         self.assertIn("courses", row["marks"])
         self.assertIn("course-1", row["marks"]["courses"])
         self.assertIn("placement", row["marks"]["courses"]["course-1"])
+        expected = {r["student"]: r for r in self.tables["student_summary"]}
         self.assertEqual(
-            row["marks"]["courses"]["course-1"]["placement"]["band"], "review"
+            expected["student-00"]["marks"]["courses"]["course-1"]["placement"]["band"],
+            "review",
         )
         self.assertIsInstance(row["attendance"], dict)
         self.assertIsInstance(row["submission"], dict)
@@ -370,60 +338,68 @@ class TestPipelineAgainstSurreal(unittest.IsolatedAsyncioTestCase):
 
     async def test_stored_recommendations_keep_their_evidence(self) -> None:
         await self._run()
-        rows = zeka_db.select(self.client, "SELECT * FROM recommendation;")
+        rows = self.tables["recommendation"]
         self.assertTrue(rows)
         for row in rows:
             payload = {k: v for k, v in row["evidence"].items() if k != "limitation"}
             self.assertTrue(payload, row["rule_id"])
-            self.assertTrue(row["evidence"]["limitation"])
+            # `limitation` satırda KENDİ alanıdır; `evidence` içine katılması
+            # sunucunun işidir (köprü sözleşmesi: alanı sunucu ekler).
+            self.assertTrue(row["limitation"])
 
     async def test_partial_failure_keeps_the_written_rows(self) -> None:
-        """Bir ogrenci duser, digerlerinin satirlari veritabaninda KALIR."""
+        """Bir ogrenci duser, digerlerinin satirlari YAZILMIS kalir."""
         (self.root / "okul-a" / "attendance" / "student-05.json").write_text(
             '{"yanlis": []}', encoding="utf-8"
         )
         result = await self._run()
         self.assertEqual(result.students_failed, 1)
         self.assertEqual(result.students_ok, 11)
-        self.assertEqual(zeka_db.count_rows(self.client, "student_summary"), 11)
-        row = zeka_db.select(self.client, "SELECT * FROM insight_run;")[0]
+        self.assertEqual(len(self.tables["student_summary"]), 11)
+        row = self.tables["insight_run"][0]
         self.assertEqual(row["students_failed"], 1)
         self.assertIn("fetch", row["failed_modules"])
 
     async def test_budget_exceeded_writes_pending_students(self) -> None:
         result = await self._run(budget_ms=-1)
         self.assertEqual(result.status, "partial")
-        row = zeka_db.select(self.client, "SELECT * FROM insight_run;")[0]
+        row = self.tables["insight_run"][0]
         self.assertTrue(row["budget_exceeded"])
         self.assertEqual(len(row["pending_students"]), 12)
-        self.assertEqual(zeka_db.count_rows(self.client, "student_summary"), 0)
+        self.assertNotIn("student_summary", self.tables)
 
     async def test_second_run_is_idempotent(self) -> None:
         await self._run()
-        before = zeka_db.count_rows(self.client, "student_summary")
-        recs_before = zeka_db.count_rows(self.client, "recommendation")
+        before = len(self.tables["student_summary"])
+        recs_before = len(self.tables["recommendation"])
         await self._run()
-        self.assertEqual(zeka_db.count_rows(self.client, "student_summary"), before)
-        self.assertEqual(zeka_db.count_rows(self.client, "recommendation"), recs_before)
+        self.assertEqual(len(self.tables["student_summary"]), before)
+        self.assertEqual(len(self.tables["recommendation"]), recs_before)
 
-    async def test_departed_student_is_purged_by_the_pipeline(self) -> None:
+    async def test_departed_student_leaves_the_purge_roster(self) -> None:
+        """Ayrilan ogrenci temizlik listesinde YOKTUR: profili kalmamalidir.
+
+        Silme backend'in isidir; burada dogrulanan sey gonderilen listenin
+        gercekten daralmis olmasidir.
+        """
         await self._run()
-        self.assertEqual(zeka_db.count_rows(self.client, "student_summary"), 12)
-        # Ikinci kosuda liste daraliyor: ayrilan ogrencinin profili kalmamali.
+        self.assertEqual(len(self.tables["student_summary"]), 12)
         await run_school(
             FileSource(self.root),
-            self.store,
+            self.store.store_for("okul-a"),
             "okul-a",
             now_ms=NOW,
             term_start_ms=TERM_START,
             student_ids=[f"student-{i:02d}" for i in range(10)],
         )
-        kalanlar = {
-            r["student"]
-            for r in zeka_db.select(self.client, "SELECT student FROM student_summary;")
-        }
-        self.assertEqual(len(kalanlar), 10)
-        self.assertNotIn("student-11", kalanlar)
+        purge_calls = [
+            payload
+            for capability, _, payload in self.caller.calls
+            if capability == CAP_PURGE
+        ]
+        self.assertEqual(len(purge_calls), 2)
+        self.assertEqual(len(purge_calls[-1]["students"]), 10)
+        self.assertNotIn("student-11", purge_calls[-1]["students"])
 
 
 if __name__ == "__main__":

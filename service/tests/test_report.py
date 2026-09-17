@@ -35,7 +35,7 @@ from src.compute.model import Audience, Confidence, Recommendation, StudentSumma
 from src.pipeline import run_school
 from src.report import build as build_mod
 from src.report import filters, load, render, text, writer
-from src.report.capture import CapturingClient
+from src.report.capture import CapturingCaller
 from src.report.gate import (
     SUMMARY_COLUMNS_STUDENT,
     ReportGateError,
@@ -45,12 +45,10 @@ from src.report.gate import (
     StudentFacingSummary,
     has_attention_field,
 )
-from src.report.reader import DbReader, MemoryReader
-from src.store import Store
+from src.report.reader import MemoryReader
+from src.store import BridgeStore, RecordingCaller
 
-from . import zeka_db
-
-NOW = zeka_db.NOW
+from .fakes import NOW
 DAY = clock.DAY_MS
 SCHOOL = "demo-okul"
 
@@ -398,27 +396,6 @@ class DikkatListesiKapisi(unittest.TestCase):
                 with self.assertRaises(ReportGateError):
                     builder(facing)
 
-    def test_ogrenci_sorgusunda_attention_sutunu_hic_gecmez(self):
-        """Satır veritabanından dikkat listesi taşımadan çıkar."""
-
-        class FakeClient:
-            def __init__(self) -> None:
-                self.sql: list[str] = []
-
-            async def query(self, sql: str, variables: dict) -> Any:
-                self.sql.append(sql)
-                return []
-
-        client = FakeClient()
-        reader = DbReader(client)
-        asyncio.run(load.load_student_bundle(reader, SCHOOL, "ogrenci-a", now_ms=NOW))
-        joined = "\n".join(client.sql)
-        self.assertNotIn("attention", joined)
-        self.assertIn("audience_role = $role", joined)
-        self.assertNotIn("attention", " ".join(SUMMARY_COLUMNS_STUDENT))
-        # Kimlik karşılaştırmaları type::string ile sarılır (sözleşme §6).
-        self.assertIn("type::string($student)", joined)
-
     def test_bellek_okuyucusu_da_sutun_izdusumunu_uygular(self):
         reader = full_reader()
         rows = asyncio.run(
@@ -428,6 +405,9 @@ class DikkatListesiKapisi(unittest.TestCase):
         )
         self.assertEqual(len(rows), 1)
         self.assertNotIn("attention", rows[0])
+        # Okuma sütun listesi dikkat listesini HİÇ istemez: sızıntı kapısı
+        # yalnız rapor kurucusunda değil, okuma sözleşmesinde de duruyor.
+        self.assertNotIn("attention", " ".join(SUMMARY_COLUMNS_STUDENT))
 
     def test_ogrenci_raporunun_hicbir_biciminde_dikkat_maddesi_yok(self):
         report = build_report("ogrenci", student="ogrenci-a")
@@ -732,21 +712,26 @@ class BosVeri(unittest.TestCase):
 
 
 class FiksturYolu(unittest.TestCase):
-    """`pipeline` → `store` → `CapturingClient` → rapor."""
+    """`pipeline` → `store` → `CapturingCaller` → rapor."""
 
     @classmethod
     def setUpClass(cls) -> None:
         root = Path(__file__).resolve().parent.parent / "fixtures" / "demo"
         from src.source import FileSource
 
-        client = CapturingClient()
+        caller = CapturingCaller()
         asyncio.run(
             run_school(
-                FileSource(root), Store(client), SCHOOL, now_ms=NOW, budget_ms=60_000
+                FileSource(root),
+                BridgeStore(caller).store_for(SCHOOL),
+                SCHOOL,
+                now_ms=NOW,
+                budget_ms=60_000,
             )
         )
-        cls.tables = client.as_tables()
-        cls.reader = client.as_reader()
+        cls.caller = caller
+        cls.tables = caller.as_tables()
+        cls.reader = caller.as_reader()
 
     def test_hat_satir_yazdi(self):
         self.assertIn("student_summary", self.tables)
@@ -794,48 +779,6 @@ class FiksturYolu(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # 10) Gerçek veritabanı — konteyner varsa
 # ---------------------------------------------------------------------------
-
-
-@zeka_db.requires_db
-class GercekVeritabanindanRapor(unittest.TestCase):
-    def test_yazilan_satirlar_rapora_donuyor(self):
-        client = zeka_db.fresh_schema_client("rapor")
-        store = Store(client)
-        summary = StudentSummary(
-            school=SCHOOL,
-            student="ogrenci-a",
-            computed_at=NOW,
-            marks=summary_row()["marks"],
-            attendance={},
-            submission={},
-            study={},
-            attention=summary_row()["attention"],
-            confidence=Confidence.STABLE,
-        )
-        rec = Recommendation(
-            school=SCHOOL,
-            audience="ogrenci-a",
-            audience_role=Audience.STUDENT,
-            product="O1",
-            rule_id="O1.review_band",
-            evidence={"student_average": 42.5, "class_average": 68.0},
-            computed_at=NOW,
-            expires_at=NOW + 7 * DAY,
-            course="course-1",
-            limitation="Konu kırılımı yok.",
-        )
-        asyncio.run(store.write_summaries([summary]))
-        asyncio.run(store.write_recommendations([rec]))
-
-        reader = DbReader(client)
-        report = build_report("ogrenci", reader=reader, student="ogrenci-a")  # type: ignore[arg-type]
-        blob = all_text(report)
-        self.assertIn("O1.review_band", blob)
-        # Dikkat listesi veritabanında VAR ama rapora gelmedi.
-        self.assertNotIn(GIZLI_OLGU, blob)
-
-        staff = build_report("okul", reader=reader)  # type: ignore[arg-type]
-        self.assertIn(GIZLI_OLGU, all_text(staff))
 
 
 if __name__ == "__main__":

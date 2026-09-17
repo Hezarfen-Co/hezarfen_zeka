@@ -20,8 +20,11 @@ Akis disiplini (`protocol.rs:9-34`):
     cerceve DEGILDIR, dolayisiyla cerceve boyut kapagina tabi degildir
     (`protocol.rs:26-31`).
 
-Iki istemci baslatimli sekil, zorunlu alaniyla ayirt edilir: `ApiRequest`'te
-`path`, `BlobRequest`'te `file` vardir (`protocol.rs:34`, `server.rs:481-497`).
+Uc istemci baslatimli sekil, zorunlu alaniyla ayirt edilir: `ApiRequest`'te
+`path`, `BlobRequest`'te `file`, `CapabilityRequest`'te `capability` vardir
+(`protocol.rs:34`, `server.rs:481-497`). Ilk ikisi okulun KENDI API'sini
+okur; ucuncusu backend'in bir operasyonunu kosturur -- ZEKA'nin veritabani
+erisimi olmadigi icin yazma yolu YALNIZCA budur.
 
 Okul kapsami (`protocol.rs:36-47`): her istek cercevesi okulunu slug ile
 adlandirir, her cevap onu yankilar. `Hello` KASITLI olarak okul tasimaz --
@@ -235,6 +238,21 @@ class ApiRefused(Exception):
 
 class BlobRefused(ApiRefused):
     """`BlobResponse{status:"err"}`."""
+
+
+#: Yeniden denenmeye deger yetenek redleri. `timed_out` BURADA: yazinin
+#: dusup dusmedigi BILINMIYOR, o yuzden ayni cerceve taze kimlikle yeniden
+#: gonderilir -- `insight.*` yazmalari idempotenttir: ayni satir ayni
+#: degerlerle yeniden yazilir.
+RETRYABLE_CAPABILITY_CODES = ("unavailable", "school_suspended", "timed_out")
+
+
+class CapabilityRefused(ApiRefused):
+    """`CapabilityResponse{status:"err"}` — servisin actigi yetenek cagrisi."""
+
+    @property
+    def retryable(self) -> bool:
+        return self.code in RETRYABLE_CAPABILITY_CODES
 
 
 class CapabilityError(Exception):
@@ -640,6 +658,129 @@ class ApiResponse:
 
 def parse_api_response(raw: Any) -> ApiResponse:
     return ApiResponse.from_wire(raw)
+
+
+# ===========================================================================
+# Yetenek cagrisi -- servis backend'in bir operasyonunu BOYLE cagirir
+# ===========================================================================
+#
+# ZEKA'nin veritabani erisimi YOKTUR; hesapladigi satirlar backend'e bu
+# cerceveyle yazilir. `ApiRequest`'ten ayrimi `capability` alanidir ve YONU
+# terstir: `ApiRequest` okulun KENDI API'sini okur, bu cerceve backend'in
+# bir operasyonunu kosturur (yazma dahil).
+#
+# KIMLIK: `id` ULID'dir ve cevapta AYNEN doner; eslesme akis kimligiyle
+# kurulur, `id` yalniz loglarin yan yana okunmasi icindir (`protocol.rs:136`).
+
+
+@dataclass(frozen=True)
+class CapabilityRequest:
+    """Servisin actigi akista yazdigi tek yetenek cagrisi."""
+
+    id: str
+    capability: str
+    school: str
+    payload: dict[str, Any]
+
+    def to_wire(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "capability": self.capability,
+            "school": self.school,
+            "payload": self.payload,
+        }
+
+
+def build_capability_request(
+    request_id: str,
+    capability: str,
+    school: str,
+    payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """`CapabilityRequest` cercevesi kur; kablonun kendi kurallarini uygula.
+
+    - `capability` zorunludur ve bos olamaz: adsiz bir cagri backend'de
+      `malformed` olur, burada ise tele hic cikmaz.
+    - `payload` bir NESNE olmali (dizi ya da null degil): her operasyonun
+      sozlesmesi bir sozluktur.
+    - `school` zorunludur ama BOS olabilir: deployment olcekli tek operasyon
+      (`insight.schools.list`) okul adlandirmaz ve backend onu cozmez.
+    """
+    if not isinstance(capability, str) or not capability.strip():
+        raise ApiRefused(ApiErrorCode.MALFORMED, "yetenek adi zorunlu")
+    if payload is None:
+        payload = {}
+    if not isinstance(payload, dict):
+        raise ApiRefused(
+            ApiErrorCode.MALFORMED,
+            f"payload bir nesne olmali, alinan: {type(payload).__name__}",
+        )
+    if not isinstance(school, str):
+        raise ApiRefused(ApiErrorCode.MALFORMED, "okul alani metin olmali")
+    return CapabilityRequest(request_id, capability.strip(), school, payload).to_wire()
+
+
+@dataclass(frozen=True)
+class CapabilityResponse:
+    """Backend'in yetenek cagrisina verdigi TEK cevap cercevesi.
+
+    Etiket alani `status` -- `ApiResponse`'un `outcome`'undan farkli, cunku
+    backend'in sunucu->istemci `Response` cercevesi de `status` kullanir;
+    ayni adi tasimak iki yonu yan yana okunur kilar.
+    """
+
+    status: str
+    id: str
+    school: str
+    payload: dict[str, Any] = field(default_factory=dict)
+    code: str = ""
+    message: str = ""
+
+    @property
+    def ok(self) -> bool:
+        return self.status == "ok"
+
+    @staticmethod
+    def from_wire(raw: Any) -> "CapabilityResponse":
+        if not isinstance(raw, dict):
+            raise FrameMalformed(f"yetenek cevabi nesne degil: {type(raw).__name__}")
+        status = _require_str(raw, "status")
+        if status not in ("ok", "err"):
+            raise FrameMalformed(f"bilinmeyen yetenek cevabi durumu: {status!r}")
+        payload = raw.get("payload")
+        if payload is None:
+            payload = {}
+        if not isinstance(payload, dict):
+            raise FrameMalformed("yetenek cevabinin payload'i nesne degil")
+        code = raw.get("code")
+        message = raw.get("message")
+        return CapabilityResponse(
+            status=status,
+            id=str(raw.get("id") or ""),
+            school=raw.get("school") if isinstance(raw.get("school"), str) else "",
+            payload=payload,
+            code=code if isinstance(code, str) else "",
+            message=message if isinstance(message, str) else "",
+        )
+
+    def raise_for_status(self, capability: str) -> dict[str, Any]:
+        """`ok` ise payload'i dondur; `err` ise `CapabilityRefused` firlat.
+
+        `status` ONCE okunur: reddi basari sayan bir yol, sessiz yazma
+        kaybinin ta kendisidir.
+        """
+        if self.ok:
+            return self.payload
+        raise CapabilityRefused(
+            self.code or "internal",
+            self.message or "backend yetenek cagrisini reddetti",
+            self.school,
+            self.id,
+        )
+
+
+def parse_capability_response(raw: Any) -> CapabilityResponse:
+    return CapabilityResponse.from_wire(raw)
 
 
 def _coerce_status(value: Any) -> int:

@@ -61,7 +61,7 @@ compose:  ## compose.yaml gecerli mi; zorunlu sirlar zorunlu mu; port acik mi
 
 # --- gunluk kullanim -------------------------------------------------------
 
-kos:  ## Servisi compose ile kaldir (zorunlu: AI_SHARED_TOKEN, ZEKA_PG_DSN, DEEPSEEK_API_KEY)
+kos:  ## Servisi compose ile kaldir (zorunlu: AI_SHARED_TOKEN, LLM_API_KEY)
 	cd service && $(MOTOR) compose up -d
 
 loglar:  ## Servis gunluklerini izle

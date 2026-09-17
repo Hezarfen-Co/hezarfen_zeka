@@ -23,8 +23,9 @@
 # OKUMAZ. `--env-file` tek degerli bir argumandir (podman_compose.py:2941-2946)
 # ve yalniz SON dosya cozulur (:2559 `dotenv_path = os.path.realpath(args.env_file)`).
 # Iki dosyali eski cagri operator dosyasini tamamen dusuruyordu; compose.yaml'da
-# uc sir `${VAR:?}` oldugu icin `up` DAHA BASLAMADAN "required variable ... is
-# missing a value" ile reddediliyordu (canlida yasandi, 2026-09-17). Docker
+# zorunlu sirlar (`${VAR:?}`) oldugu icin `up` DAHA BASLAMADAN "required
+# variable ... is missing a value" ile reddediliyordu (canlida yasandi,
+# 2026-09-17). Docker
 # Compose v2'nin "sonraki dosya cakisan anahtarda kazanir" davranisi bu
 # saglayici icin GECERLI DEGIL. Ortam degiskeni --env-file degerlerini EZER
 # (:2562), yani iki kanal cakismaz: operator sirlari ortamdan, HEZARFEN_TAG
@@ -38,7 +39,7 @@
 #   systemctl --user restart hezarfen_zeka_compose
 
 [Unit]
-Description=Hezarfen ZEKA bridge (student analysis + recommendations over the school database)
+Description=Hezarfen ZEKA bridge (student analysis + recommendations; no database -- all rows go over the QUIC bridge as insight.* calls)
 After=network-online.target
 Wants=network-online.target
 

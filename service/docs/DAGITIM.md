@@ -84,7 +84,7 @@ biri `COPY . .` yazarsa sir yine de imaja girmez.
 ```bash
 cd service
 export AI_SHARED_TOKEN=...        # backend ile AYNI sir
-export DEEPSEEK_API_KEY=...       # segment hatti icin
+export LLM_API_KEY=...            # segment hatti icin
 podman compose up -d
 ```
 
@@ -94,17 +94,25 @@ podman compose up -d
 podman run -d --name hezarfen_zeka \
   --network hezarfen_backend_default \
   -e AI_SHARED_TOKEN=... \
-  -e ZEKA_PG_DSN=postgres://<kullanici>:<parola>@<host>:5432/<okul_veritabani> \
-  -e DEEPSEEK_API_KEY=... \
+  -e LLM_API_KEY=... \
   hezarfen-zeka:dev
 ```
 
-> `ZEKA_PG_DSN` **zorunludur ve ULASILABILIR olmalidir**: servis acilista
-> `open_store()` cagirir, DSN yoksa `RuntimeError` ile **cikar**
-> (`src/store_factory.py`). Kanit betigi (`scripts/ci-konteyner-kanit.sh`) bu
-> yuzden gercek bir Postgres kaldirip kaba gecerli bir DSN verir; 2026-09-16 ve
-> 2026-09-17 kosularinda tam bu satir eksik oldugu icin konteyner kosu kaniti
-> kirmizi kaldi (`RuntimeError: Ne ZEKA_PG_DSN ne ZEKA_DB_HTTP_URL tanimli`).
+> **Acilis HICBIR veritabani ACMAZ.** ZEKA'nin kendi deposu yoktur: her okuma
+> ve yazma backend'e kopruden, `insight.*` yetenek cagrilariyla gider. Bu
+> yuzden verilecek bir baglanti adresi, bir kullanici, bir parola YOKTUR;
+> verilse de okunmaz.
+> Kanit betigi (`scripts/ci-konteyner-kanit.sh`) kabi tam olarak boyle --
+> hicbir veritabani degiskeni OLMADAN -- ayaga kaldirir ve bu basli basina
+> iddianin olcumudur.
+>
+> **Backend yokken ne olur:** servis CIKMAZ. Baglanti denemesi gunluge bir
+> satir yazar ve ustel geri cekilmeyle yeniden denenir; backend geri
+> geldiginde kendiliginden toparlanir. Zamanlayici turu bos okul listesiyle
+> kosar (okul kutugu backend'dedir, `insight.schools.list`). Kopru kapaliyken
+> yapilan bir yazma grup basina iki kez denenir; ikinci dususte grup atlanir,
+> `warn` loglanir ve kosu defterine `partial` yazilir -- sessiz basari YOKTUR
+> (`src/store.py`, `MODULLER.md` §2.11).
 
 **Kanitlandi.** Kap `50 saniye` boyunca gozlendi; **cikmadi**, `running`
 kaldi. Backend'e bilerek cozulemeyen bir ad verildi ve gunluklerde ustel geri
@@ -188,7 +196,9 @@ gercekten ulasti mi" iddiasini denetler.
 | `AI_TLS_FINGERPRINT` | *(bos)* | **Bos = TOFU.** Asagiya bakin. |
 | `AI_MAX_CONCURRENT` | `4` | Backend clamp'i: `1..=AI_MAX_CONCURRENT_PER_WORKER`. |
 | `AI_RECONNECT_SECS` / `AI_RECONNECT_MAX_SECS` | `3` / `120` | Geri cekilme taban ve tavani. |
-| `ZEKA_SCHOOLS` | `ataturk-anadolu` | Backend'de okul **listeleme yolu yok**; kapsam disaridan verilir. |
+| `ZEKA_SCHOOLS` | *(bos = butun okullar)* | Yalnizca **filtre**. Okul kutugu backend'dedir (`insight.schools.list`); sabit bir varsayilan okul yoktur. |
+| `ZEKA_SOURCE` | `bridge` | Veri cephesi: uretimde `bridge` (`insight.*` cagrilari). |
+| `ZEKA_API_TIMEOUT_SECS` / `ZEKA_BLOB_TIMEOUT_SECS` | `15` / `60` | Kopru cagrisi ve blob cagrisi zaman asimlari. |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error`. |
 
 Tam liste `compose.yaml` icinde, her biri yorumlu.
@@ -330,7 +340,7 @@ kez koşmaz; PR'lar ve dal push'ları tam katmanlı süiti buradan alır.
 | **2 -- birim testleri** | `python -m unittest discover -s tests -t .` **Bagimlilik kurulmaz** -- test paketi saf `unittest` kullanir. Boylece kirmizi/yesil bilgisi paket deposu kesintilerinden bagimsizdir. |
 | **3 -- sozlesme** | Model adi <-> fiyat tablosu; `source.py` yollari <-> izin listesi. Ayrinti asagida. |
 | **4 -- sir taramasi** | `sk-` / `sk_` desenleri, ozel anahtar govdeleri, AWS anahtarlari, yapilandirma dosyalarina gomulmus duz degerler; compose sirlarinin `${VAR:?}` bicimini korudugu. |
-| **5 -- konteyner** | Imaj derleniyor **ve kosuyor** mu; **zorunlu uc env ile gercekten aciliyor mu** (kanit betigi gercek bir Postgres kaldirir, `open_store()` ile depoyu acar); non-root mu; saglik kontrolu gercekten olcuyor mu; `compose config` gecerli mi ve port acilmiyor mu. |
+| **5 -- konteyner** | Imaj derleniyor **ve kosuyor** mu; kap **hicbir veritabani degiskeni OLMADAN** aciliyor mu (kanit betigi kabi boyle kosturur -- eksik bir zorunlu veritabani degiskeni olsaydi surec cikardi); non-root mu; saglik kontrolu gercekten olcuyor mu; `compose config` gecerli mi, zorunlu sirlar gercekten zorunlu mu ve port acilmiyor mu. |
 
 ### `.github/workflows/main.yml` -- `main` push'u, otomatik dağıtım
 
@@ -363,55 +373,45 @@ Bir seferlik ön koşullar:
 2. Sunucuda `loginctl enable-linger <kullanıcı>`.
 3. Sunucuda `podman` + bir compose sağlayıcı.
 4. Operatörün `~/hezarfen_zeka/hezarfen_zeka.env` dosyası (0600; şablon
-   `deploy/hezarfen_zeka.env.example`, zorunlu üç sır: `AI_SHARED_TOKEN`,
-   `ZEKA_PG_DSN`, `DEEPSEEK_API_KEY`).
+   `deploy/hezarfen_zeka.env.example`, zorunlu iki sır: `AI_SHARED_TOKEN`,
+   `LLM_API_KEY`). Veritabanı ayarı GEREKMEZ: servis hiçbir veritabanına
+   bağlanmaz.
 5. Sunucuda `hezarfen_backend_default` ağı (backend compose'u kurar) ve
    backend tarafında `AI_QUIC_ADDR=0.0.0.0:8090`.
 
 Manuel yol değişmedi: `cd service && podman compose up -d` (§3).
 
-### Konteyner kosu kaniti -- yerel dogrulama (2026-09-17)
+### Konteyner kosu kaniti -- kapi neyi olcer
 
-Kanit betigi (`scripts/ci-konteyner-kanit.sh`) artik **gercek bir Postgres**
-kaldirir (kendi agi, IP ile DSN) ve kabi **zorunlu uc env ile** kosturur; boylece
-kanit, servisin uretimdeki acilis yolunu (`open_store()`) olcer. Duzeltmeden
-sonraki yerel kosu:
+Kanit betigi (`scripts/ci-konteyner-kanit.sh`) kabi **hicbir veritabani
+degiskeni vermeden** kosturur ve dogrulanan sey tam olarak su bes iddiadir:
 
 ```
-  [ok]   kanit Postgres'i ayakta (adres 10.89.9.2, ...)
-  [ok]   kap 50 saniye sonra hala kosuyor (durum=running)
-  [ok]   ZEKA_PG_DSN kabul edildi: kopru Postgres yolunu secti (acilis satiri logda)
-  [ok]   zorunlu env ile depo GERCEKTEN aciliyor (open_store -> kapat)
-  [ok]   ustel geri cekilme gozlendi: 2.6s -> 12.5s (6 deneme)
-  [ok]   backend ulasilamazken CIKMIYOR, yeniden deniyor (RAG kusurunun tersi)
-  [ok]   non-root dogrulandi (uid=10002)
-  [ok]   saglik kontrolu kopru yasarken GECIYOR
-  [ok]   saglik kontrolu kopru yokken BASARISIZ oluyor (yani gercekten olcuyor)
-  [ok]   motor kabi 'healthy' isaretledi
-KONTEYNER KOSU KANITI GECTI     (exit 0)
+  1. kap backend YOKKEN de aciliyor ve CIKMIYOR (geri cekilerek yeniden deniyor)
+  2. geri cekilme gercekten USTEL: bekleme suresi buyuyor
+  3. saglik kontrolu HEM geciyor (kopru yasarken) HEM kaliyor (kopru yokken)
+  4. surec NON-ROOT (uid 10002) kosuyor
+  5. kap sinirli bir pencere boyunca AYAKTA kaliyor
 ```
 
-Negatif kontroller (kanit gercekten olcuyor):
+**Neden bu bir "veritabani gerekmiyor" kanitidir:** eksik bir zorunlu
+veritabani degiskeni olsaydi surec daha kopru dongusu baslamadan cikardi ve
+yukaridaki iddialarin HEPSI bosluga dusardi. Kabin acilmasi ve ayakta kalmasi
+basli basina iddianin olcumudur.
 
-```
-$ podman run --rm -e AI_SHARED_TOKEN=x hezarfen-zeka:ci
-RuntimeError: Ne ZEKA_PG_DSN ne ZEKA_DB_HTTP_URL tanimli — ...          (exit 1)
-```
-
-Yani duzeltme oncesi kosucudaki kirmizinin TA KENDISI yerelde yeniden uretildi;
-kanit betigi o imzayi artik yakaliyor (1b iddialari).
+> Kosucudaki ve sunucudaki kosu durumu icin [Kanitlanmayanlar](#kanitlanmayanlar)
+> 9. maddeye bakin.
 
 ### `.github/workflows/istege-bagli-testler.yml` -- elle tetiklenir
 
-Her degisiklikte **kosmaz**. `aioquic` kurar ya da bir veritabani kaldirir;
-yavastir ve dis etkenlere aciktir. Zorunlu kapiya konulsalardi CI guvenilmez
-olurdu, guvenilmez CI da yok sayilir.
+Her degisiklikte **kosmaz**. `aioquic` kurar; yavastir ve dis etkenlere
+aciktir. Zorunlu kapiya konulsaydi CI guvenilmez olurdu, guvenilmez CI da yok
+sayilirdi.
 
 - **`kopru-canli`** -- `tests/test_bridge_live.py`: gercek UDP soketi, gercek
   TLS 1.3 el sikismasi, gercek `hab/2` cerceveleri. Karsi taraf
   `tests/fake_bridge/` altindaki **sahte** sunucudur, gercek backend
   degildir. Ag kapsami **yalnizca 127.0.0.1**.
-- **`veritabani`** -- SurrealDB entegrasyon testleri (girdi ile acilir).
 
 **Gercek LLM cagrisi hicbir iste yapilmaz.** Segment testleri `MockProvider`
 kullanir; `kopru-canli` isi ayrica bir saglayici anahtarinin ortama sizmadigini
@@ -572,7 +572,7 @@ Durustluk bolumu. Asagidakiler **kosturulmadi** ya da **dogrulanamadi**;
 
 6. **`podman compose up` ile uctan uca kaldirma.** `compose config`
    dogrulandi (iki yonlu), ama servis compose ile **kaldirilmadi**: dis ag
-   (`hezarfen_backend_default`) ve SurrealDB bu makinede ayakta degildi.
+   (`hezarfen_backend_default`) bu makinede ayakta degildi.
 
 ### Kanitlanmayan -- CI
 
@@ -586,8 +586,10 @@ Durustluk bolumu. Asagidakiler **kosturulmadi** ya da **dogrulanamadi**;
    | `35218219339` | yesil | yesil | yesil | yesil | **kirmizi** | atlandi | atlandi |
 
    Katman 2 kirmizisi o gun tohum bagimli uc testti (bkz. yukarisi, duzeltildi);
-   Katman 5 kirmizisi konteyner kanit betiginin zorunlu `ZEKA_PG_DSN`'i
-   vermemesiydi (asagidaki 8. madde). `Build and test` ve `Deploy`'in
+   Katman 5 kirmizisi konteyner kanit betiginin bekledigi zorunlu veritabani
+   degiskenini kosuda bulamamasindan geliyordu. O beklenti tumden kaldirildi:
+   kanit betigi kabi artik hicbir veritabani degiskeni olmadan kosturur (9.
+   madde). `Build and test` ve `Deploy`'in
    **atlanmasi** tasarim geregidir: kapilar yesil olmadan artefakt uretilmez ve
    sunucuya dokunulmaz.
 
@@ -598,10 +600,10 @@ Durustluk bolumu. Asagidakiler **kosturulmadi** ya da **dogrulanamadi**;
    etiket turu), ama gercek bir sunucuya karsi **hic kosmadi**. Ilk gercek kosu
    bu maddeleri kapatacaktir.
 
-9. **Konteyner kosu kaniti kosucuda yeniden dogrulanmadi.** Betik artik gercek
-   bir Postgres kaldirip zorunlu uc env ile kabin ACILDIGINI olcer ve bu yerelde
-   `KONTEYNER KOSU KANITI GECTI` ile dogrulandi (bkz. asagisi), ama duzeltilmis
-   haliyle GitHub kosucusunda **henuz kosmadi**.
+9. **Konteyner kosu kaniti kosucuda yeniden dogrulanmadi.** Betik artik kabi
+   **hicbir veritabani degiskeni vermeden** kosturur ve "servis veritabani
+   gerektirmiyor" iddiasini olcer (bkz. yukarisi); ama bu duzeltilmis haliyle
+   GitHub kosucusunda **henuz kosmadi**.
 
 10. **`docker compose` yolu.** `ci.yml` icindeki compose adimi
    `docker compose` cagirir; yerelde `podman compose` zaten docker-compose'a
@@ -613,10 +615,9 @@ Durustluk bolumu. Asagidakiler **kosturulmadi** ya da **dogrulanamadi**;
    olsa da, Makefile'in kendisi **sinanmamistir**. Guvenilir yol dogrudan
    `bash scripts/ci-yerel.sh` kullanmaktir.
 
-12. **`istege-bagli-testler.yml` isleri.** Ne `kopru-canli` ne `veritabani`
-    isi kosturuldu. `tests/test_bridge_live.py` yerelde `aioquic` kurulu
-    olmadigi icin **atlandi**; canli kopru testlerinin gectigi
-    **gorulmedi**.
+12. **`istege-bagli-testler.yml` isleri.** `kopru-canli` isi kosturulmadi.
+    `tests/test_bridge_live.py` yerelde `aioquic` kurulu olmadigi icin
+    **atlandi**; canli kopru testlerinin gectigi **gorulmedi**.
 
 13. *(Bu madde kapatildi -- negatif sinama yapildi, bkz. asagisi.)*
 

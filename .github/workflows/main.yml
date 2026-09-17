@@ -226,16 +226,15 @@ jobs:
         # (2) VARKEN gecerli bir yapilandirma uretmeli. Yalnizca ikincisini
         # denetlemek, `${VAR:?}` yerine `${VAR:-}` yazilmasini yakalamaz.
         #
-        # ZORUNLU SIRLAR LISTESI compose.yaml'IN KENDISINDEN OKUNUR: ucuncu
-        # sir `ZEKA_PG_DSN` (compose.yaml:82) eklendiginde bu adim ve yerel
-        # esdegeri `scripts/ci-compose.sh` iki sirla kalmis, adim "sirlar
-        # verilse bile patliyor" diyerek KIRMIZI kalmisti. Liste artik tamdir;
-        # compose.yaml'a sir eklerken burayi da guncelleyin (ve
-        # scripts/ci-compose.sh'i; yerel esdeger AYNI kapi olmali).
+        # ZORUNLU SIRLAR LISTESI compose.yaml'IN KENDISINDEN OKUNUR ve TAM
+        # IKI TANEDIR: `AI_SHARED_TOKEN`, `LLM_API_KEY`. Liste burada elle
+        # tutulur; compose.yaml'a yeni bir `${VAR:?}` eklerken burayi da
+        # guncelleyin (ve yerel esdegeri `scripts/ci-compose.sh`'i; yerel
+        # esdeger AYNI kapi olmali).
         working-directory: service
         run: |
           echo "--- zorunlu env eksikken patlamali ---"
-          if env -u AI_SHARED_TOKEN -u LLM_API_KEY -u ZEKA_PG_DSN \
+          if env -u AI_SHARED_TOKEN -u LLM_API_KEY \
                docker compose config >/dev/null 2>&1; then
             echo "HATA: zorunlu sirlar olmadan gecti;"
             echo "      zorunlu sirlar \${VAR:?} bicimini kaybetmis olabilir."
@@ -243,11 +242,9 @@ jobs:
           fi
           echo "ok: zorunlu env olmadan reddedildi"
           echo "--- zorunlu env varken gecerli olmali ---"
-          AI_SHARED_TOKEN=ci-sahte LLM_API_KEY=ci-sahte \
-            ZEKA_PG_DSN=postgres://ci:ci@127.0.0.1:5432/ci docker compose config
+          AI_SHARED_TOKEN=ci-sahte LLM_API_KEY=ci-sahte docker compose config
           echo "--- port ACILMAMALI (disa arama servisi) ---"
-          if AI_SHARED_TOKEN=ci-sahte LLM_API_KEY=ci-sahte \
-               ZEKA_PG_DSN=postgres://ci:ci@127.0.0.1:5432/ci docker compose config \
+          if AI_SHARED_TOKEN=ci-sahte LLM_API_KEY=ci-sahte docker compose config \
                | grep -qE '^\s+ports:'; then
             echo "HATA: compose port aciyor; ZEKA backend'e dial-out eder, port ACMAZ."
             exit 1
@@ -440,9 +437,9 @@ jobs:
           # OPERATOR ORTAMI SURECE ALINIR. podman-compose interpolasyonu ORTAM
           # DEGISKENLERINE bakar ve `--env-file` YALNIZ SON dosyayi cozer
           # (podman_compose.py:2941-2946, :2559): iki dosyali cagri operator
-          # dosyasini tamamen dusuruyordu ve compose.yaml'da uc sir `${VAR:?}`
-          # oldugu icin `up` daha baslamadan reddediyordu (canlida yasandi,
-          # 2026-09-17). Bu yuzden dosya satir satir okunur -- kabuk
+          # dosyasini tamamen dusuruyordu ve compose.yaml'da zorunlu sirlar
+          # (`${VAR:?}`) oldugu icin `up` DAHA BASLAMADAN reddediyordu (canlida
+          # yasandi, 2026-09-17). Bu yuzden dosya satir satir okunur -- kabuk
           # genisletmesi YOK (deger icindeki `$` oldugu gibi kalir), dosya
           # bicimi duz KEY=value oldugu icin tirnak/`export` aranmaz.
           while IFS= read -r satir || [ -n "$satir" ]; do

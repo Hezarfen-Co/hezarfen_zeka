@@ -19,7 +19,7 @@ Burada kapı **tip düzeyindedir**:
 2. `StudentFacingSummary` ile `StaffSummary` arasında **kalıtım yoktur**.
    Kalıtım olsaydı `isinstance(staff, StudentFacing)` doğru dönerdi ve kapı
    kağıt üstünde kalırdı. İki bağımsız tip, tek yönlü dönüşüm.
-3. Veri **okunurken** de kapı uygulanır: öğrenci raporu için üretilen SELECT
+3. Veri **okunurken** de kapı uygulanır: öğrenci raporu için üretilen satır izdüşümü
    ifadesinde `attention` sütunu **hiç geçmez** (`SUMMARY_COLUMNS_STUDENT`).
    Yani satır veritabanından bile çıkmaz.
 4. `build_student_report` yalnız `StudentFacingBundle` kabul eder; personel

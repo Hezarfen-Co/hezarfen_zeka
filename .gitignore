@@ -8,32 +8,19 @@ work/
 #
 # Depoya GIRMEZLER ve bu bilincli bir tercih:
 #
-#   * `paket/pg_school.sql` 101 MB — GitHub'in tek dosya siniri 100 MB.
-#     Git LFS ile girebilirdi ama klonlayan herkese 100 MB indirmek,
-#     uretmesi iki dakika suren bir dosya icin makul degil.
+#   * Uretilen tohum yuz megabaytlara cikar — GitHub'in tek dosya siniri
+#     100 MB.
 #   * Deterministik uretiliyorlar: ayni `--seed` ayni bayti verir. Depoda
 #     tutmanin kazandiracagi bir sey yok; kaybettirecegi sey her uretimde
 #     bir daha commit edilmeleri.
 #
 # Uretmek icin:
-#   python generator/main.py --scale full --postgres --out cikti/
+#   python generator/main.py --scale full --out cikti/
 #
 # `generator/` ve `spec/` depoda: tohumu UYGULAYAN kod ve onu tanimlayan
 # sozlesme. Tohumun kendisi bir CIKTI.
-paket/pg_school.sql
-paket/pg_control.sql
-paket/pg_dogrula.sql
 seed/*.surql
 cikti/
-
-# Backend'in KENDI migration'larinin kopyasi. Paket kendine yetsin diye
-# yerelde duruyor ama depoya GIRMEZ: iki yerde duran bir sema er ya da gec
-# ayrisir ve hangisinin dogru oldugu belli olmaz. Yukleyici gercek backend
-# checkout'unu `BACKEND=` ile alir.
-#
-# ZEKA'nin KENDI migration'i (`paket/20260916000001_zeka.sql`) bunun
-# disindadir ve depoda durur -- o bizim.
-paket/migrations/
 
 __pycache__/
 *.pyc

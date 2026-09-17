@@ -63,8 +63,8 @@ services:
       AI_RECONNECT_SECS: ${AI_RECONNECT_SECS:-3}
       AI_RECONNECT_MAX_SECS: ${AI_RECONNECT_MAX_SECS:-120}
       # --- kapsam ---
-      # Okul KUTUGU artik kontrol veritabanidir (`tenants.py`): hangi
-      # okullarin var oldugunu oradaki `school` tablosu soyler. Bu degisken
+      # Okul KUTUGU BACKEND'dedir: hangi okullarin var oldugunu servis
+      # `insight.schools.list` yetenek cagrisiyla ogrenir. Bu degisken
       # yalnizca bir FILTREdir ve BOS BIRAKILIRSA butun aktif okullar islenir.
       # `:-` bilerek: operator dosyasina `ZEKA_SCHOOLS=` yazan kisi "filtre
       # istemiyorum" demistir; burada sabit bir okul varsayilani, tam da
@@ -85,43 +85,6 @@ services:
       ZEKA_REFRESH_INTERVAL_SECS: ${ZEKA_REFRESH_INTERVAL_SECS:-3600}
       ZEKA_REFRESH_JITTER_SECS: ${ZEKA_REFRESH_JITTER_SECS:-60}
       ZEKA_REFRESH_BATCH: ${ZEKA_REFRESH_BATCH:-25}
-      # --- ZEKA'nin YAZDIGI veritabani ---
-      #
-      # Backend SurrealDB'den PostgreSQL'e gecti. ZEKA'nin cikti tablolari
-      # (`zeka_*`) artik OKULUN KENDI veritabaninda duruyor; ayri bir ZEKA
-      # veritabani yok.
-      #
-      # Depoyu secen TEK olcut budur: dolu ise Postgres, bos ise (asagidaki
-      # eski SurrealDB degiskenleriyle) SurrealDB. Iki ayri "mod" bayragi
-      # yok -- bayrakla adres ters dustugunde hangisinin kazandigi tahmin
-      # isine doner (bkz. src/store_factory.py).
-      #
-      # `:?` ile zorunlu: adressiz bir servis ayaga kalkip hicbir sey
-      # yazmadan "calisiyor" gorunurdu. Acilista bir satir hata, gunler
-      # sonra bos bir tablo yerine.
-      #
-      # ZEKA_PG_DSN KONTROL veritabanidir: okul ciktilari BURAYA yazilmaz,
-      # her okulun KENDI veritabanina yazilir. Ad okulun uuid'sinden turer
-      # (`tenant.rs:112` -> "{control}_school_{uuid.simple}"), slug'dan DEGIL:
-      # slug'i uuid'ye ceviren sey kontrol veritabanindaki `school` satiridir
-      # ve veritabani adi DESENDEN tahmin edilmez.
-      #
-      # Sir DOSYAYA GOMULMEZ: burada yalnizca interpolasyon vardir.
-      ZEKA_PG_DSN: ${ZEKA_PG_DSN:?ZEKA_PG_DSN gerekli -- KONTROL veritabaninin adresi; okul ciktilari okul basina ayri veritabanina yazilir}
-      # Okul havuzlari SINIRLIDIR: tavan (LRU tahliye) ve bosta kalma TTL'i.
-      # Bos/verilmemis deger `src/config.py` varsayilanini kullanir; havuz
-      # basina BIR baglanti acilir (tavan 8 -> en fazla 8 baglanti).
-      ZEKA_MAX_SCHOOL_POOLS: ${ZEKA_MAX_SCHOOL_POOLS:-8}
-      ZEKA_SCHOOL_POOL_TTL_SECS: ${ZEKA_SCHOOL_POOL_TTL_SECS:-900}
-      ZEKA_SCHOOL_REGISTRY_TTL_SECS: ${ZEKA_SCHOOL_REGISTRY_TTL_SECS:-30}
-      ZEKA_SCHOOL_CONNECT_TIMEOUT_SECS: ${ZEKA_SCHOOL_CONNECT_TIMEOUT_SECS:-10}
-      # --- (eski) SurrealDB kurulumu ---
-      # ZEKA_PG_DSN verildigi surece OKUNMAZ. Gecis tamamlanana kadar duruyor.
-      ZEKA_DB_HTTP_URL: ${ZEKA_DB_HTTP_URL:-}
-      ZEKA_DB_NS: ${ZEKA_DB_NS:-hezarfen}
-      ZEKA_DB_NAME: ${ZEKA_DB_NAME:-zeka}
-      ZEKA_DB_USER: ${ZEKA_DB_USER:-}
-      ZEKA_DB_PASSWORD: ${ZEKA_DB_PASSWORD:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       - zeka-fixtures:/data/zeka/fixtures

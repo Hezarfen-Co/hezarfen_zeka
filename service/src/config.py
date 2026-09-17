@@ -170,28 +170,14 @@ class Config:
         # Her frame kendi okulunu adlandirir (`ai/protocol.rs:36-47`); `Hello`
         # okul tasimaz. Filo paylasimlidir: ZEKA butun okullara hizmet eder.
         #
-        # Okul KUTUGU kontrol veritabanindadir (`tenants.py`); burasi yalnizca
+        # Okul KUTUGU backend'dedir (`insight.schools.list`); burasi yalnizca
         # bir FILTREDIR. Bos liste = butun aktif okullar. Sabit bir varsayilan
         # okul yoktur: "hangi okullar var" sorusunun cevabi yapilandirma
-        # degil, kontrol veritabani olmalidir.
+        # degil, backend'dir.
         self.schools = env_list("ZEKA_SCHOOLS", ())
         self.student_source = env_choice("ZEKA_STUDENT_SOURCE", "config", STUDENT_SOURCES)
         self.students = env_list("ZEKA_STUDENTS", ())
         self.student_file = _absolute(env_str("ZEKA_STUDENT_FILE", ""))
-
-        # --- okul havuzlari ---------------------------------------------------
-        # Okul sayisi sinirsiz; acik baglanti sayisi sinirli olmali. Havuz
-        # tavani ve TTL'i `tenants.TenantStores` uygular.
-        self.max_school_pools = env_int("ZEKA_MAX_SCHOOL_POOLS", 8, 1, 256)
-        self.school_pool_ttl_secs = env_float(
-            "ZEKA_SCHOOL_POOL_TTL_SECS", 900.0, 0.0, 86400.0
-        )
-        self.school_registry_ttl_secs = env_float(
-            "ZEKA_SCHOOL_REGISTRY_TTL_SECS", 30.0, 0.0, 3600.0
-        )
-        self.school_connect_timeout_secs = env_float(
-            "ZEKA_SCHOOL_CONNECT_TIMEOUT_SECS", 10.0, 1.0, 120.0
-        )
 
         # --- veri cephesi ------------------------------------------------------
         self.source_mode = env_choice("ZEKA_SOURCE", "bridge", SOURCE_MODES)
@@ -208,16 +194,11 @@ class Config:
         self.refresh_jitter_secs = env_float("ZEKA_REFRESH_JITTER_SECS", 60.0, 0.0, 3600.0)
         self.refresh_batch = env_int("ZEKA_REFRESH_BATCH", 25, 1, 5000)
 
-        # --- ZEKA'nin kendi veritabani ------------------------------------------
-        # Hesap ciktilari burada durur. Okulun veritabanina ZEKA yazmaz; kopru
-        # zaten salt-okumadir (`ai/server.rs:719-726` -> `method_not_allowed`).
-        self.db_url = env_str("ZEKA_DB_URL", "ws://hezarfen-surrealdb:8000/rpc")
-        self.db_namespace = env_str("ZEKA_DB_NS", "hezarfen")
-        self.db_database = env_str("ZEKA_DB_NAME", "zeka")
-        self.db_user = env_str("ZEKA_DB_USER", "")
-        self.db_password = env_str("ZEKA_DB_PASSWORD", "")
-        self.has_db_password = bool(self.db_password)
-
+        # --- yazma hedefi -------------------------------------------------------
+        # YOK. ZEKA'nin kendi veritabani YOKTUR: degismez kural geregi bir AI
+        # servisi uygulama veritabanina asla dogrudan erismez. Cikti satirlari
+        # backend'e kopruden yazilir (`insight.*` yetenek cagrilari); burada
+        # ne DSN, ne adres, ne parola okunur.
         if require_token and not self.has_token:
             raise ConfigError(
                 "AI_SHARED_TOKEN tanimli degil; backend ile ayni sir olmadan kayit yapilamaz"
@@ -241,50 +222,14 @@ class Config:
             f"token={'tanimli' if self.has_token else 'TANIMSIZ'} "
             f"max_es_zamanli={self.max_concurrent} "
             f"yeniden_baglanma={self.reconnect_secs}s..{self.reconnect_max_secs}s "
-            f"okullar={','.join(self.schools) if self.schools else 'hepsi(kontrol)'} "
-            f"okul_havuzu=en fazla {self.max_school_pools} TTL {self.school_pool_ttl_secs:g}s "
+            f"okullar={','.join(self.schools) if self.schools else 'hepsi(backend)'} "
             f"ogrenci_kaynagi={self.student_source} ogrenci_sayisi={students} "
             f"veri_cephesi={self.source_mode} fikstur_kok={self.fixture_root} "
             f"api_zaman_asimi={self.api_timeout_secs}s "
             f"tazeleme={tazeleme} parti={self.refresh_batch} "
-            f"{self._depo_ozeti()} "
+            f"depo=kopru(insight.*) "
             f"log={self.log_level}"
         )
-
-
-def _depo_ozeti_impl(self) -> str:
-    """Yazma hedefini ozetler — DSN ASLA loglanmaz.
-
-    Eskiden bu satir kosulsuz SurrealDB adresini basiyordu ve Postgres'e
-    yazilirken bile "db=ws://hezarfen-surrealdb:8000/rpc" diyordu. Acilis
-    logunun yanlis depoyu gostermesi, bir arizayi tesbit ederken insani
-    saatlerce yanlis yere baktirir.
-
-    `ZEKA_PG_DSN` artik KONTROL veritabanidir; okul verileri okul basina
-    ayri veritabanlarindadir (`tenants.py`). Satir bunu soyler, yoksa "depo=
-    postgres /hezarfen_control" okuyan operator okul verisinin oraya
-    yazildigini sanirdi.
-    """
-    import os
-
-    dsn = os.environ.get("ZEKA_PG_DSN", "").strip()
-    if dsn:
-        try:
-            import urllib.parse
-
-            parsed = urllib.parse.urlsplit(dsn)
-            yer = f"{parsed.hostname or '?'}{parsed.path}"
-        except Exception:  # noqa: BLE001
-            yer = "<cozumlenemedi>"
-        return f"depo=postgres kontrol {yer} (okullar kendi veritabanlarinda)"
-    return (
-        f"depo=surrealdb(eski) {self.db_url} ns={self.db_namespace} "
-        f"db_ad={self.db_database} "
-        f"db_parola={'tanimli' if self.has_db_password else 'TANIMSIZ'}"
-    )
-
-
-Config._depo_ozeti = _depo_ozeti_impl
 
 
 def load(require_token: bool = True) -> Config:

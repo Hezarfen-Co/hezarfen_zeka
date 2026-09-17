@@ -50,7 +50,6 @@ from .protocol import (
     FrameStream,
     HandshakeRejected,
 )
-from .tenants import TenantError
 
 RequestHandler = Callable[[protocol.Request], Any]
 """Backend'den gelen bir `Request`'i karsilayan kanca.
@@ -327,6 +326,54 @@ class BridgeProtocol(QuicConnectionProtocol):
         )
         return response
 
+    async def call_capability(
+        self,
+        capability: str,
+        school: str,
+        payload: dict[str, Any] | None = None,
+        timeout: float | None = None,
+    ) -> dict[str, Any]:
+        """Backend'in bir operasyonunu cagir (`insight.*`) ve payload'ini don.
+
+        ZEKA'nin veritabani erisimi YOKTUR; hesapladigi satirlari ve okudugu
+        listeleri bu metot tasir. `store.BridgeStore` bu metodun TEK
+        kullanicisidir; depo onu `BridgeCaller` protokolu uzerinden gorur.
+
+        `api_get` ile ayni desen: taze istemci baslatimli cift yonlu akis, tek
+        cerceve yaz, gonderim tarafini kapat (`end=True`), tek cerceve oku,
+        akisi dusur. Korelasyonu AKIS yapar; `id` yalniz iz kimligidir.
+
+        `school` BOS olabilir: deployment olcekli tek operasyon
+        (`insight.schools.list`) okul adlandirmaz.
+
+        Red (`status: "err"`) `protocol.CapabilityRefused` olarak yukselir --
+        `status` ONCE okunur, cunku reddi basari saymak sessiz yazma kaybidir.
+        """
+        budget = self._settings.api_timeout_secs if timeout is None else timeout
+        request = protocol.build_capability_request(
+            protocol.new_trace_id(), capability, school, payload or {}
+        )
+        sid = self._quic.get_next_available_stream_id()
+        stream = FrameStream()
+        self._streams[sid] = stream
+        answered = False
+        try:
+            self._send_frame(sid, request, end=True)
+            frame = await asyncio.wait_for(stream.read_frame(), timeout=budget)
+            answered = True
+        finally:
+            if answered:
+                self._streams.pop(sid, None)
+            else:
+                self._abandon(sid)
+        response = protocol.parse_capability_response(frame)
+        result = response.raise_for_status(capability)
+        config.log(
+            "debug",
+            f"yetenek {capability} okul={school or '(deployment)'} -> ok",
+        )
+        return result
+
     async def blob_get(
         self,
         school: str,
@@ -425,11 +472,12 @@ class BridgeProtocol(QuicConnectionProtocol):
                 self._handle(request), timeout=request.timeout_secs
             )
             response = protocol.ok_response(request_id, school, result)
-        except (CapabilityError, TenantError) as exc:
-            # Okul cozumlemesi redleri (`unknown_school`, `school_suspended`,
-            # `school_not_migrated`) backend'e AYNEN gider: hepsi beklenen
-            # durumlardir ve ayrimlari backend'in yeniden deneme kararini
-            # etkiler. `internal` yalnizca TANINMAYAN hatalar icin.
+        except (CapabilityError, protocol.ApiRefused) as exc:
+            # Disariya cikan yetenek cagrisinin redleri (`ApiRefused`,
+            # dolayisiyla `CapabilityRefused`) ve isleyicinin kendi redleri
+            # backend'e AYNEN gider: `unavailable`, `timed_out` gibi kodlar
+            # backend'in yeniden deneme kararini etkiler. `internal` yalnizca
+            # TANINMAYAN hatalar icin.
             response = protocol.err_response(request_id, school, exc.code, str(exc))
         except asyncio.TimeoutError:
             response = protocol.err_response(
@@ -537,6 +585,62 @@ async def run_once(
     config.log("info", "baglanti kapandi")
 
 
+async def one_shot(
+    settings: config.Config, work: Callable[[BridgeProtocol], Any]
+) -> Any:
+    """Baglan, kaydol, `work(proto)` kos, baglantiyi KAPAT, sonucu don.
+
+    Gelistirme araclari icin (`cli sweep`, `cli schedule`): uretim dongusu
+    `run_forever` bir daha cikmaz, ama bir CLI komutu isini bitirip donmelidir.
+    Bu yardimci tam olarak o farki kapatir ve AYNI istemciyi kullanir --
+    ikinci bir tasima yazilmaz.
+
+    Baglantiyi `work` icinde kapatmak yerine burada, `finally` ile kapatmak
+    yanlis olurdu: `work` sirasinda kopru hala canli olmalidir.
+    """
+    box: dict[str, Any] = {}
+
+    async def runner(proto: BridgeProtocol) -> None:
+        try:
+            box["result"] = await work(proto)
+        finally:
+            # Kayitli akisi kapatmak backend icin "duser" sinyalidir; komut
+            # bitti, baglanti da bitmeli.
+            proto.close()
+
+    await run_once(settings, on_ready=runner)
+    return box.get("result")
+
+
+class OneShotCaller:
+    """Her çağrı için taze bir köprü oturumu açan `BridgeCaller`.
+
+    Geliştirme araçları için (`segment` hattının `--persist` yolu): araç
+    senkron çalışır ve elinde yaşayan bir bağlantı yoktur. Çağrı başına
+    bağlan-kaydol-kapat maliyeti bir araç için önemsizdir; ikinci bir taşıma
+    yazmaktan iyidir — aynı `BridgeProtocol.call_capability` kullanılır.
+    """
+
+    def __init__(self, settings: config.Config) -> None:
+        self._settings = settings
+
+    async def call(
+        self, capability: str, school: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        async def work(proto: BridgeProtocol) -> dict[str, Any]:
+            return await proto.call_capability(
+                capability,
+                school,
+                payload,
+                timeout=self._settings.api_timeout_secs,
+            )
+
+        result = await one_shot(self._settings, work)
+        if result is None:  # pragma: no cover - one_shot isi bitirmeden donmez
+            raise RuntimeError("köprü oturumu sonuç döndürmedi")
+        return result
+
+
 def next_backoff(current: float, settings: config.Config) -> float:
     """Ustel geri cekilme: ikiye katla ve tavanda dur.
 
@@ -608,65 +712,88 @@ async def _serve(settings: config.Config) -> int:
     """Kopruyu ve GECE ZAMANLAYICISINI birlikte kosturur.
 
     -----------------------------------------------------------------------
+    ACILISTA ACILAN HICBIR SEY YOKTUR
+    -----------------------------------------------------------------------
+    ZEKA'nin veritabani erisimi yoktur (degismez kural: bir AI servisi
+    uygulama veritabanina asla dogrudan erismez). Bu yuzden acilis bir
+    baglanti KURMAZ: ne DSN, ne havuz, ne okul dizini. Okul listesi ilk tikte
+    backend'den istenir (`insight.schools.list`).
+
+    BACKEND YOKKEN DAVRANIS (uygulanan politika):
+      * Acilis DUSER DEGIL. `run_forever` hicbir hatada cikmaz; ustel geri
+        cekilmeyle yeniden dener (`bridge.run_forever`).
+      * Zamanlayici turu okulsuz kosar: okul listesi okunamazsa `warn`
+        loglanir ve tur bos doner (`scheduler._listing`). Crash-loop yok.
+      * SESSIZ YAZMA YOK. Kopru kapaliyken bir yazma cagrisi
+        `BridgeUnavailable` -> `CapabilityRefused("unavailable")` olur; grup
+        `MAX_ATTEMPTS` kez denenir, sonra atlanir ve `WriteReport.status`
+        `partial` olur -> kosu defterine `store` diye yazilir. "Basarili
+        gorunen ama hicbir sey yazmamis" bir kosu uretilemez.
+
+    -----------------------------------------------------------------------
     NEDEN IKISI BIRDEN
     -----------------------------------------------------------------------
     Kopru tek basina yalnizca BAGLANTIYI ayakta tutar ve backend'den gelen
-    `Request` cerceverini karsilar. Ama backend bugun yalnizca `chat.reply`
-    ve `rag.index` yeteneklerine is yolluyor (`ai/mod.rs:23-24`); ZEKA'nin
-    bildirdigi `insight.*` yeteneklerine HIC istek gelmiyor.
-
-    Zamanlayici bagli olmasaydi servis baglanir, kaydolur, "calisiyor"
-    gorunur ve HICBIR SEY URETMEZDI -- `zeka_*` tablolari bos kalirdi.
-    Baglantinin kurulmus olmasi, isin yapildigi anlamina gelmiyor.
+    `Request` cercevesini karsilar. Ama backend bugun ZEKA'ya yalnizca
+    `insight.student` / `insight.refresh` isleri yolluyor; zamanlayici
+    bagli olmasaydi servis baglanir, kaydolur, "calisiyor" gorunur ve HICBIR
+    SEY URETMEZDI -- `zeka_*` tablolari bos kalirdi.
 
     Ikisi ayri gorevde kosar: koprunun yeniden baglanmasi zamanlayiciyi
     durdurmaz, zamanlayicinin bir okulda dusmesi baglantiyi koparmaz.
-    Zamanlayici kendi okumalarini yine KOPRUDEN yapar (`BridgeSource` ->
-    `ApiRequest`); REST'e cikan bir yol yoktur.
+    Okumalar da yazmalar da KOPRUDEN gider (`BridgeSource` -> `ApiRequest`,
+    depo -> `CapabilityRequest`); REST'e ya da bir veritabanina cikan yol
+    YOKTUR.
     """
     from .scheduler import Scheduler
     from .source import BridgeSource
-    from .store_factory import describe
-    from .tenants import open_directory
+    from .store import BridgeStore, ProtocolCaller
 
-    # Okul dizini ACILISTA kurulur ve isleyicilere baglanir; okul LISTESI
-    # acilista okunmaz (kontrol veritabaninda hic okul olmayabilir) ve okul
-    # VERITABANLARINA acilista baglanilmaz (biri eksikse bu bir istek
-    # hatasidir, acilis hatasi degil -- `tenants.py`).
-    directory = await open_directory(settings)
-    capabilities.bind_directory(directory)
-    try:
-        config.log("info", describe())
-        config.log("info", directory.describe())
-        if settings.refresh_interval_secs <= 0:
-            config.log("info", "gece zamanlayicisi KAPALI (ZEKA_REFRESH_INTERVAL_SECS=0)")
-            return await run_forever(settings)
-        kopru: dict[str, Any] = {"protocol": None}
+    #: Baglanti nesnesi. Acilista `None`: hicbir sey kurulmaz.
+    kopru: dict[str, Any] = {"protocol": None}
 
-        def hazir(proto: BridgeProtocol) -> None:
-            kopru["protocol"] = proto
+    def hazir(proto: BridgeProtocol) -> None:
+        kopru["protocol"] = proto
 
-        # Zamanlayici her okul icin bir `Source` ister. Baglanti kopmussa
-        # `BridgeSource` cagrisi hata verir ve zamanlayici o okulu duser --
-        # dogru davranis: veri cekilemeden hesap yapilmaz.
-        def source_for(_school: str) -> Any:
-            proto = kopru["protocol"]
-            if proto is None:
-                raise RuntimeError("kopru henuz bagli degil")
-            return BridgeSource(proto)
+    def caller_for() -> Any:
+        """Su an bagli tasima; YOKSA `None` -> depo `BridgeUnavailable` der.
 
-        scheduler = Scheduler(
-            source_for,
-            directory,
-            only=settings.schools,
-            budget_ms=int(settings.refresh_interval_secs * 1000),
-        )
-        await asyncio.gather(
-            run_forever(settings, on_ready=hazir),
-            scheduler.serve(tick_seconds=settings.refresh_interval_secs),
-        )
-    finally:
-        await directory.close()
+        `None` dondurmek dogru cevaptir: "henuz bagli degil" bir hata degil,
+        beklenen bir durumdur ve sessizce bos yazmaya donusmemelidir.
+        """
+        proto = kopru["protocol"]
+        if proto is None:
+            return None
+        return ProtocolCaller(proto, timeout_secs=settings.api_timeout_secs)
+
+    # Tek depo nesnesi; okul her cagrinin kimligindedir (`store_for`).
+    store = BridgeStore(caller_for, timeout_secs=settings.api_timeout_secs)
+    capabilities.bind_store(store)
+    config.log("info", "depo: kopru (insight.*) -- yerel veritabani yok")
+    config.log("info", capabilities.summary())
+    if settings.refresh_interval_secs <= 0:
+        config.log("info", "gece zamanlayicisi KAPALI (ZEKA_REFRESH_INTERVAL_SECS=0)")
+        return await run_forever(settings)
+
+    # Zamanlayici her okul icin bir `Source` ister. Baglanti kopmussa
+    # `BridgeSource` cagrisi hata verir ve zamanlayici o okulu duser --
+    # dogru davranis: veri cekilemeden hesap yapilmaz.
+    def source_for(_school: str) -> Any:
+        proto = kopru["protocol"]
+        if proto is None:
+            raise RuntimeError("kopru henuz bagli degil")
+        return BridgeSource(proto)
+
+    scheduler = Scheduler(
+        source_for,
+        store,
+        only=settings.schools,
+        budget_ms=int(settings.refresh_interval_secs * 1000),
+    )
+    await asyncio.gather(
+        run_forever(settings, on_ready=hazir),
+        scheduler.serve(tick_seconds=settings.refresh_interval_secs),
+    )
     return 0
 
 

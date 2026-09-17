@@ -314,9 +314,10 @@ dogrulamaz.
   sunucu testin verdigi govdeyi doner. Govde bicimleri ayri olarak
   `tests/test_source.py` icinde fiksturlere karsi denetlenir; ikisi arasindaki
   bag **kurulmadi**.
-- ZEKA'nin yetenekleri (`insight.*`) backend tarafindan **taninmiyor**
-  (`capabilities.py` basi). Sunucu baslatimli akis testi bu yuzden sahte bir
-  cagriyla yapildi; uretimde bu yol **bugun hic kullanilmaz**.
+- ZEKA'nin yetenekleri (`insight.*`) icin backend'de bir **dagitim kapisi
+  yok** (`docs/BACKEND-GEREKSINIMLERI.md` Madde 1; sahibi `InsightDoors`).
+  Sunucu baslatimli akis testi bu yuzden sahte bir cagriyla yapildi; kapilar
+  gelene kadar bu yol uretimde **kullanilmaz**.
 - Coklu okul (filo paylasimi) davranisi tek bir okulla test edildi.
 - Ayni backend'e **birden cok ZEKA ornegi** baglanmasi test edilmedi.
 

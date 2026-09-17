@@ -35,7 +35,12 @@ Tasarım kararları (`MODULLER.md` §2.12)
   Tek bir `store` nesnesi paylaşılmaz — paylaşılsaydı bütün okulların satırı
   ilk okulun veritabanına düşerdi.
 * **Günde bir kez.** Bir okul için o TR gününde koşu yapıldıysa tekrar
-  yapılmaz.
+  yapılmaz. **Tek istisna yazma arızasıdır** (`result.write_failed`): depo
+  çağrıları düşen bir koşu günü KAPATMAZ, sonraki tik aynı okulu yeniden
+  dener. Aksi halde bir köprü arızası, o gecenin verisini bir sonraki tura
+  (yarına) kadar kalıcı bir boşluğa çevirirdi. Bütçe yüzünden `partial` biten
+  koşu günü kapatır: kalan öğrenciler `pending_students` ile deftere yazılır
+  ve ertesi gece listenin BAŞINDAN devam edilir.
 * **Tek koşu güvencesi.** Süreç içi `asyncio.Lock`; tek süreç olduğu için
   yeterli. İkinci savunma `insight_run` satırının varlığıdır.
 * **Bir okul düşerse diğerleri etkilenmez** — `catch` + `warn` + sonraki okul.
@@ -127,6 +132,10 @@ class Scheduler:
         """Bu okulda bir sonraki koşuya devredilen öğrenciler."""
         return list(self._pending.get(school, []))
 
+    def failures(self) -> list[str]:
+        """Son turda düşen okullar — izolasyonun kanıtı buradan okunur."""
+        return list(self._failures)
+
     async def _listing(self) -> list[str]:
         """Bu turun okul listesi: dizindeki aktif okullar ∩ filtre.
 
@@ -180,7 +189,9 @@ class Scheduler:
                 # acilamayan okul dusen okuldur -- tur devam eder, `internal`
                 # diye bir seye donusmez.
                 try:
-                    store = await self._stores.store_for(school)
+                    # `store_for` SENKRON: nesne kurmak bir kopru cagrisi
+                    # degildir, ag beklemez. Okul nesnenin kimligidir.
+                    store = self._stores.store_for(school)
                     # Süreç yeniden başladıysa bellek içi `pending` boştur;
                     # devreden liste `insight_run` satırından okunur.
                     if school not in self._pending:
@@ -210,7 +221,21 @@ class Scheduler:
                     log.warning("okul düştü, tur devam ediyor (%s): %s", school, exc)
                     self._failures.append(school)
                     continue
-                self._last_run_day[school] = day
+                # YAZILAMAYAN TUR GÜNÜ KAPATMAZ. Bir köprü arızası o gecenin
+                # verisini kalıcı olarak düşürmemelidir: damga konmazsa aynı
+                # gece penceresindeki sonraki tik (15 dk sonra) okulu yeniden
+                # dener ve köprü döndüyse satırlar yazılır. Kalıcı kayıt koşu
+                # defteridir: `failed_modules` içindeki `store`, ilk başarılı
+                # `insight.run.upsert` ile backend'e gider ve oradan okunur.
+                if result.write_failed:
+                    log.warning(
+                        "okul yazılamadı (durum=%s); gün KAPATILMADI, sonraki tik "
+                        "yeniden denenecek: %s",
+                        result.status,
+                        school,
+                    )
+                else:
+                    self._last_run_day[school] = day
                 results.append(result)
                 # Bütçe aşan okul ertelenir: kalan öğrenciler saklanır.
                 if result.pending_students:

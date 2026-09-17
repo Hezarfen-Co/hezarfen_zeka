@@ -1,12 +1,19 @@
-"""Testler için sahte kaynak ve fikstür üreticileri.
+"""Testler için sahte kaynak, sahte köprü ve fikstür üreticileri.
 
 `FakeSource` imzaları `Source` protokolüyle **birebir aynıdır**; böylece
 köprü ajanının yazdığı `FileSource` geldiğinde testler değişmeden çalışır.
+`ReplyingCaller` ise `src.store.BridgeCaller` protokolünü uygular: depo
+çağrıları gerçek hat üzerinden koşar, yalnız taşıma sahtedir.
 """
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
+
+from src.compute import clock
+from src.store import CAP_SCHOOLS, RecordingCaller
 
 _CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
@@ -225,3 +232,144 @@ class FakeSource:
     ) -> list[dict]:
         self.calls.append("course_notes")
         return []
+
+
+# ---------------------------------------------------------------------------
+# Fikstür üretimi -- `FileSource`'un okuduğu dizin düzeni
+# ---------------------------------------------------------------------------
+#
+# Bu üreticiler eskiden `tests/zeka_db.py` içindeydi; o dosya gerçek
+# SurrealDB'ye bağlanan entegrasyon testleriyle birlikte silindi. Disk
+# fikstürü YAZMAK veritabanı gerektirmez, o yüzden burada yaşıyor.
+
+NOW = 1_699_963_200_000  # 2023-11-14 12:00 UTC
+DAY = 86_400_000
+HOUR = 3_600_000
+TERM_START = NOW - 150 * DAY
+
+
+def student_payload(
+    uid: str,
+    class_id: str,
+    marks_list: list[int],
+    present: int,
+    absent: int,
+    *,
+    now_ms: int = NOW,
+) -> dict[str, Any]:
+    """Tek öğrencinin bütün kaynak verisi (`FakeSource` ile aynı şekil)."""
+    base = now_ms - 100 * DAY
+    return {
+        "profile": profile(uid, [class_id], ["course-1"]),
+        "marks": [course_marks("course-1", marks_list, base, teachers=["teacher-1"])],
+        "attendance": [course_attendance("course-1", present=present, absent=absent)],
+        "pomodoro": [
+            pomodoro(
+                (clock.tr_day(now_ms) - d) * DAY + 10 * HOUR - clock.TR_OFFSET_MS
+            )
+            for d in range(1, 7)
+        ],
+        "homework_report": [
+            report_entry(
+                f"hw-{uid}-{i}", "course-1", now_ms - (i + 1) * DAY, submitted=True
+            )
+            for i in range(6)
+        ],
+        "homework_list": [homework("upcoming", "course-1", now_ms + 6 * HOUR, [uid])],
+    }
+
+
+def dataset(count: int = 12, *, now_ms: int = NOW) -> dict[str, dict]:
+    """Bir şube, bir ders, `count` öğrenci; ilki belirgin biçimde düşük."""
+    data: dict[str, dict] = {}
+    for i in range(count):
+        uid = f"student-{i:02d}"
+        if i == 0:
+            data[uid] = student_payload(
+                uid, "class-A", [40, 41, 39, 42, 40, 38], 60, 40, now_ms=now_ms
+            )
+        else:
+            data[uid] = student_payload(
+                uid, "class-A", [70, 72, 71, 69, 70, 71], 95, 5, now_ms=now_ms
+            )
+    data["_school"] = {
+        "homework_list": [
+            homework("hw-school", "course-1", now_ms + DAY, list(data.keys()))
+        ]
+    }
+    return data
+
+
+def write_fixtures(root: Path, school: str, data: dict[str, dict]) -> list[str]:
+    """`data` sözlüğünü `FileSource`'un beklediği dizin düzenine yazar.
+
+    Dönen değer: okul genelinde işlenecek öğrenci kimlikleri.
+    """
+    base = root / school
+    #: yöntem -> (alt dizin, zarf anahtarı veya None)
+    layout = {
+        "profile": ("profile", None),
+        "marks": ("marks", "courses"),
+        "attendance": ("attendance", "courses"),
+        "pomodoro": ("pomodoro", "items"),
+        "homework_report": ("homework_report", "items"),
+        "homework_list": ("homework", "items"),
+    }
+    for directory, _ in layout.values():
+        (base / directory).mkdir(parents=True, exist_ok=True)
+
+    students: list[str] = []
+    for key, payload in data.items():
+        name = "_service" if key == "_school" else key
+        if key != "_school":
+            students.append(key)
+        for method, (directory, envelope) in layout.items():
+            if method not in payload:
+                continue
+            body = payload[method]
+            if envelope is None:
+                out: Any = body
+            elif method == "homework_report":
+                out = {"items": body, "total": len(body), "limit": None, "offset": 0}
+            else:
+                out = {envelope: body}
+            (base / directory / f"{name}.json").write_text(
+                json.dumps(out, ensure_ascii=False), encoding="utf-8"
+            )
+    return students
+
+
+# ---------------------------------------------------------------------------
+# Sahte köprü -- depo çağrılarını toplayan ve cevap veren istemci
+# ---------------------------------------------------------------------------
+
+
+class ReplyingCaller(RecordingCaller):
+    """`RecordingCaller` + yetenek başına hazır cevap.
+
+    `RecordingCaller` okuma çağrılarına boş listeler döner; okul listesi,
+    devreden öğrenciler gibi gerçek içerik gereken yerlerde bu sınıf
+    kullanılır. Kayıt ve hata davranışı aynen devralınır.
+    """
+
+    def __init__(self, replies: dict[str, dict[str, Any]], **kw: Any) -> None:
+        super().__init__(**kw)
+        self.replies = dict(replies)
+
+    async def call(
+        self, capability: str, school: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        if (
+            capability in self.replies
+            and self.fail_times <= 0
+            and capability not in self.fail_capabilities
+        ):
+            self.calls.append((capability, school, payload))
+            return dict(self.replies[capability])
+        return await super().call(capability, school, payload)
+
+
+def schools_caller(schools: list[str], **kw: Any) -> ReplyingCaller:
+    """Okul listesini `insight.schools.list`'ten veren sahte köprü."""
+    return ReplyingCaller({CAP_SCHOOLS: {"schools": list(schools)}}, **kw)
+

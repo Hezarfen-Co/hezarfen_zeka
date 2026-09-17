@@ -81,32 +81,32 @@ def cmd_stability(args) -> int:
 
 
 def _store_for(args):
-    """`--persist` icin depo nesnesi.
+    """`--persist` için KÖPRÜ deposu.
 
-    `--db-url` verilmediyse `None` doner: donusum yapilir, satirlar SAYILIR,
-    ama hicbir sey yazilmaz. "Yazdim" demeden once gercekten yazabildigini
-    bilmek gerekir; sessizce bos bir istemciye yazmak bunun tersidir.
+    ZEKA'nın kendi veritabanı YOKTUR (değişmez kural: bir AI servisi
+    uygulama veritabanına asla doğrudan erişmez): etiketler ve profiller
+    `insight.*` yetenek çağrılarıyla backend'e yazılır. Bu yüzden burada
+    bir DSN bayrağı yoktur; köprü ayarları ortamdan gelir.
+
+    `--persist` verilmezse `None` döner: dönüşüm yapılır, satırlar SAYILIR,
+    ama hiçbir şey yazılmaz. "Yazdım" demeden önce gerçekten yazabildiğini
+    bilmek gerekir; sessizce boş bir depoya yazmak bunun tersidir.
     """
     if not args.persist:
         return None
-    import os
+    if not args.school:
+        raise SystemExit("--persist için --school zorunlu (satırların yazılacağı okul)")
+    from .. import bridge
+    from ..config import Config, ConfigError
+    from ..store import BridgeStore
 
-    from ..store import Store
-    from .persist import build_client
-
-    url = args.db_url or os.environ.get("ZEKA_DB_HTTP_URL", "")
-    if not url:
-        print("[segment] --persist verildi ama --db-url yok: KURU KOSU "
-              "(hicbir sey yazilmayacak)", file=sys.stderr)
-        return None
-    client = build_client(
-        url,
-        namespace=args.db_ns or os.environ.get("ZEKA_DB_NS", "hezarfen"),
-        database=args.db_name or os.environ.get("ZEKA_DB_NAME", "zeka"),
-        user=args.db_user or os.environ.get("ZEKA_DB_USER", "root"),
-        password=args.db_pass or os.environ.get("ZEKA_DB_PASSWORD", "root"),
+    try:
+        settings = Config(require_token=True)
+    except ConfigError as exc:
+        raise SystemExit(f"--persist için köprü ayarı eksik: {exc}") from exc
+    return BridgeStore(
+        bridge.OneShotCaller(settings), timeout_secs=settings.api_timeout_secs
     )
-    return Store(client)
 
 
 def cmd_run(args) -> int:
@@ -179,16 +179,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--max-answers", type=int, default=None)
     # --- Asama 5: depoya yazim. VARSAYILAN KAPALI. --------------------------
     s.add_argument("--persist", action="store_true",
-                   help="etiketleri ve ogrenci profillerini ZEKA deposuna yaz "
-                        "(--db-url yoksa kuru kosu)")
+                   help="etiketleri ve ogrenci profillerini KOPRUDEN yaz: "
+                        "--school ve AI_SHARED_TOKEN yoksa kuru kosu")
     s.add_argument("--school", default=None,
                    help="okul slug'i; verilmezse tohum manifestosundan okunur")
-    s.add_argument("--db-url", default=None,
-                   help="SurrealDB HTTP adresi, orn. http://hzk-zeka:8000")
-    s.add_argument("--db-ns", default=None, help="namespace (vars: hezarfen)")
-    s.add_argument("--db-name", default=None, help="veritabani (vars: zeka)")
-    s.add_argument("--db-user", default=None, help="kullanici (vars: root)")
-    s.add_argument("--db-pass", default=None, help="parola (vars: root)")
     s.set_defaults(func=cmd_run)
 
     s = sub.add_parser("cache", help="onbellek durumu / temizleme")

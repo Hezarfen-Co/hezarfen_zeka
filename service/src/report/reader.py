@@ -1,19 +1,16 @@
-"""Rapor katmanının **okuma** yüzeyi — ZEKA'nın kendi beş tablosu.
+"""Rapor katmanının **okuma** yüzeyi.
 
-Köprüye gidilmez, okul veritabanına dokunulmaz: rapor yalnız gece koşusunun
-ZEKA veritabanına yazdığı satırları okur (`docs/CIKTI-SOZLESMESI.md` §0).
+Köprü okumaları ve zeka veritabanı BURADA YOKTUR: ZEKA'nın kendi veritabanı
+yok (değişmez kural: bir AI servisi uygulama veritabanına asla doğrudan
+erişmez), o yüzden rapor katmanı yalnız bir `Reader` protokolü tanımlar ve
+bellek içi bir uygulama verir:
 
-Sorgu kalıpları sözleşmenin §6'sındandır. Oradaki **en önemli tuzak** burada
-da geçerlidir: iki nokta taşıyan her kimlik karşılaştırması `type::string()`
-ile sarılır, yoksa SurrealDB 3 metni uçta `record`'a çevirir ve sorgu
-**sessizce sıfır satır** döndürür.
+* `MemoryReader` — sözlükten okuyan uygulama; fikstür yolu ve testler bunu
+  kullanır. Sütun izdüşümünü (`columns`) **gerçekten uygular**; böylece
+  dikkat listesi kapısı testte de veri düzeyinde sınanır.
 
-İki uygulama vardır:
-
-* `DbReader`  — gerçek SurrealDB (`store.SurrealHttpClient` ya da `DbClient`).
-* `MemoryReader` — sözlükten okuyan sahte; testler ve fikstür yolu için.
-  Sütun izdüşümünü (`columns`) **gerçekten uygular**; böylece dikkat listesi
-  kapısı testte de veri düzeyinde sınanır.
+Canlı bir dağıtımın satırlarını okumak backend'in `/insights` uçlarının
+işidir; buradan geçen bir okuma yolu yoktur ve olmayacaktır.
 """
 
 from __future__ import annotations
@@ -50,112 +47,6 @@ class Reader(Protocol):
     async def runs(self, school: str, *, limit: int = 5) -> list[dict[str, Any]]: ...
 
     async def question_segments(self, school: str) -> list[dict[str, Any]]: ...
-
-
-def _rows(result: Any) -> list[dict[str, Any]]:
-    """SurrealDB `/rpc` cevabından satır listesini çıkarır.
-
-    Cevap iki katmanlıdır: ifade listesi → `result` listesi → satır.
-    Sahte istemciler düz liste döndürebilir; o da kabul edilir.
-    """
-    if not isinstance(result, list):
-        return []
-    out: list[dict[str, Any]] = []
-    for item in result:
-        if isinstance(item, dict) and "result" in item:
-            inner = item.get("result")
-            if isinstance(inner, list):
-                out.extend(r for r in inner if isinstance(r, dict))
-        elif isinstance(item, dict):
-            out.append(item)
-    return out
-
-
-class DbReader:
-    """Gerçek ZEKA veritabanından okur. Yazma yolu **yoktur**."""
-
-    def __init__(self, client: Any) -> None:
-        self._client = client
-        #: Çalıştırılan SurrealQL ifadeleri — kapı testinin kanıtı.
-        self.statements: list[str] = []
-
-    async def _query(self, sql: str, variables: dict[str, Any]) -> list[dict[str, Any]]:
-        self.statements.append(sql)
-        return _rows(await self._client.query(sql, variables))
-
-    async def summaries(
-        self, school: str, *, columns: tuple[str, ...], student: str | None = None
-    ) -> list[dict[str, Any]]:
-        """`student_summary` — **sütun listesi çağırandan gelir**.
-
-        Öğrenci raporunda `attention` bu listede yoktur; satır veritabanından
-        dikkat listesi taşımadan çıkar (`gate.py` başı).
-        """
-        select = ", ".join(columns)
-        sql = f"SELECT {select} FROM student_summary WHERE school = $school"
-        variables: dict[str, Any] = {"school": school}
-        if student is not None:
-            sql += " AND student = type::string($student)"
-            variables["student"] = student
-        return await self._query(sql + ";", variables)
-
-    async def recommendations(
-        self,
-        school: str,
-        *,
-        audience: str | None = None,
-        audience_role: str | None = None,
-    ) -> list[dict[str, Any]]:
-        sql = "SELECT * FROM recommendation WHERE school = $school"
-        variables: dict[str, Any] = {"school": school}
-        if audience is not None:
-            sql += " AND audience = type::string($audience)"
-            variables["audience"] = audience
-        if audience_role is not None:
-            sql += " AND audience_role = $role"
-            variables["role"] = audience_role
-        return await self._query(sql + ";", variables)
-
-    async def segment_profiles(
-        self, school: str, *, student: str | None = None
-    ) -> list[dict[str, Any]]:
-        sql = (
-            "SELECT school, student, dimension, label, n_answers, contrast, "
-            "confidence, computed_at FROM student_segment_profile "
-            "WHERE school = $school"
-        )
-        variables: dict[str, Any] = {"school": school}
-        if student is not None:
-            sql += " AND student = type::string($student)"
-            variables["student"] = student
-        return await self._query(sql + ";", variables)
-
-    async def runs(self, school: str, *, limit: int = 5) -> list[dict[str, Any]]:
-        sql = (
-            "SELECT * FROM insight_run WHERE school = $school "
-            f"ORDER BY started_at DESC LIMIT {int(limit)};"
-        )
-        return await self._query(sql, {"school": school})
-
-    async def question_segments(self, school: str) -> list[dict[str, Any]]:
-        select = ", ".join(
-            (
-                "question",
-                "exam",
-                "course",
-                "subject",
-                "bilissel_talep",
-                "dikkat_tuzagi",
-                "okuma_yuku",
-                "adim_sayisi",
-                "confidence",
-                "downstream_dimensions",
-                "experimental_dimensions",
-                "computed_at",
-            )
-        )
-        sql = f"SELECT {select} FROM question_segment WHERE school = $school;"
-        return await self._query(sql, {"school": school})
 
 
 class MemoryReader:

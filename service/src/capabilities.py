@@ -135,29 +135,29 @@ Handler = Callable[[str, dict[str, Any]], dict[str, Any]]
 
 _handlers: dict[str, Handler] = {}
 
-#: Servisin okul dizini (`tenants.Directory`). Isleyiciler okulun deposunu
-#: BURADAN cozer: `capabilities.directory().store_for(school)`. Cercevenin
+#: Servisin deposu (`store.BridgeStore`). Isleyiciler okulun deposunu
+#: BURADAN cozer: `capabilities.store().store_for(school)`. Cercevenin
 #: `school` alani tek kimlik kaynagidir; ikinci bir yol (ortam degiskeni,
-#: varsayilan okul) olmamasi bilincli -- yanlis okulun veritabanindan cevap
-#: veren bir okuma, bu alanin kapatmak istedigi tek arizadir.
-_directory: Any = None
+#: varsayilan okul) olmamasi bilincli -- yanlis okula yazan bir isleyici,
+#: bu alanin kapatmak istedigi tek arizadir.
+_store: Any = None
 
 
-def bind_directory(directory: Any) -> None:
+def bind_store(store: Any) -> None:
     """Acilista bir kez cagrilir (`bridge._serve`); testler de kullanir."""
-    global _directory
-    _directory = directory
+    global _store
+    _store = store
 
 
-def directory() -> Any:
-    """Bagli okul dizini. Baglanmamisken okul cozulemez -- sessizce
-    varsayilana dusmek yerine acik hata."""
-    if _directory is None:
+def store() -> Any:
+    """Bagli depo. Baglanmamisken okul cozulemez -- sessizce bos bir depo
+    uydurmak, yazilan her seyi kaybederdi."""
+    if _store is None:
         raise CapabilityError(
             "unavailable",
-            "okul dizini bagli degil; isleyici okul veritabanini cozemez",
+            "depo bagli degil; isleyici okul deposunu cozemez",
         )
-    return _directory
+    return _store
 
 
 def names() -> list[str]:

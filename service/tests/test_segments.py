@@ -38,13 +38,16 @@ from src.segment.rubric import (
 )
 from src.segment.schema import CallUsage, DimensionResult, ItemSegmentation
 from src.store import (
+    CAP_PROFILE,
+    CAP_PURGE,
+    CAP_SEGMENT,
+    CAP_SWEEP,
+    PURGE_TABLES,
     RETENTION_DAYS,
-    CollectingClient,
-    Store,
-    load_schema_text,
-    question_segment_row,
-    split_statements,
-    student_segment_profile_row,
+    BridgeStore,
+    RecordingCaller,
+    segment_rows,
+    profile_rows,
 )
 
 NOW = 1_699_963_200_000
@@ -385,52 +388,63 @@ def question_segment(**over) -> QuestionSegment:
 
 
 class TestSemaMetni(unittest.TestCase):
-    def test_iki_yeni_tablo_semada_tanimli(self) -> None:
-        text = load_schema_text()
-        for table in ("question_segment", "student_segment_profile"):
-            self.assertIn(f"DEFINE TABLE IF NOT EXISTS {table} SCHEMAFULL;", text)
+    """Şemanın sahibi artık backend'dir; satır üreteci sözleşmeyi taşır.
 
-    def test_her_satir_alani_semada_var(self) -> None:
-        """Satir uretecinin yazdigi her alan semada TANIMLI mi?"""
-        statements = split_statements(load_schema_text())
-        for table, row in (
-            ("question_segment", question_segment_row(question_segment())),
-            (
-                "student_segment_profile",
-                student_segment_profile_row(profile("analiz")),
-            ),
-        ):
-            declared = {
-                s.split("IF NOT EXISTS", 1)[1].split("ON", 1)[0].strip()
-                for s in statements
-                if s.startswith("DEFINE FIELD") and f" ON {table} " in s
-            }
-            self.assertTrue(declared, table)
-            self.assertEqual(set(row) - declared, set(), table)
+    Eski testler `schema/zeka.surql` metnini okuyordu; o dosya silindi
+    (DDL `hezarfen_backend`'in göçlerinde yaşar). Burada pinlenen şey satır
+    üretecinin alan adlarıdır: backend'in `zeka_*` kolonlarıyla aynı olmak
+    zorundadır.
+    """
 
-    def test_dizi_alanlarinda_yildiz_once_tanimlanir(self) -> None:
-        """`.*` diziden SONRA gelirse ic anahtarlar sessizce duserdi."""
-        text = load_schema_text()
-        for name in ("experimental_dimensions", "downstream_dimensions"):
-            star = text.index(f"{name}.*")
-            plain = text.index(f"{name}", star + len(name) + 2)
-            self.assertLess(star, plain, name)
+    def test_satir_alanlari_beklenen_kume(self) -> None:
+        segment = segment_rows([question_segment()])[0]
+        self.assertEqual(set(segment) - {"retain_until"}, {
+            "question",
+            "exam",
+            "course",
+            "subject",
+            "labels",
+            "confidences",
+            "confidence",
+            "trap_choice",
+            "rationale",
+            "model",
+            "prompt_version",
+            "variant",
+            "computed_at",
+            "downstream_dimensions",
+            "experimental_dimensions",
+        })
+        profile_row = profile_rows([profile("analiz")])[0]
+        self.assertEqual(set(profile_row) - {"retain_until"}, {
+            "student",
+            "dimension",
+            "label",
+            "n_answers",
+            "n_correct",
+            "accuracy",
+            "overall_n_answers",
+            "overall_accuracy",
+            "contrast",
+            "confidence",
+            "computed_at",
+        })
 
 
 class TestSatirBicimi(unittest.TestCase):
     def test_question_segment_saklama_suresi(self) -> None:
-        row = question_segment_row(question_segment())
+        row = segment_rows([question_segment()])[0]
         self.assertEqual(
             row["retain_until"], NOW + RETENTION_DAYS["question_segment"] * DAY
         )
 
-    def test_boyutlar_alan_adina_donusur(self) -> None:
-        row = question_segment_row(question_segment())
-        self.assertEqual(row["bilissel_talep"], "analiz")
-        self.assertEqual(row["confidence_okuma_yuku"], 0.95)
+    def test_boyutlar_ve_guvenleri_ic_ice_tasir(self) -> None:
+        row = segment_rows([question_segment()])[0]
+        self.assertEqual(row["labels"]["bilissel_talep"], "analiz")
+        self.assertEqual(row["confidences"]["okuma_yuku"], 0.95)
 
     def test_deneysel_boyut_satirda_isaretli(self) -> None:
-        row = question_segment_row(question_segment())
+        row = segment_rows([question_segment()])[0]
         self.assertEqual(row["experimental_dimensions"], ["adim_sayisi"])
         self.assertNotIn("adim_sayisi", row["downstream_dimensions"])
 
@@ -444,9 +458,7 @@ class TestSatirBicimi(unittest.TestCase):
             question_segment(confidences={"bilissel_talep": 0.9})
 
     def test_profil_satiri_kontrast_tasir(self) -> None:
-        row = student_segment_profile_row(
-            profile("analiz", accuracy=0.4, overall=0.6)
-        )
+        row = profile_rows([profile("analiz", accuracy=0.4, overall=0.6)])[0]
         self.assertAlmostEqual(row["contrast"], -0.2, places=4)
         self.assertAlmostEqual(row["overall_accuracy"], 0.6, places=4)
         self.assertEqual(
@@ -456,39 +468,43 @@ class TestSatirBicimi(unittest.TestCase):
 
 
 class TestYazim(unittest.IsolatedAsyncioTestCase):
-    async def test_merge_kullanilir(self) -> None:
-        """CONTENT, insan/baska kaynak alanlarini silerdi."""
-        client = CollectingClient()
-        store = Store(client)
+    async def test_yazim_yetenek_cagrisiyla_gider(self) -> None:
+        """Satirlar `insight.segment.upsert` / `insight.profile.upsert` ile."""
+        caller = RecordingCaller()
+        store = BridgeStore(caller).store_for("okul-a")
         await store.write_question_segments([question_segment()])
         await store.write_segment_profiles([profile("analiz")])
-        for sql, _ in client.statements:
-            self.assertIn("MERGE", sql)
-            self.assertIn("type::record(", sql)
+        self.assertEqual(
+            [capability for capability, _, _ in caller.calls],
+            [CAP_SEGMENT, CAP_PROFILE],
+        )
+        self.assertTrue(all(school == "okul-a" for _, school, _ in caller.calls))
 
     async def test_supurme_iki_yeni_tabloyu_da_gezer(self) -> None:
-        client = CollectingClient()
-        results = await Store(client).sweep(NOW)
-        self.assertIn("question_segment", results)
-        self.assertIn("student_segment_profile", results)
-        tables = [sql.split()[1] for sql, _ in client.statements]
-        self.assertIn("question_segment", tables)
-        self.assertIn("student_segment_profile", tables)
+        caller = RecordingCaller()
+        results = await BridgeStore(caller).store_for("okul-a").sweep(NOW)
+        self.assertEqual(
+            [capability for capability, _, _ in caller.calls], [CAP_SWEEP]
+        )
+        self.assertIn("zeka_question_segment", results)
+        self.assertIn("zeka_student_segment_profile", results)
 
-    async def test_mezuniyet_temizligi_profili_siler_soruyu_silmez(self) -> None:
-        client = CollectingClient()
-        await Store(client).purge_departed("okul-a", ["kalan"])
-        sql = client.statements[0][0]
-        self.assertIn("DELETE student_segment_profile", sql)
-        # Soru satiri kisisel veri DEGIL: mezuniyetle silinmez.
-        self.assertNotIn("DELETE question_segment", sql)
+    async def test_mezuniyet_temizligi_yalniz_kisisel_tablolari_siler(self) -> None:
+        """Soru satiri kisisel veri DEGIL: mezuniyet temizliginde YOKTUR."""
+        caller = RecordingCaller()
+        await BridgeStore(caller).store_for("okul-a").purge_departed(
+            "okul-a", ["kalan"]
+        )
+        self.assertEqual([capability for capability, _, _ in caller.calls], [CAP_PURGE])
+        self.assertNotIn("zeka_question_segment", PURGE_TABLES)
+        self.assertIn("zeka_student_segment_profile", PURGE_TABLES)
 
-    async def test_bos_liste_ifade_uretmez(self) -> None:
-        client = CollectingClient()
-        store = Store(client)
+    async def test_bos_liste_cagri_uretmez(self) -> None:
+        caller = RecordingCaller()
+        store = BridgeStore(caller).store_for("okul-a")
         report = await store.write_question_segments([])
         self.assertEqual(report.written, 0)
-        self.assertEqual(client.statements, [])
+        self.assertEqual(caller.calls, [])
 
 
 # ===========================================================================
@@ -650,11 +666,11 @@ class TestKopru(unittest.TestCase):
                 sapan = s == 0 and tuzakli
                 answers.append((qid, f"user:{s}", "tuzak" if sapan else "dogru"))
 
-        client = CollectingClient()
+        caller = RecordingCaller()
+        store = BridgeStore(caller).store_for("okul-a")
         report = asyncio.run(
             persist_mod.persist(
-                b, items, answers, school="okul-a", now_ms=NOW,
-                store=Store(client),
+                b, items, answers, school="okul-a", now_ms=NOW, store=store,
             )
         )
         self.assertEqual(report.recommendation_rows, 1)
@@ -662,12 +678,12 @@ class TestKopru(unittest.TestCase):
         self.assertEqual(report.recommendation_rejected, 0)
 
     def test_persist_gercek_depoya_yazar(self) -> None:
-        client = CollectingClient()
+        caller = RecordingCaller()
         answers = [("q1", "user:1", "c-dogru"), ("q2", "user:1", "c-dogru2")]
         report = asyncio.run(
             persist_mod.persist(
                 batch(), ITEMS, answers, school="okul-a", now_ms=NOW,
-                store=Store(client),
+                store=BridgeStore(caller).store_for("okul-a"),
             )
         )
         self.assertFalse(report.dry_run)

@@ -5,22 +5,70 @@ Bu belge backend ekibine iletilecek **somut** istek listesidir. Her madde
 vardir: **ne isteniyor**, **neden**, **olmadiginda ne kaybediliyor**.
 
 Hicbiri ZEKA tarafinda cozulemez. ZEKA'nin backend'e giden tek kanali QUIC
-koprusudur ve o kanal:
+koprusudur ve o kanal bugun:
 
-- yalnizca **GET** dagitir (`src/ai/server.rs:719-726` -> `method_not_allowed`),
-- yalnizca **19 yollu, reddet-varsayilan** bir izin listesine bakar
+- okuma icin yalnizca **GET** dagitir (`src/ai/server.rs:719-726` ->
+  `method_not_allowed`),
+- okuma icin yalnizca **19 yollu, reddet-varsayilan** bir izin listesine bakar
   (`src/constant.rs:656-676`, eslesme `src/ai/api.rs:39-60`),
-- ve yalnizca backend'in **tanidigi yetenek adlarina** is gonderir
+- ve is dagitimini yalnizca backend'in **tanidigi yetenek adlarina** yapar
   (`src/ai/protocol.rs:91-94`, tam eslesme).
+
+Yazma yolu **hic yoktur**: servisin kendi `zeka_*` satirlarini gonderebilecegi
+istemci-baslatimli bir yetenek cercevesi tanimli degildir (Madde 1).
 
 Yani asagidaki uc madde ZEKA'nin nelerin **disinda** kaldigini tarif eder.
 
 ---
 
-## Madde 1 -- ZEKA'nin yetenekleri backend'de tanimli degil
+## Madde 1 -- `insight.*` kapilari backend'de tanimli degil
+
+**Sahibi: backend'deki `InsightDoors` hatti.** Asagidaki zarf DONMUS'TUR; servis
+ona karsi yazildi. Backend tarafinin dagitilmis oldugu **iddia edilmez** -- bu
+madde aciktir.
 
 ### Ne isteniyor
 
+Iki yon birden. Ikisi de ayni cerceve bicimini kullanir
+(`u32` big-endian uzunluk + UTF-8 JSON, `src/ai/protocol.rs`) ve **okul
+cercevededir**, payload'da degil:
+
+```
+{ "id": "<ulid>", "capability": "insight.<ad>", "school": "<slug>", "payload": {...} }
+
+{ "status": "ok",  "id": ..., "school": ..., "payload": {...} }
+{ "status": "err", "id": ..., "school": ..., "code": ..., "message": ... }
+```
+
+**a) Servisin cagiramadigi operasyonlar (istemci-baslatimli akis).** Bugun
+koprunun istemci-baslatimli iki sekli vardir: `ApiRequest` (izin listesindeki
+GET yollari) ve `BlobRequest` (bayt). Yazma icin bir yol **yoktur** -- oysa
+ZEKA'nin kendi satirlarini yazmasi ve okumasi gerekir. Istenen operasyon listesi
+(`service/src/store.py`):
+
+| Yetenek | Ne yapar |
+|---|---|
+| `insight.schools.list` | Dagitimdaki **aktif** okullar (okul alani bos gider) |
+| `insight.summary.upsert` | Gecelik ogrenci ozeti + dikkat maddeleri |
+| `insight.recommendation.upsert` | Tavsiye satirlari (`rejected` sayisi doner) |
+| `insight.segment.upsert` | Soru bilissel etiketleri |
+| `insight.profile.upsert` | Ogrenci x boyut x etiket profili |
+| `insight.run.upsert` | Kosu defteri (+ devreden ogrenciler, dusen moduller) |
+| `insight.pending.list` | Onceki kosudan devreden ogrenciler |
+| `insight.retention.sweep` | Suresi dolmus satirlarin supurulmesi |
+| `insight.departed.purge` | Okuldan ayrilanin satirlarinin silinmesi |
+
+Upsert'ler **500 satirlik gruplar** halinde gelir (`rows`); tavan asilirsa
+`too_many_rows` beklenir. Bilinmeyen yetenek `unknown_capability`, bilinmeyen
+alan `invalid_payload`, yetki yoksa `not_permitted` donmelidir: reddin kodu
+tiplidir ve servis onu `CapabilityRefused` olarak yukseltir, sessizce yutmaz.
+
+`zeka_*` tablolarinin DDL'i backend deposundadir
+(`migrations/school/20260917000002_zeka.sql`) ve **okulun kendi
+veritabaninda** durur: kiracı, veritabaninin kendisidir, satirda `school`
+kolonu yoktur.
+
+**b) Servisin servis ettigi yetenekler (sunucu-baslatimli akis).**
 `src/constant.rs` icine yeni yetenek sabitleri ve onlari cagiran dagitim kodu:
 
 ```rust
@@ -50,7 +98,9 @@ Backend'in bugun tanidigi yetenek adlari **yalnizca ikidir**:
 
 Yonlendirme **tam eslesmedir** (`src/ai/protocol.rs:91-94`): yaklasik eslesme,
 on-ek eslesmesi ya da geri dusme yoktur. ZEKA baglanip `insight.student` ilan
-etse bile, o adi arayan bir `Request` ureten kod backend'de **yoktur**.
+etse bile, o adi arayan bir `Request` ureten kod backend'de **yoktur**; ayni
+sekilde servisin cagirdigi `insight.*` operasyonlarini karsilayacak bir
+istemci-baslatimli cerceve de **yoktur**.
 
 Bu, podcast servisinin yasadigi sorunun aynisidir: `podcast.submit`,
 `podcast.status`, `podcast.result`, `podcast.cancel` adlarinin hicbiri backend
@@ -59,18 +109,18 @@ protokol surumunu duzeltip **baglansa bile** hicbir is almaz.
 
 ### Olmadiginda ne kaybediliyor
 
-Backend ZEKA'yi **hic cagiramaz**. Senkron her senaryo duser:
+Iki taraftan birden:
 
-- Ogretmen bir ogrencinin karnesini acar ve "ZEKA analizi" ister -> backend'in
-  bu istegi koprude karsilayacak bir yolu yoktur.
-- Bir sinav notlandirildiktan hemen sonra sinif analizinin tazelenmesi -> olay
-  aninda tetiklenemez.
-- Frontend'den gelen "simdi hesapla" -> hicbir sey olmaz.
+- Backend ZEKA'yi **hic cagiramaz**. Ogretmen "ZEKA analizi" ister -> koprude o
+  istegi karsilayacak bir yol yoktur; "simdi hesapla" hicbir sey yapmaz.
+- ZEKA **kendi satirlarini yazamaz** ve devreden ogrenci listesini okuyamaz.
+  Kendi zamanlayicisiyla kosar ama cikti veremez: butun gece kosusu
+  `CapabilityRefused` ile `partial` yazilir. Sessiz kalmaz -- ve tam da bu
+  yuzden acik bir maddedir.
 
-ZEKA yine de **kendi zamanlayicisiyla** (`ZEKA_REFRESH_INTERVAL_SECS`) hesap
-kosar ve ciktilarini kendi veritabanina yazar; yani urun tamamen olmez, ama
-**istege bagli (on-demand) her sey** kaybedilir ve her sonuc en kotu ihtimalle
-bir tazeleme periyodu kadar bayattir.
+ZEKA'nin hesap motoru bu iki kapi olmadan da **calisir ve test edilir**
+(`--dry-run` cagrilari toplar); kaybedilen sey, sonucun okulun veritabanina
+inmesidir.
 
 ---
 
@@ -159,26 +209,20 @@ ZEKA'nin kattigi deger degildir.
 
 ---
 
-## Madde 3 -- Okul ve kullanici listeleme yolu yok
+## Madde 3 -- Kullanici (kadro) listeleme yolu yok
 
 ### Ne isteniyor
 
-Iki uc, izin listesine:
+Okul listesi Madde 1a'dadir (`insight.schools.list`). Burada kalan tek sey
+**kadro**: rotalar **vardir** ama izin listesinde **degildir**:
 
-1. **Okul listesi.** Bugun boyle bir REST ucu **hic yoktur** -- okullar kontrol
-   veritabanindadir ve `Tenants` uzerinden cozulur (`src/ai/server.rs:82-99`).
-   Servisin gordugu tek sey, bir slug verip `unknown_school` /
-   `school_suspended` yemektir. Istek: baglanmis bir AI servisinin **aktif okul
-   sluglarini** listeleyebilecegi bir yol (yeni bir uc, orn.
-   `GET /ai/schools`, ya da kopruye bir `SchoolsRequest` cercevesi).
-2. **Kullanici listesi.** Rotalar **vardir** ama izin listesinde **degildir**:
-   - `GET /users` -- sayfali kullanici listesi (`src/web/users.rs:260`),
-   - `GET /users/search` -- role gore arama (`src/web/users.rs:210`),
-   - `GET /classes/{id}/members` -- sinif mevcudu (`src/web/classes.rs:727`).
+- `GET /users` -- sayfali kullanici listesi (`src/web/users.rs:260`),
+- `GET /users/search` -- role gore arama (`src/web/users.rs:210`),
+- `GET /classes/{id}/members` -- sinif mevcudu (`src/web/classes.rs:727`).
 
-   Bunlardan en az biri (tercihen `GET /users/search`, cunku ciktisi zaten
-   yalnizca id/kullanici adi/gorunen ad tasir, **iletisim bilgisi tasimaz**)
-   `AI_API_ALLOWLIST`'e eklenmelidir.
+Bunlardan en az biri (tercihen `GET /users/search`, cunku ciktisi zaten
+yalnizca id/kullanici adi/gorunen ad tasir, **iletisim bilgisi tasimaz**)
+`AI_API_ALLOWLIST`'e eklenmelidir.
 
 ### Neden
 
@@ -187,19 +231,21 @@ ZEKA'nin butun is birimi "bir okulun bir ogrencisi icin hesap kos"tur. Ama
 filo paylasimlidir, tek baglanti dagitimdaki her okula hizmet eder ve her frame
 kendi okulunu adlandirir. Bu tasarim dogrudur.
 
-Sonucu sudur: servis, **hangi okullarin var oldugunu ve o okullarda kimlerin
-bulundugunu ogrenebilecegi hicbir yola sahip degildir**. Backend ZEKA'ya is
-gonderseydi okul ve kullanici `Request` cercevesinde gelirdi -- ama Madde 1
-yuzunden backend ZEKA'ya is gondermiyor. Yani ZEKA'nin kendi kendine kosmasi
-gerekiyor ve kendi kendine kosmak icin bir liste gerekiyor.
+Sonucu sudur: servis, o okullarda **kimlerin bulundugunu** ogrenebilecegi bir
+yola sahip degildir. Backend ZEKA'ya is gonderseydi kullanici `Request`
+cercevesinde gelirdi -- ama Madde 1 yuzunden backend ZEKA'ya is gondermiyor.
+Yani ZEKA'nin kendi kendine kosmasi gerekiyor ve kendi kendine kosmak icin bir
+liste gerekiyor.
 
 ### Bugun nasil cozuluyor
 
-**Yapilandirmadan.** `service/src/config.py` icinde:
+**Okul listesi:** artik backend'den (`insight.schools.list`, Madde 1a) gelir;
+`ZEKA_SCHOOLS` yalnizca bir **operator filtresidir** (bos birakilirsa
+dagitimdaki butun aktif okullar islenir). Yani "yeni okul gorunmez" riski okul
+tarafinda kapandi; geriye **kadro** kaldi.
 
-- `ZEKA_SCHOOLS` -- islenecek okul sluglari, virgulle ayrilmis. Artik bir
-  FILTREDIR: bos birakilirsa kontrol veritabanindaki (`school` tablosu)
-  butun aktif okullar islenir (varsayilan: bos),
+**Ogrenci listesi:** hala yapilandirmadan. `service/src/config.py` icinde:
+
 - `ZEKA_STUDENT_SOURCE` = `config` | `file`,
 - `ZEKA_STUDENTS` -- kullanici kimlikleri, virgulle ayrilmis,
 - `ZEKA_STUDENT_FILE` -- ayni listenin dosya hali.
@@ -213,9 +259,10 @@ Yani kapsam **elle** tutulur.
   ZEKA icin yoktur. Tohum verisinde bu kenar durum bilincli olarak vardir.
 - **Ayrilan ogrenci silinmez.** Listede kaldigi surece ZEKA onun icin hesap
   kosmaya devam eder ve her seferinde bos/hatali sonuc uretir.
-- **Yeni okul gorunmez.** Platforma bir okul eklendiginde ZEKA'nin yapilandirmasi
-  guncellenmediyse o okul hic islenmez -- ve bunun hicbir belirtisi olmaz,
-  cunku "islenmeyen okul" ile "sorunsuz islenen okul" ayni sessizlikte gorunur.
+- **Yeni okul gorunmez** — okul listesi backend'den geldigi icin (Madde 1a)
+  bu risk kapandi; kalan risk, operatör filtresi (`ZEKA_SCHOOLS`) elle daraltilmis
+  birakilirsa ayni sessizligin geri gelmesidir: "filtreye takilmayan okul" ile
+  "sorunsuz islenen okul" ayni sessizlikte gorunur.
 - **Isletme maliyeti.** Kapsam, kod deposunda degil `compose.yaml` ortam
   degiskeninde yasar; her mevcut degisikligi bir dagitim islemi haline gelir.
 
@@ -225,9 +272,9 @@ Yani kapsam **elle** tutulur.
 
 | # | Istenen | Kaynak dosya | Olmazsa kaybedilen |
 |---|---|---|---|
-| 1 | `insight.student` / `insight.class` / `insight.refresh` sabitleri + dagitim kodu | `src/constant.rs`, `src/ai/` | Backend ZEKA'yi **hic cagiramaz**; istege bagli her senaryo duser |
+| 1 | Dokuz `insight.*` operasyonu (yazma + liste + supurme) **ve** `insight.student` / `insight.class` / `insight.refresh` sabitleri + dagitim kodu | `src/constant.rs`, `src/ai/` | ZEKA satirlarini **yazamaz** (gece kosusu `partial`); backend ZEKA'yi **hic cagiramaz**, istege bagli her senaryo duser. Sahibi: `InsightDoors` |
 | 2 | 9 sinav yolu (+3 sinif/ders yolu) izin listesine | `src/constant.rs:656-676` | **Madde analizi, konu karnesi, sinif isi haritasi** hic uretilemez |
-| 3 | Okul listeleme ucu + `GET /users/search` izin listesine | yeni uc; `src/constant.rs:656-676` | Kapsam elle tutulur; yeni ogrenci/okul **sessizce** gorunmez |
+| 3 | `GET /users/search` izin listesine (okul listesi Madde 1a'da) | `src/constant.rs:656-676` | Ogrenci kadrosu elle tutulur; yeni ogrenci **sessizce** gorunmez |
 
 ---
 

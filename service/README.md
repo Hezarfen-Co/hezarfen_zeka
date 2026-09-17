@@ -3,7 +3,9 @@
 Öğrenci analizi ve tavsiye servisi. Podcast ve Çelebi ile **aynı desende** çalışır:
 kendi konteynerinde durur, port açmaz, backend'in QUIC köprüsüne dışa arama yapar.
 
-~8.500 satır Python, 628 test, tek çalışma zamanı bağımlılığı `aioquic`.
+Tek çalışma zamanı bağımlılığı `aioquic`; hesap modülleri saf Python'dur.
+**Veritabanı bağlantısı yoktur** — ne bir sürücü, ne bir bağlantı dizesi, ne bir
+sorgu.
 
 > **Frontend / backend ekibi:** üretilen her tablo, alan ve kural kimliği için
 > tek belge `docs/CIKTI-SOZLESMESI.md`. Segment kurallarının ölçülmüş isabeti
@@ -30,6 +32,29 @@ takvimiyle çalışabilir.
 Protokol sürümü `hab/2`'dir (`backend/src/constant.rs:530`). Podcast ve Çelebi `hab/1`
 kullanıyor ve bu yüzden **hiç bağlanamıyorlar**; ZEKA o hatayı tekrarlamaz ve bir test
 sabiti pinler.
+
+## Nereye yazar
+
+Aynı köprüye, **yetenek çağrısıyla**. Servis taze bir istemci-başlatımlı akışta
+şu çerçeveyi yazar:
+
+```
+{ "id": "<ulid>", "capability": "insight.<ad>", "school": "<slug>", "payload": {...} }
+
+{ "status": "ok",  "id": ..., "school": ..., "payload": {...} }
+{ "status": "err", "id": ..., "school": ..., "code": ..., "message": ... }
+```
+
+Okul çerçevededir; backend slug'ı çözer ve her ifadeyi o okulun kendi
+veritabanında koşturur. Dokuz `zeka_*` tablosu orada durur ve DDL'i backend
+deposundadır (`migrations/school/20260917000002_zeka.sql`) — servis ne şema
+uygular ne de bir veritabanı kullanıcısı ister.
+
+Servisin çağırdığı operasyonlar: `insight.schools.list`, `insight.summary.upsert`,
+`insight.recommendation.upsert`, `insight.segment.upsert`, `insight.profile.upsert`,
+`insight.run.upsert`, `insight.pending.list`, `insight.retention.sweep`,
+`insight.departed.purge`. Servisin **servis ettiği** yetenekler `insight.student`,
+`insight.class`, `insight.refresh`'tir (`src/capabilities.py`).
 
 ---
 
@@ -125,13 +150,15 @@ Tohum verisinde 217.498 sınav cevabı ve kasıtlı olarak bozuk maddeler var. Y
 
 `docs/BACKEND-GEREKSINIMLERI.md` üç maddelik listeyi gerekçeleriyle içerir:
 
-1. **ZEKA'nın yetenekleri backend'de tanımlı değil.** Backend yalnız `chat.reply` ve
-   `rag.index` tanır ve eşleşme tamdır. ZEKA bağlansa bile hiç iş almaz — podcast'in
-   yaşadığı sorunun aynısı. Bu olmadan istek üzerine çalışan her senaryo kapalıdır.
+1. **`insight.*` kapıları backend'de yok.** Bugün backend yalnız `chat.reply` ve
+   `rag.index` tanır. ZEKA'nın çağırdığı dokuz operasyon ve servis ettiği üç yetenek
+   kapı bekliyor; backend'de bu iş **`InsightDoors`** hattının sahibindedir. Servis
+   ona karşı yazıldı, zarf donduruldu; kapılar gelene kadar istek üzerine tetikleme
+   kapalıdır.
 2. **Sınav yolları izin listesinde yok.** Madde analizi için gereken 9 yol listelenmiştir.
-3. **Okul ve kullanıcı listeleme yolu yok.** ZEKA kimleri işleyeceğini köprüden
-   öğrenemiyor; bugün yapılandırmadan çözülüyor. Dönem ortası kayıt olan öğrenci
-   görünmez, ayrılan silinmez.
+3. **Öğrenci listeleme yolu yok.** Okul listesi artık köprüden (`insight.schools.list`),
+   ama kimlerin işleneceği hâlâ yapılandırmadan çözülüyor. Dönem ortası kayıt olan
+   öğrenci görünmez, ayrılan silinmez.
 
 Bu maddeler **başka bir ekibin sorumluluğundadır.** ZEKA onlarsız da kendi takvimiyle
 çalışır, yalnız kapsamı dardır.
@@ -146,4 +173,7 @@ Bu maddeler **başka bir ekibin sorumluluğundadır.** ZEKA onlarsız da kendi t
   davranışı doğrular. Backend ayağa kalktığında yeniden sınanmalıdır.
 - Sertifika düz HTTP ile çekiliyor (podcast ve Çelebi ile aynı). `AI_TLS_FINGERPRINT`
   verilirse parmak izi doğrulanır; verilmezse her açılışta uyarı basılır.
-- Okul ve öğrenci kimlikleri yapılandırmadan gelir.
+- **`insight.*` kapıları backend'de henüz tanımlı değil.** Servis kendi takvimiyle
+  çalışır; çağrılar reddedilirse koşu defterine `partial` yazılır ve sessiz kalmaz.
+- Öğrenci kimlikleri yapılandırmadan gelir; okul listesi backend'den
+  (`insight.schools.list`, `ZEKA_SCHOOLS` yalnız filtre).

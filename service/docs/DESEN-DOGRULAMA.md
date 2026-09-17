@@ -214,7 +214,7 @@ içinde **en zayıf** ayrım budur; abartılmamalıdır. Diğer üçü net ayrı
 
 | Denetim | Sonuç |
 |---|---|
-| `seed/99_dogrula.surql` — 48 bütünlük sorgusu (SurrealDB üzerinde) | **48 geçti / 0 ihlal / 0 hata** |
+| `seed/99_dogrula.surql` — 48 bütünlük sorgusu | **48 geçti / 0 ihlal / 0 hata** |
 | `generator/selfcheck.py` (şema, enum, referans, sayaç, kimlik, metin, sözdizimi) | **TEMİZ** |
 | Belirlenimcilik — aynı tohum, iki koşu, `cmp` | **14/14 dosya bayt bayt aynı** |
 | Satır hacmi | 569.808 (önce 573.027, **−%0,6**) |
@@ -236,7 +236,7 @@ cd generator && python main.py && python selfcheck.py ../seed
 # 2) beş desen ölçümü (yalnız .surql + manifest; veritabanı gerekmez)
 python tools/measure_pattern.py --json work/desen.json
 
-# 3) bütünlük sorguları (SurrealDB gerekir)
+# 3) bütünlük sorguları (yüklenmiş tohum gerekir)
 python tools/load_seed.py --seed-dir seed
 python tools/check_integrity.py
 ```

@@ -18,7 +18,7 @@ Kurucuların uyduğu değişmezler (hepsi `docs/CIKTI-SOZLESMESI.md`'den):
    olgusu da ibareye döner).
 5. **Kapatılmış** ve **süresi geçmiş** satırlar hiç görünmez.
 6. **Segment karşıtlık olarak anlatılır**; ham doğruluk okunmaz bile
-   (`reader.py` SELECT'inde `accuracy` yoktur).
+   (`reader.py` izdüşümünde `accuracy` yoktur).
 7. **Öğrenci raporunda akran sıralaması yoktur**: karşılaştırma öğrencinin
    kendi geçmişi ve **anonim** şube dağılımıdır (tek sayı: şube ortalaması).
 """

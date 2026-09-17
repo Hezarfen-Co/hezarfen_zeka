@@ -43,7 +43,7 @@ from .compute import recommend as recommend_mod
 from .compute import study as study_mod
 from .compute import submission as submission_mod
 from .compute.model import Confidence, Recommendation, StudentSummary
-from .store import Store
+from .store import SchoolStore
 
 log = logging.getLogger(__name__)
 
@@ -73,6 +73,21 @@ class RunResult:
     def run_key(self) -> str:
         """`{school}_{YYYY-MM-DD}` — TR tarihi (`MODULLER.md` §4.4)."""
         return f"{self.school}_{clock.tr_date_key(self.started_at)}"
+
+    @property
+    def write_failed(self) -> bool:
+        """Depo yazması düştü mü?
+
+        `pipeline.run_school` bir grup yazmayı atladığında `store` işaretini
+        `failed_modules`'a koyar (bkz. aşağıda, yazma bölümü). Zamanlayıcı bu
+        işarete bakarak o okulun GÜNÜNÜ KAPATMAZ: aksi halde köprü arızası,
+        yazılmamış bir geceyi kalıcı bir boşluğa çevirirdi.
+
+        Kalıcı kayıt bu işaretin kendisidir: `failed_modules` koşu defteri
+        satırıyla birlikte backend'e yazılır (`insight.run.upsert`) ve bir
+        sonraki tur/operatör oradan okur.
+        """
+        return "store" in self.failed_modules
 
     def as_row(self) -> dict[str, Any]:
         row = dataclasses.asdict(self)
@@ -168,7 +183,7 @@ def _summary_confidence(marks_profile: dict[str, Any]) -> Confidence:
 
 async def run_school(
     source: Any,
-    store: Store,
+    store: SchoolStore,
     school: str,
     *,
     now_ms: int,
@@ -360,6 +375,12 @@ async def run_school(
         result.status = "failed"
     else:
         result.status = "ok"
+    # Yazma düştüyse koşu "ok" DEĞİLDİR: hesaplanan satırların bir kısmı
+    # yazılamadı ve bu, deftere bakan birinin görebilmesi gereken bir eksik.
+    # Durum `partial`'a iner; asıl kalıcı işaret `failed_modules`'tadır ve
+    # zamanlayıcı onu görünce o okulun GÜNÜNÜ KAPATMAZ (`write_failed`).
+    if result.write_failed and result.status == "ok":
+        result.status = "partial"
 
     await store.write_run(result.as_row(), result.run_key())
     return result

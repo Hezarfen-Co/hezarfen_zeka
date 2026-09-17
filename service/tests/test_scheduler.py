@@ -9,8 +9,9 @@ Kanitlanmasi istenen dort sey:
 4. Gece penceresini beklemeden tetiklenebilen bir test kipi var ve bu kip
    uretim yolunun **ayni** kodu.
 
-Birim testleri sahte bir `Store` ile kosar; entegrasyon testleri gercek
-SurrealDB'ye yazar (konteyner yoksa atlanir).
+Okul listesi artik yapilandirmadan degil **dizinden** gelir: her tikte
+`insight.schools.list` cagrilir. Testler sahte bir kopru ile kosar; gercek
+veritabani yoktur.
 """
 
 from __future__ import annotations
@@ -19,26 +20,54 @@ import asyncio
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 
 from src.compute import clock
+from src.report.capture import CapturingCaller
 from src.scheduler import WINDOW_END_HOUR, WINDOW_START_HOUR, Scheduler, in_window
 from src.source import FileSource
-from src.store import CollectingClient, Store
-from src.tenants import OneDatabase, SchoolDatabaseGone, TenantError
-
-from .fakes import FakeSource
-from .zeka_db import (
-    NOW,
-    TERM_START,
-    count_rows,
-    dataset,
-    fresh_schema_client,
-    requires_db,
-    select,
-    write_fixtures,
+from src.store import (
+    CAP_PENDING,
+    CAP_RUN,
+    CAP_SCHOOLS,
+    CAP_SUMMARY,
+    BridgeStore,
+    RecordingCaller,
 )
 
+from .fakes import FakeSource, dataset, write_fixtures
+
 DAY = clock.DAY_MS
+NOW = 1_699_963_200_000  # 2023-11-14 12:00 UTC
+TERM_START = NOW - 150 * DAY
+
+
+class LedgerCaller(RecordingCaller):
+    """Kosu defterini tutan sahte backend.
+
+    `insight.run.upsert` ile yazilan `pending_students`, `insight.pending.list`
+    ile geri verilir: gercek backend de en taze kosunun listesini boyle okur
+    (`db::insight::last_pending`). Okul listesi de buradan gelir.
+    """
+
+    def __init__(self, schools: list[str], **kw: Any) -> None:
+        super().__init__(**kw)
+        self.schools = list(schools)
+        self.pending: dict[str, list[str]] = {}
+
+    async def call(
+        self, capability: str, school: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        if capability == CAP_SCHOOLS and not self.fail_times:
+            self.calls.append((capability, school, payload))
+            return {"schools": list(self.schools)}
+        if capability == CAP_PENDING and not self.fail_times:
+            self.calls.append((capability, school, payload))
+            return {"students": list(self.pending.get(school, []))}
+        reply = await super().call(capability, school, payload)
+        if capability == CAP_RUN:
+            self.pending[school] = list(payload["run"].get("pending_students") or [])
+        return reply
 
 
 class FakeMonotonic:
@@ -59,8 +88,11 @@ class FakeMonotonic:
         return current
 
 
-def make_scheduler(data_by_school: dict[str, dict], **kw) -> tuple[Scheduler, Store]:
-    store = Store(CollectingClient())
+def make_scheduler(
+    data_by_school: dict[str, dict], **kw: Any
+) -> tuple[Scheduler, LedgerCaller]:
+    caller = LedgerCaller(list(data_by_school))
+    store = BridgeStore(caller)
     failing = kw.pop("failing", set())
 
     def factory(school: str):
@@ -70,16 +102,26 @@ def make_scheduler(data_by_school: dict[str, dict], **kw) -> tuple[Scheduler, St
 
     scheduler = Scheduler(
         factory,
-        OneDatabase(store, list(data_by_school)),
+        store,
         term_start_ms=TERM_START,
         clock_fn=lambda: NOW,
         **kw,
     )
-    return scheduler, store
+    return scheduler, caller
 
 
 def ids_of(data: dict) -> list[str]:
     return [k for k in data if not k.startswith("_")]
+
+
+def run_rows(caller: RecordingCaller, school: str | None = None) -> list[dict]:
+    """Kosu defterine gonderilen satirlar (istege gore tek okul)."""
+    rows = [
+        (frame, payload["run"])
+        for capability, frame, payload in caller.calls
+        if capability == CAP_RUN
+    ]
+    return [row for frame, row in rows if school is None or frame == school]
 
 
 # ===========================================================================
@@ -102,9 +144,14 @@ class TestWindow(unittest.TestCase):
 class TestOrderingAndOnceADay(unittest.IsolatedAsyncioTestCase):
     async def test_schools_run_in_fixed_alphabetical_order(self) -> None:
         data = {"c-okul": dataset(3), "a-okul": dataset(3), "b-okul": dataset(3)}
-        scheduler, _ = make_scheduler(data)
+        scheduler, caller = make_scheduler(data)
         results = await scheduler.run_once(NOW)
         self.assertEqual([r.school for r in results], ["a-okul", "b-okul", "c-okul"])
+        # Sira dizinden gelir: okul listesi tek bir cagriyla sorulur.
+        self.assertEqual(
+            [school for capability, school, _ in caller.calls if capability == CAP_SCHOOLS],
+            [""],
+        )
 
     async def test_a_school_runs_only_once_per_tr_day(self) -> None:
         data = {"a-okul": dataset(3)}
@@ -192,7 +239,7 @@ class TestSchoolIsolation(unittest.IsolatedAsyncioTestCase):
         scheduler, _ = make_scheduler(data, failing={"kirik-okul"})
         results = await scheduler.run_once(NOW)
         self.assertEqual([r.school for r in results], ["a-okul", "z-okul"])
-        self.assertEqual(scheduler._failures, ["kirik-okul"])
+        self.assertEqual(scheduler.failures(), ["kirik-okul"])
         for result in results:
             self.assertEqual(result.status, "ok")
             self.assertEqual(result.students_ok, 3)
@@ -202,7 +249,7 @@ class TestSchoolIsolation(unittest.IsolatedAsyncioTestCase):
         data = {"kirik-okul": dataset(2)}
         scheduler, _ = make_scheduler(data, failing={"kirik-okul"})
         self.assertEqual(await scheduler.run_once(NOW), [])
-        self.assertEqual(scheduler._failures, ["kirik-okul"])
+        self.assertEqual(scheduler.failures(), ["kirik-okul"])
         # Kaynak duzelirse ayni gece kosar.
         scheduler._source_factory = lambda school: FakeSource(data[school])
         again = await scheduler.run_once(NOW + 900_000)
@@ -224,10 +271,9 @@ class TestServeTestMode(unittest.IsolatedAsyncioTestCase):
         """Pencere kontrolu uretim yolunda aynen duruyor."""
         noon = clock.tr_day(NOW) * DAY - clock.TR_OFFSET_MS + 12 * 3_600_000
         data = {"a-okul": dataset(2)}
-        store = Store(CollectingClient())
         scheduler = Scheduler(
             lambda school: FakeSource(data[school]),
-            OneDatabase(store, list(data)),
+            BridgeStore(LedgerCaller(list(data))),
             clock_fn=lambda: noon,
         )
         await scheduler.serve(tick_seconds=0.001, max_ticks=2)
@@ -246,17 +292,82 @@ class TestServeTestMode(unittest.IsolatedAsyncioTestCase):
 
 
 # ===========================================================================
-# ENTEGRASYON -- gercek SurrealDB, cok okullu tam cevrim
+# DIZIN (okul listesi) ve OKUL BASINA DEPO
 # ===========================================================================
 
 
-@requires_db
-class TestFullCycleAgainstSurreal(unittest.IsolatedAsyncioTestCase):
-    """Fikstur -> hesap -> tavsiye -> GERCEK yazim -> `insight_run`."""
+class DirectoryDrivenTests(unittest.IsolatedAsyncioTestCase):
+    """Okul listesi YAPILANDIRMADAN degil, dizinden gelir.
+
+    Her okul KENDI deposundan yazar; deposu cozulemeyen okul dusen okuldur.
+    """
+
+    async def test_the_tick_runs_exactly_what_the_directory_reports(self) -> None:
+        data = {"a-okul": dataset(2), "b-okul": dataset(2)}
+        caller = LedgerCaller(["a-okul"])
+        store = BridgeStore(caller)
+        scheduler = Scheduler(
+            lambda school: FakeSource(data[school]),
+            store,
+            term_start_ms=TERM_START,
+            clock_fn=lambda: NOW,
+        )
+        self.assertEqual([r.school for r in await scheduler.run_once(NOW)], ["a-okul"])
+
+        # Dizin okul eklerse surec YENIDEN BASLATILMADAN onu da gorur.
+        caller.schools.append("b-okul")
+        self.assertEqual([r.school for r in await scheduler.run_once(NOW)], ["b-okul"])
+
+    async def test_an_unreadable_directory_leaves_the_tick_empty_not_failed(
+        self,
+    ) -> None:
+        def never(_school: str):
+            raise AssertionError("okul listesi yokken kaynak kurulmamali")
+
+        store = BridgeStore(RecordingCaller(fail_capabilities={CAP_SCHOOLS}))
+        scheduler = Scheduler(never, store, clock_fn=lambda: NOW)
+        self.assertEqual(await scheduler.run_once(NOW), [])
+        self.assertEqual(scheduler.failures(), [])
+
+    async def test_a_school_whose_store_cannot_open_fails_alone(self) -> None:
+        data = {"b-okul": dataset(2)}
+
+        class Directory:
+            """Depo cozulemeyen okul: `TenantError`in yerini tutan sahte dizin."""
+
+            async def active_schools(self) -> list[str]:
+                return ["a-okul", "b-okul"]
+
+            def store_for(self, slug: str):
+                if slug == "a-okul":
+                    raise RuntimeError("okul veritabani acilamadi")
+                return BridgeStore(LedgerCaller(["b-okul"])).store_for(slug)
+
+            async def close(self) -> None:
+                return None
+
+        scheduler = Scheduler(
+            lambda school: FakeSource(data[school]),
+            Directory(),
+            term_start_ms=TERM_START,
+            clock_fn=lambda: NOW,
+        )
+        results = await scheduler.run_once(NOW)
+        self.assertEqual([r.school for r in results], ["b-okul"])
+        self.assertEqual(scheduler.failures(), ["a-okul"])
+
+
+# ===========================================================================
+# KOPRU UZERINDEN COK OKULLU TAM CEVRIM
+# ===========================================================================
+
+
+class FullCycleThroughTheBridge(unittest.IsolatedAsyncioTestCase):
+    """Fikstur -> hesap -> tavsiye -> kopruye yazim -> kosu defteri."""
 
     async def asyncSetUp(self) -> None:
-        self.client = fresh_schema_client("cevrim")
-        self.store = Store(self.client)
+        self.caller = LedgerCaller(["kadikoy-lisesi", "uskudar-lisesi"])
+        self.store = BridgeStore(self.caller)
         self._tmp = tempfile.TemporaryDirectory()
         self.root = Path(self._tmp.name)
         self.schools = ["kadikoy-lisesi", "uskudar-lisesi"]
@@ -267,14 +378,22 @@ class TestFullCycleAgainstSurreal(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self) -> None:
         self._tmp.cleanup()
 
-    def _scheduler(self, **kw) -> Scheduler:
+    def _scheduler(self, **kw: Any) -> Scheduler:
         return Scheduler(
             lambda school: FileSource(self.root),
-            OneDatabase(self.store, self.schools),
+            self.store,
             term_start_ms=TERM_START,
             clock_fn=lambda: NOW,
             **kw,
         )
+
+    def summaries_of(self, school: str) -> list[dict]:
+        return [
+            row
+            for capability, frame, payload in self.caller.calls
+            if capability == CAP_SUMMARY and frame == school
+            for row in payload["rows"]
+        ]
 
     async def test_full_round_writes_both_schools(self) -> None:
         results = await self._scheduler().run_once(NOW)
@@ -285,35 +404,22 @@ class TestFullCycleAgainstSurreal(unittest.IsolatedAsyncioTestCase):
             self.assertGreater(result.rows_written, 0)
 
         for school in self.schools:
-            self.assertEqual(
-                count_rows(self.client, "student_summary", f"school = '{school}'"),
-                self.sizes[school],
-            )
-            self.assertEqual(
-                count_rows(self.client, "insight_run", f"school = '{school}'"), 1
-            )
-        self.assertGreater(count_rows(self.client, "recommendation"), 0)
+            self.assertEqual(len(self.summaries_of(school)), self.sizes[school])
+            runs = run_rows(self.caller, school)
+            self.assertEqual(len(runs), 2)  # baslangic + bitis
+            self.assertEqual(runs[-1]["status"], "ok")
 
-    async def test_tenant_isolation_end_to_end(self) -> None:
+    async def test_every_write_carries_its_own_school_frame(self) -> None:
+        """Okul kimligi CERCEVEDEDIR: her yazim kendi okulunun slug'iyla gider."""
         await self._scheduler().run_once(NOW)
+        frames = {
+            frame
+            for capability, frame, _ in self.caller.calls
+            if capability == CAP_SUMMARY
+        }
+        self.assertEqual(frames, set(self.schools))
         for school in self.schools:
-            rows = select(
-                self.client,
-                "SELECT school, student FROM student_summary WHERE school = $s;",
-                {"s": school},
-            )
-            self.assertEqual(len(rows), self.sizes[school])
-            self.assertTrue(all(r["school"] == school for r in rows))
-            recs = select(
-                self.client,
-                "SELECT school FROM recommendation WHERE school = $s;",
-                {"s": school},
-            )
-            self.assertTrue(all(r["school"] == school for r in recs))
-        # Toplam, iki okulun toplamindan fazla degil: sizan satir yok.
-        self.assertEqual(
-            count_rows(self.client, "student_summary"), sum(self.sizes.values())
-        )
+            self.assertEqual(len(self.summaries_of(school)), self.sizes[school])
 
     async def test_budget_exceeded_school_is_deferred_others_are_not(self) -> None:
         scheduler = self._scheduler(budgets={"uskudar-lisesi": -1})
@@ -323,17 +429,11 @@ class TestFullCycleAgainstSurreal(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(results["uskudar-lisesi"].budget_exceeded)
 
         # Butcesiz okulun satirlari var, ertelenen okulunkiler yok.
-        self.assertEqual(
-            count_rows(self.client, "student_summary", "school = 'kadikoy-lisesi'"), 8
-        )
-        self.assertEqual(
-            count_rows(self.client, "student_summary", "school = 'uskudar-lisesi'"), 0
-        )
-        # `insight_run` ertelemeyi kagit uzerinde tasiyor.
-        row = select(
-            self.client,
-            "SELECT * FROM insight_run WHERE school = 'uskudar-lisesi';",
-        )[0]
+        self.assertEqual(len(self.summaries_of("kadikoy-lisesi")), 8)
+        self.assertEqual(self.summaries_of("uskudar-lisesi"), [])
+        # `insight_run` ertelemeyi kagit uzerinde tasiyor (ayni anahtara iki
+        # yazim: basta 'running', sonda 'partial').
+        row = run_rows(self.caller, "uskudar-lisesi")[-1]
         self.assertEqual(row["status"], "partial")
         self.assertTrue(row["budget_exceeded"])
         self.assertEqual(len(row["pending_students"]), 5)
@@ -342,9 +442,7 @@ class TestFullCycleAgainstSurreal(unittest.IsolatedAsyncioTestCase):
         scheduler._budgets["uskudar-lisesi"] = 60_000
         second = {r.school: r for r in await scheduler.run_once(NOW + DAY)}
         self.assertEqual(second["uskudar-lisesi"].status, "ok")
-        self.assertEqual(
-            count_rows(self.client, "student_summary", "school = 'uskudar-lisesi'"), 5
-        )
+        self.assertEqual(len(self.summaries_of("uskudar-lisesi")), 5)
         self.assertEqual(scheduler.pending_for("uskudar-lisesi"), [])
 
     async def test_one_broken_school_does_not_block_the_other(self) -> None:
@@ -354,22 +452,16 @@ class TestFullCycleAgainstSurreal(unittest.IsolatedAsyncioTestCase):
             return FileSource(self.root)
 
         scheduler = Scheduler(
-            factory,
-            OneDatabase(self.store, self.schools),
-            term_start_ms=TERM_START,
-            clock_fn=lambda: NOW,
+            factory, self.store, term_start_ms=TERM_START, clock_fn=lambda: NOW
         )
         results = await scheduler.run_once(NOW)
         self.assertEqual([r.school for r in results], ["kadikoy-lisesi"])
-        self.assertEqual(
-            count_rows(self.client, "student_summary", "school = 'kadikoy-lisesi'"), 8
-        )
-        self.assertEqual(
-            count_rows(self.client, "student_summary", "school = 'uskudar-lisesi'"), 0
-        )
+        self.assertEqual(len(self.summaries_of("kadikoy-lisesi")), 8)
+        self.assertEqual(self.summaries_of("uskudar-lisesi"), [])
+        self.assertEqual(scheduler.failures(), ["uskudar-lisesi"])
 
     async def test_pending_survives_a_process_restart(self) -> None:
-        """Bellek sifirlansa bile devreden liste `insight_run`'dan geri gelir."""
+        """Bellek sifirlansa bile devreden liste kosu defterinden geri gelir."""
         first = self._scheduler(budgets={"uskudar-lisesi": -1})
         await first.run_once(NOW)
         self.assertEqual(len(first.pending_for("uskudar-lisesi")), 5)
@@ -380,9 +472,8 @@ class TestFullCycleAgainstSurreal(unittest.IsolatedAsyncioTestCase):
         results = {r.school: r for r in await second.run_once(NOW + DAY)}
         self.assertEqual(results["uskudar-lisesi"].status, "ok")
         self.assertEqual(results["uskudar-lisesi"].students_ok, 5)
-        self.assertEqual(
-            count_rows(self.client, "student_summary", "school = 'uskudar-lisesi'"), 5
-        )
+        # Yeniden baslayan surec devreden listeyi KOPRUDEN sordu.
+        self.assertIn(CAP_PENDING, [capability for capability, _, _ in self.caller.calls])
 
     async def test_serve_loop_runs_the_whole_cycle(self) -> None:
         """Test kipi: pencereyi ve 15 dakikalik tigi beklemeden tam cevrim."""
@@ -391,114 +482,9 @@ class TestFullCycleAgainstSurreal(unittest.IsolatedAsyncioTestCase):
             tick_seconds=0.001, ignore_window=True, max_ticks=2
         )
         self.assertEqual(ticks, 2)
-        self.assertEqual(
-            count_rows(self.client, "student_summary"), sum(self.sizes.values())
-        )
-        self.assertEqual(count_rows(self.client, "insight_run"), 2)
-
-    async def test_rerunning_the_same_day_does_not_duplicate_rows(self) -> None:
-        scheduler = self._scheduler()
-        await scheduler.run_once(NOW)
-        before = count_rows(self.client, "student_summary")
-        scheduler._last_run_day.clear()  # gun kapisini elle ac
-        await scheduler.run_once(NOW)
-        self.assertEqual(count_rows(self.client, "student_summary"), before)
-
-
-class DirectoryDrivenTests(unittest.IsolatedAsyncioTestCase):
-    """Okul listesi YAPILANDIRMADAN degil, dizinden gelir.
-
-    Eskiden okullar kurucuya liste olarak veriliyordu ve tek bir `store`
-    paylasiliyordu; cok okullu sekilde okulun kimligi cerceveden/dizinden
-    gelir, depo da okul basina cozulur. Bu sinif o donusu pinler.
-    """
-
-    def _store(self):
-        return Store(CollectingClient())
-
-    async def test_the_tick_runs_exactly_what_the_directory_reports(self):
-        store = self._store()
-        data = {"a-okul": dataset(2), "b-okul": dataset(2)}
-
-        class Directory:
-            def __init__(self, schools):
-                self.schools = list(schools)
-
-            async def active_schools(self):
-                return list(self.schools)
-
-            async def store_for(self, slug):
-                if slug not in self.schools:
-                    raise TenantError("yok", school=slug)
-                return store
-
-            async def close(self):
-                return None
-
-            def describe(self):
-                return "test dizini"
-
-        directory = Directory(["a-okul"])
-        scheduler = Scheduler(
-            lambda school: FakeSource(data[school]),
-            directory,
-            term_start_ms=TERM_START,
-            clock_fn=lambda: NOW,
-        )
-        self.assertEqual([r.school for r in await scheduler.run_once(NOW)], ["a-okul"])
-
-        # Dizin okul eklerse surec YENIDEN BASLATILMADAN onu da gorur.
-        directory.schools.append("b-okul")
-        self.assertEqual([r.school for r in await scheduler.run_once(NOW)], ["b-okul"])
-
-    async def test_an_unreadable_directory_leaves_the_tick_empty_not_failed(self):
-        class Broken:
-            async def active_schools(self):
-                raise TenantError('relation "school" does not exist')
-
-            async def store_for(self, slug):
-                raise AssertionError("okul listesi yokken depo cozulmemeli")
-
-            async def close(self):
-                return None
-
-            def describe(self):
-                return "test dizini"
-
-        scheduler = Scheduler(
-            lambda school: FakeSource({}), Broken(), clock_fn=lambda: NOW
-        )
-        self.assertEqual(await scheduler.run_once(NOW), [])
-        self.assertEqual(scheduler._failures, [])
-
-    async def test_a_school_whose_store_cannot_open_fails_alone(self):
-        store = self._store()
-        data = {"b-okul": dataset(2)}
-
-        class Directory:
-            async def active_schools(self):
-                return ["a-okul", "b-okul"]
-
-            async def store_for(self, slug):
-                if slug == "a-okul":
-                    raise SchoolDatabaseGone("veritabani yok", school=slug)
-                return store
-
-            async def close(self):
-                return None
-
-            def describe(self):
-                return "test dizini"
-
-        scheduler = Scheduler(
-            lambda school: FakeSource(data[school]),
-            Directory(),
-            term_start_ms=TERM_START,
-            clock_fn=lambda: NOW,
-        )
-        results = await scheduler.run_once(NOW)
-        self.assertEqual([r.school for r in results], ["b-okul"])
-        self.assertEqual(scheduler._failures, ["a-okul"])
+        for school in self.schools:
+            self.assertEqual(len(self.summaries_of(school)), self.sizes[school])
+            self.assertEqual(len(run_rows(self.caller, school)), 2)
 
 
 if __name__ == "__main__":

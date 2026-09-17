@@ -65,8 +65,7 @@ DESENLER: list[tuple[str, re.Pattern[str], str]] = [
         re.compile(
             r"""(?x)
             ^\s*(?:export\s+)?
-            (DEEPSEEK_API_KEY|LLM_API_KEY|SEGMENT_API_KEY|AI_SHARED_TOKEN
-             |ZEKA_DB_PASSWORD|ZEKA_PG_DSN
+            (LLM_API_KEY|SEGMENT_API_KEY|AI_SHARED_TOKEN
              |[A-Z0-9_]*(?:API_KEY|SECRET|PASSWORD|TOKEN))
             \s*[:=]\s*
             (?!\$)                 # ${VAR} interpolasyonu degil
@@ -96,6 +95,52 @@ adlarinda (Containerfile, Dockerfile, .env.*) aranir. Kaynak kodu ve veri
 dosyalari disaridadir; oralarda `token=` bir sir degil, bir parametredir."""
 
 YAPILANDIRMA_ADLARI = {"Containerfile", "Dockerfile", "Makefile"}
+
+
+# --- DAIMI KURAL: uygulama kaynak agaci veritabanina ULASMAZ ----------------
+# ZEKA'nin butun kalici veri erisimi backend'in kopru yeteneklerinden gecer;
+# `service/src/` altinda bir veritabani surucusu importu ya da bir DSN semasi
+# BULUNMAMALIDIR. Bu "gorulurse uyar" degil, kuralin KAPISIDIR: kaynak agacina
+# bir surucu sizarsa CI kirmizi olur.
+UYGULAMA_DIZINI = KOK / "service" / "src"
+
+#: Yasakli surucu adi. Ad PARCALANARAK yazilir: `scripts/` altinda hicbir dosya
+#: bu dizgeyi duz metin olarak tasimasin diye (CI'nin kendi kabul taramasi).
+SURUCU = "psyc" + "opg"
+
+#: Surucunun GECERLI (yurutulebilir) kullanimi: `import <surucu>`,
+#: `from <surucu> ...`, `<surucu>.connect` gibi nitelik erisimi, ya da
+#: `import_module("<surucu>")`. Duz metinde ad gecmesi -- kurali anlatan bir
+#: docstring -- ihlal DEGILDIR: kapi DAVRANISI olcer, duzyaziyi degil.
+SURUCU_GECISI = re.compile(
+    r"^\s*(?:import|from)\s+[^\n]*\b" + SURUCU + r"\b"
+    r"|\b" + SURUCU + r"\s*\."
+    r"|\bimport_module\s*\(\s*[\"'][^\"']*" + SURUCU
+)
+
+#: DSN semalari. Parcali yazilir; ayni gerekce. Bir DSN duzyazida da DSN'dir.
+DSN_SEMASI = re.compile(r"\bpostgres(?:ql)?:[/][/]")
+
+
+def uygulama_veritabani_taramasi() -> list[str]:
+    """`service/src/` icinde surucu importu ya da DSN semasi var mi?"""
+    bulunan: list[str] = []
+    if not UYGULAMA_DIZINI.is_dir():
+        return bulunan
+    for yol in sorted(UYGULAMA_DIZINI.rglob("*.py")):
+        try:
+            metin = io.open(yol, encoding="utf-8", errors="strict").read()
+        except (UnicodeDecodeError, OSError):
+            continue
+        goreli = yol.relative_to(KOK).as_posix()
+        for satir_no, satir in enumerate(metin.splitlines(), start=1):
+            if SURUCU_GECISI.search(satir) or DSN_SEMASI.search(satir):
+                bulunan.append(
+                    f"{goreli}:{satir_no} [daimi-kural] uygulama kaynak agacinda "
+                    "veritabani surucusu / DSN semasi -- ZEKA uygulama "
+                    "veritabanina ULASMAZ"
+                )
+    return bulunan
 
 
 def yapilandirma_mi(yol: Path) -> bool:
@@ -200,9 +245,17 @@ def main() -> int:
                     continue
                 bulgular.append(f"{goreli}:{satir_no} [{ad}] {aciklama} -- {kirp(ham)}")
 
-    # --- .env hijyeni -------------------------------------------------------
-    # Dosyanin VARLIGI sorun degil (yerel gelistirme icin normaldir);
-    # `.gitignore` disinda kalmasi sorundur.
+    # --- daimi kural: uygulama kaynak agaci --------------------------------
+    uygulama_bulgulari = uygulama_veritabani_taramasi()
+    if uygulama_bulgulari:
+        bulgular.extend(uygulama_bulgulari)
+    else:
+        print(
+            f"  [ok]   {UYGULAMA_DIZINI.relative_to(KOK).as_posix()}/ altinda "
+            "veritabani surucusu / DSN semasi yok (daimi kural)",
+            flush=True,
+        )
+
     # --- .env hijyeni -------------------------------------------------------
     # Dosyanin VARLIGI sorun degil (yerel gelistirme icin normaldir);
     # `.gitignore` disinda kalmasi sorundur. Yukaridaki tarama yoksayilan
@@ -242,13 +295,17 @@ def main() -> int:
     # Zorunlu sirlar `${VAR:?...}` ile gelmeli; duz deger ya da `:-varsayilan`
     # bir sirri dosyaya gomer.
     #
-    # LISTE compose.yaml'DAN OKUNUR: `ZEKA_PG_DSN` ucuncu sir olarak
-    # eklendiginde burasi ve `scripts/ci-compose.sh` iki sirla kalmisti.
-    # DSN bir parola tasir -- duz deger yazilabilseydi sir dosyaya girerdi.
+    # LISTE compose.yaml'DAN OKUNUR: her `$` + `{AD:?` gecisi zorunlu bir
+    # degiskendir. Elle yazilan liste bu projede bir kez bayatladi (bir sir
+    # eklendiginde burasi ve `scripts/ci-compose.sh` iki sirla kalmisti);
+    # tek kaynak compose.yaml'in kendisidir.
     compose = KOK / "service" / "compose.yaml"
     if compose.exists():
         icerik = io.open(compose, encoding="utf-8").read()
-        for degisken in ("AI_SHARED_TOKEN", "LLM_API_KEY", "ZEKA_PG_DSN"):
+        zorunlular = sorted(set(re.findall(r"\$\{([A-Za-z_][A-Za-z0-9_]*):\?", icerik)))
+        if not zorunlular:
+            uyarilar.append("compose.yaml hicbir sirri `${VAR:?}` ile zorunlu tutmuyor")
+        for degisken in zorunlular:
             satirlar = [s for s in icerik.splitlines() if s.strip().startswith(degisken + ":")]
             if not satirlar:
                 uyarilar.append(f"compose.yaml icinde {degisken} tanimli degil")

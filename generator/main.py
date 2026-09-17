@@ -50,10 +50,6 @@ def parse_args(argv=None):
     ap.add_argument("--schema", default=DEFAULT_SCHEMA, help="schema.json yolu")
     ap.add_argument("--keep-parts", action="store_true",
                     help="Geçici parça dosyalarını silme (hata ayıklama)")
-    ap.add_argument("--postgres", action="store_true",
-                    help="SurrealQL çıktısının YANINDA PostgreSQL çıktısı da "
-                         "üret (pg_control.sql + pg_school.sql). Aynı geçiş, "
-                         "aynı satırlar; mevcut .surql dosyaları değişmez.")
     return ap.parse_args(argv)
 
 
@@ -62,11 +58,7 @@ def generate(args):
     T.configure(args.date_shift_days)
     emit.load_schema(args.schema)
     os.makedirs(args.out, exist_ok=True)
-    pg = None
-    if args.postgres:
-        import pg_emit
-        pg = pg_emit.PgEmitter(args.out)
-    emitter = emit.Emitter(args.out, mirror=pg)
+    emitter = emit.Emitter(args.out)
     ctx = Ctx(args.seed, SCALES[args.scale], args.date_shift_days, emitter)
 
     def step(label, fn):
@@ -107,22 +99,8 @@ def generate(args):
     step("referans tabloları", counters.emit_reference_tables)
     step("kullanıcı satırları", counters.emit_users)
 
-    if pg is not None:
-        # Control tarafindaki okul satiri: tohum kendi okulunu kendisi
-        # kaydeder, yoksa `Tenants::get` veritabanina hic ulasamaz.
-        pg.school_rows(T.local_ms(_dt.date(2025, 8, 15), 9 * 60), C.MODULES_ALL)
     emitter.close_all()
     files = emitter.assemble(C.FILE_LAYOUT, C.FILE_DESCRIPTIONS)
-    if pg is not None:
-        pg.close_all()
-        files.extend(pg.assemble(C.FILE_LAYOUT))
-        # Butunluk sinavi da URETILIR: rozet katalogu config.BADGES'ten gelir.
-        # Elle yazildiginda yanlis yazilmisti (450 sahte ihlal).
-        import verify_pg
-        pg_verify = os.path.join(args.out, "pg_dogrula.sql")
-        files.append(("pg_dogrula.sql", verify_pg.write(
-            os.path.join(os.path.dirname(__file__), "..", "tools",
-                         "verify_pg_seed.sql"), pg_verify)))
     if not args.keep_parts:
         emitter.cleanup()
 

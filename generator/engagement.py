@@ -308,12 +308,12 @@ def build_pomodoro(ctx) -> None:
                     # `finished_at = NONE` taşıyan ULID anahtarlı bir satır
                     # ÜRETİLEMEZ.
                     #
-                    # Eskiden burada `finished = None` yazılıyordu ve SurrealDB
-                    # bunu kontrol etmediği için fark edilmiyordu: 4.929 açık
-                    # seans, tek bir öğrencide 68 tane. PostgreSQL şeması aynı
-                    # değişmezi kısmi tekil indeksle zorluyor
-                    # (`pomodoro_session_open_stint ... WHERE finished_at IS
-                    # NULL`) ve yükleme orada düştü.
+                    # Eskiden burada terk edilmiş bir seans için de
+                    # `finished = None` yazılıyordu ve hiçbir şema bunu
+                    # zorlamadığı için fark edilmiyordu: 4.929 açık seans,
+                    # tek bir öğrencide 68 tane. Değişmez artık yukarıdaki
+                    # defterle korunuyor: ULID anahtarlı bir satır
+                    # `finished = None` taşımaz.
                     #
                     # Terk edilmişlik `counted = false` ile taşınmaya devam
                     # ediyor; süre sayaçlarına zaten girmiyordu.

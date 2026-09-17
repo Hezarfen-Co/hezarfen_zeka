@@ -4,19 +4,19 @@
 çalışır: kendi konteynerinde durur, **port açmaz**, backend'in QUIC köprüsüne
 dışa arama yapar.
 
-Okul verisini köprüden **okur**, kendi çıktısını okulun veritabanındaki dokuz
-`zeka_*` tablosuna **yazar**. Aradaki her şey — hesap modülleri, segmentasyon,
-kural katalogu — bu depodadır.
+**Veritabanı bağlantısı yoktur.** Ne bir sürücü, ne bir bağlantı dizesi, ne bir
+sorgu — uykuda bile yoktur ve olmayacaktır. Okul verisini köprüden **okur**,
+hesapladığı satırları köprüye **yazar**. Aradaki her şey — hesap modülleri,
+segmentasyon, kural katalogu — bu depodadır.
 
 ---
 
 ## Backend ekibi için hızlı bakış
 
-Bağlamak için gereken üç şey:
+Bağlamak için gereken iki şey:
 
 ```sh
 AI_SHARED_TOKEN=<backend ile aynı sır>
-ZEKA_PG_DSN=postgres://<kullanıcı>:<parola>@<host>:5432/<kontrol_veritabanı>
 LLM_API_KEY=<segment hattı için; OpenAI uyumlu her sağlayıcı olur>
 ```
 
@@ -24,7 +24,18 @@ LLM_API_KEY=<segment hattı için; OpenAI uyumlu her sağlayıcı olur>
 podman compose up -d
 ```
 
-Port açmaz, `hezarfen_backend_default` ağına katılır ve backend'e dial-out eder.
+Port açmaz, `hezarfen_backend_default` ağına katılır ve backend'e dial-out
+eder. Köprü adresi varsayılanlıdır (`AI_BRIDGE_HOST`/`AI_BRIDGE_PORT`);
+değiştirmek gerekmedikçe yazılmaz.
+
+ZEKA'nın yazdığı dokuz `zeka_*` tablosu **her okulun kendi veritabanında**
+durur. DDL'i backend deposundadır:
+`hezarfen_backend/migrations/school/20260917000002_zeka.sql`. ZEKA o dosyayı
+ne yazar ne uygular — yalnız "şu satırları yaz" der.
+
+Okul listesi backend'den gelir (`insight.schools.list`). `ZEKA_SCHOOLS` bir
+operatör **filtresidir**: boş bırakılırsa dağıtımdaki tüm aktif okullar
+işlenir, doluysa yalnız listelenenler.
 
 Okul veritabanının **adı okulun uuid'sinden** türer (`tenant.rs:112` →
 `{control}_school_{uuid.simple}`), slug'dan **değil**. Demo okulu için:
@@ -51,7 +62,7 @@ ZEKA ──QUIC hab/2──> backend
 akışından sonra istediği zaman. Bu yüzden ZEKA, backend kendisine iş
 göndermesini beklemeden kendi takvimiyle çalışabilir.
 
-Protokol sürümü **`hab/2`** (`constant.rs:515`). Podcast ve Çelebi `hab/1`
+Protokol sürümü **`hab/2`** (`constant.rs:530`). Podcast ve Çelebi `hab/1`
 kullanıyor ve bu yüzden **hiç bağlanamıyorlar**; ZEKA o hatayı tekrarlamaz ve
 bir test sabiti pinler.
 
@@ -83,14 +94,66 @@ bir modele o veriyi vermek, erişim kontrolünü modelin içinden dolanmak olurd
 
 ---
 
-## 2. Nereye yazar
+## 2. Nereye yazar — köprüye, yetenek çağrısıyla
+
+İki yön de aynı köprüdedir:
+
+* **Okuma** (okulun kendi API'si): `ApiRequest` izin listesi, §1.
+* **Yazma ve depo okumaları:** `insight.*` **yetenek çağrıları**. Servis
+  `hab/2` üzerinde taze bir istemci-başlatımlı akış açar ve çerçeveyi yazar:
+
+```
+{ "id": "<ulid>", "capability": "insight.<ad>", "school": "<slug>", "payload": {...} }
+
+{ "status": "ok",  "id": ..., "school": ..., "payload": {...} }
+{ "status": "err", "id": ..., "school": ..., "code": ..., "message": ... }
+```
+
+Okul **çerçevededir**, payload'da değil: backend slug'ı çözer ve her ifadeyi o
+okulun kendi veritabanında koşturur. Reddin kodu tiplidir (`unknown_school`,
+`not_permitted`, `invalid_payload`, `too_many_rows`, `unavailable`, …) ve
+`CapabilityRefused` olarak yükselir; `status: "err"` asla başarı sayılmaz.
+
+### Servisin çağırdığı yetenekler
+
+| Yetenek | Ne yapar |
+|---|---|
+| `insight.schools.list` | Dağıtımın **aktif** okulları (tek dağıtım ölçekli çağrı: okul alanı boş gider) |
+| `insight.summary.upsert` | Gecelik öğrenci özeti + dikkat listesi |
+| `insight.recommendation.upsert` | Tavsiye satırları (kanıtsız satır reddedilir) |
+| `insight.segment.upsert` | Soru bilişsel etiketleri |
+| `insight.profile.upsert` | Öğrenci × boyut × etiket profili |
+| `insight.run.upsert` | Koşu defteri (+ devreden öğrenciler, düşen modüller) |
+| `insight.pending.list` | Önceki koşudan devreden öğrenciler |
+| `insight.retention.sweep` | Süresi dolmuş satırların süpürülmesi |
+| `insight.departed.purge` | Okuldan ayrılanın satırlarının silinmesi |
+
+Yazma **500 satırlık gruplar** hâlindedir; bir grup ikinci denemede de düşerse
+atlanır, `warn` loglanır ve `WriteReport.status` `partial` olur — koşu defterine
+`store` olarak yazılır. Sessiz başarı yoktur.
+
+### Servisin servis ettiği yetenekler
+
+Backend'in ZEKA'yı çağırdığı adlar (§5 madde 1, `src/capabilities.py`):
+
+| Yetenek | Ne yapar |
+|---|---|
+| `insight.student` | Tek öğrenci için hesap + tavsiye |
+| `insight.class` | Bir sınıf (şube × ders) için toplu analiz |
+| `insight.refresh` | Okul çapında yeniden koşu (parti işi) |
+
+`insight.refresh` ayrıca ZEKA'nın **kendi zamanlayıcısı** tarafından da
+çağrılır: hesaplar backend istemeden de koşar, yeteneğin tanımlı olması yalnız
+"istek üzerine tetikleme"yi açar.
+
+### Tablolar
 
 Dokuz tablo, hepsi `zeka_` önekli, hepsi okulun kendi veritabanında:
 
 | Tablo | Ne tutar |
 |---|---|
 | `zeka_student_summary` | öğrenci başına gecelik özet (PK: `student`) |
-| `zeka_attention_item` | dikkat listesi, tetikleyici başına bir satır |
+| `zeka_attention_item` | dikkat listesi, tetikleyici başına bir satır (`ord` ile sıralı) |
 | `zeka_recommendation` | tavsiyeler + kapatma izi |
 | `zeka_run` | gece işinin defteri (PK: `run_day`) |
 | `zeka_run_pending` | bütçe dolunca kalanlar |
@@ -99,26 +162,32 @@ Dokuz tablo, hepsi `zeka_` önekli, hepsi okulun kendi veritabanında:
 | `zeka_question_segment_dimension` | üretim/deneysel boyut ayrımı |
 | `zeka_student_segment_profile` | öğrenci × boyut × etiket, `contrast` dahil |
 
-DDL: `service/schema/postgres/school/20260916000001_zeka.sql` — backend'in
-`migrations/school/` klasörüne **eklenir**, mevcut dosyalara dokunulmaz.
+**Satırda `school` alanı yoktur:** kiracı, veritabanının kendisidir. Kimlikleri
+**yazan taraf üretir** — uuid7'yi backend mints eder, ZEKA göndermez.
 
 **Yabancı anahtarlar tek yönlü.** `zeka_*` tabloları `app_user`, `course`,
 `subject`, `exam`, `exam_question`'a bakar; okul tablolarının hiçbiri
-`zeka_*`'a bakmaz. Dosyayı silseniz okul şeması olduğu gibi ayakta kalır.
-`tools/check_pg_schema.sh` bunu ayrıca sınar ve ters yönlü tek bir FK bulursa
-hata verir.
+`zeka_*`'a bakmaz. DDL dosyası silinse okul şeması olduğu gibi ayakta kalır.
 
-**ZEKA mevcut 69 tablonun hiçbirine yazmaz.** `store_pg.TABLES` bu kuralın
-makine tarafından okunabilir hâlidir.
+**ZEKA mevcut okul tablolarının hiçbirine yazmaz.** Yazabildiği tek şey yukarıdaki
+dokuz tablodur; başka bir tabloyu güncelleyen bir yol yoktur.
 
-### Depo seçimi
+Üzerine yazma **upsert**'tir: uygulamanın yazdığı alanlar (`dismissed_at`,
+`dismissed_by`, `dismiss_reason`) korunur. Tam değiştirme kullansaydık her gece
+kullanıcının kapatma kaydı silinirdi.
 
-Tek ölçüt `ZEKA_PG_DSN`: doluysa Postgres, boşsa (eski) SurrealDB.
-İki ayrı "mod" bayrağı yok — bayrakla adres ters düştüğünde hangisinin
-kazandığı tahmin işine döner. Bkz. `src/store_factory.py`.
+### Depo katmanı
 
-`pipeline.py` ve `scheduler.py` hangi depoya yazdıklarını **bilmez**; ikisi de
-aynı sekiz yöntemi çağırır. Geçişin hesap kodundaki maliyeti sıfırdı.
+`src/store.py` — `BridgeStore`: **okul dizini + okul başına depo** ve satır
+payload'larını kuran fonksiyonlar. Zamanlayıcı `store_for(school)` ile o okulun
+deposunu ister; dönen nesne `pipeline`'ın beklediği sekiz yöntemi taşır.
+Paylaşılan bir depo yoktur ve olmamalıdır: yanlış okula yazmanın en kolay yolu
+paylaşılan bir nesnenin okul alanını unutmaktır; burada okul nesnenin
+kimliğindedir.
+
+`pipeline.py` ve `scheduler.py` hangi taşımayı kullandıklarını **bilmez**; ikisi
+de aynı sekiz yöntemi çağırır. Satırların şekli backend'in kolon adlarıyla
+aynıdır — iki taraf tek sözlüğü konuşur.
 
 ---
 
@@ -139,8 +208,8 @@ kanıtına bağlıdır. Bir çocuğa "riskli" etiketi takmanın pedagojik savunm
 yoktur ve literatür turu bu ürün için doğrulanmış nedensel kanıt bulamamıştır.
 
 Tavsiyeler kanıtsız kurulamaz: `Recommendation` nesnesi `evidence`, `rule_id`
-ve `computed_at` olmadan `ValueError` fırlatır. Depolama katmanı ikinci kez
-kontrol eder.
+ve `computed_at` olmadan `ValueError` fırlatır. Depo katmanı ikinci kez
+kontrol eder; kanıtsız satır reddedilir ve sayısı rapora geçer.
 
 ### `contrast` — segment profilinin var olma sebebi
 
@@ -173,15 +242,15 @@ Yani **bulunacak şey mevcut, bulunacak yol yok.**
 
 `service/docs/BACKEND-GEREKSINIMLERI.md` gerekçeleriyle içerir:
 
-1. **ZEKA'nın yetenekleri backend'de tanımlı değil.** Backend yalnız
-   `chat.reply` ve `rag.index` tanır ve eşleşme tamdır. ZEKA bağlansa bile hiç
-   iş almaz — podcast'in yaşadığı sorunun aynısı. Bu olmadan **istek üzerine**
-   çalışan her senaryo kapalıdır. (Kendi takvimiyle çalışması etkilenmez.)
+1. **`insight.*` kapıları backend'de yok.** Bugün backend yalnız `chat.reply`
+   ve `rag.index` tanıyor; ZEKA'nın çağırdığı dokuz `insight.*` operasyonu ve
+   servis ettiği üç yetenek kapı bekliyor. Bu iş backend'de **`InsightDoors`**
+   hattının sahibindedir; ZEKA ona karşı yazıldı ve zarf donduruldu.
 2. **Sınav yolları izin listesinde yok.** Madde analizi için gereken 9 yol
    listelenmiştir.
-3. **Okul ve kullanıcı listeleme yolu yok.** ZEKA kimleri işleyeceğini
-   köprüden öğrenemiyor; bugün yapılandırmadan çözülüyor. Dönem ortası kayıt
-   olan öğrenci görünmez, ayrılan silinmez.
+3. **Öğrenci listeleme yolu yok.** Okul listesi artık köprüden
+   (`insight.schools.list`), ama kimlerin işleneceği hâlâ yapılandırmadan
+   çözülüyor. Dönem ortası kayıt olan öğrenci görünmez, ayrılan silinmez.
 
 Bu maddeler **başka bir ekibin sorumluluğundadır.** ZEKA onlarsız da kendi
 takvimiyle çalışır, yalnız kapsamı dardır.
@@ -190,16 +259,16 @@ takvimiyle çalışır, yalnız kapsamı dardır.
 
 ## 6. Tohum verisi
 
-Depoda **tohumun kendisi yok, üreticisi var.** 101 MB'lık bir SQL dosyası
-GitHub'ın tek dosya sınırını aşıyor ve deterministik üretildiği için depoda
-tutmanın kazandıracağı bir şey yok.
+Depoda **tohumun kendisi yok, üreticisi var.** ~170 MB'lık üretilmiş bir veri
+seti GitHub'ın tek dosya sınırını da aşıyor ve deterministik üretildiği için
+depoda tutmanın kazandıracağı bir şey yok.
 
 ```sh
-python generator/main.py --scale full --postgres --out cikti/
+python generator/main.py --scale full --out /tmp/seed
 ```
 
-Üretilen: `pg_school.sql` (576.487 satır), `pg_control.sql` (okul + 563 kişi),
-`pg_dogrula.sql` (48 bütünlük denetimi), ve yanında SurrealQL sürümü.
+Üretilen: demo okulunun bütün veri seti (`MANIFEST.json` satır sayılarıyla,
+`_seed_manifest.json` gizli gerçekle) ve 48 bütünlük sorgusu.
 
 | | |
 |---|---|
@@ -209,20 +278,27 @@ python generator/main.py --scale full --postgres --out cikti/
 | ölçüm | 24 öğrenme + 14 arketip + 25 davranış hedefi |
 | kasıtlı bozukluk | 8 tür (analizin bulması *gereken* şeyler) |
 
-Yükleme ve sunucuya gönderme: **`paket/OKU.md`**.
+**Yükleme bu deponun işi değildir.** Tohum backend ekibine verilir; okulu
+backend oluşturur ve göç ettirir. ZEKA hiçbir şema uygulamaz, hiçbir veritabanı
+kullanıcısı istemez.
 
 ---
 
 ## 7. Çalıştırma
 
 ```sh
-# testler (686)
+# testler
 cd service && python -m unittest discover -s tests -t .
 
 # hattı fikstürle uçtan uca koştur (köprü gerekmez)
 python -m src.cli run --school hezarfen-demo --source file \
     --fixtures fixtures/demo --dry-run
 ```
+
+`--dry-run` yazmayı `RecordingCaller`'a çevirir: çağrılar toplanır, hiçbiri
+kabloya çıkmaz. Hiçbir test gerçek bir veritabanı istemez — servisin açacağı bir
+bağlantı yoktur; köprü testleri gerçek QUIC soketleriyle, sahte bir sunucuya
+karşı koşar.
 
 **HTTP sunucusu yoktur ve olmayacaktır.** Çelebi'nin geliştirme amaçlı HTTP
 sunucusu üretim imajında duruyor ve denetimde kimlik doğrulamasız yüzey olarak
@@ -232,31 +308,29 @@ işaretlendi; burada geliştirme yüzeyi komut satırı aracıdır.
 
 | Ne | Nasıl |
 |---|---|
-| Tüm paket | `python -m unittest discover -s tests -t .` (686 test) |
-| ZEKA'nın yazma katmanı | `ZEKA_PG_DSN=... python -m unittest tests.test_store_pg` |
-| Şema + davranış | `tools/check_pg_schema.sh` (19 test) |
-| Yüklenen tohum | `pg_dogrula.sql` (48 denetim) |
+| Tüm paket | `python -m unittest discover -s tests -t .` |
+| Köprü | `tests/test_bridge_live.py` — gerçek QUIC, sahte sunucu |
+| Yazma katmanı | `tests/test_store.py` — `RecordingCaller` ile hat uçtan uca |
 
-`tests/test_store_pg.py` sahte istemciyle koşmaz — **gerçek PostgreSQL'e**
-karşı koşar. Sebep deneyle sabit: SurrealDB sürümünde birim testlerin tamamı
-yeşilken gerçek veritabanında `type::thing()` diye bir fonksiyon olmadığı için
-tek satır yazılamıyordu. Mock istemci bunu göremez.
+Yazma katmanının testi **sahte bir çağıranla** koşar ve beklenen çerçeveleri
+pinler: capability adı, okulun çerçevede gittiği, satır şekilleri. Ölçülen
+sözleşme budur — backend'e çıkan tur bu depoda test edilmez, backend'in kendi
+kapı testleri ve `InsightDoors` hattı onu ölçer.
 
 ---
 
 ## 8. Sınırlar — dürüst liste
 
 - **Gerçek backend'e hiç bağlanılmadı.** Köprü, backend'in protokolünü taklit
-  eden sahte bir sunucuya karşı kanıtlandı (35 canlı test, gerçek QUIC
-  bağlantısı). Sahte sunucu Rust kaynağı okunarak yazıldı; kaynak yanlış
-  okunduysa test yanlış davranışı doğrular. Backend ayağa kalktığında yeniden
-  sınanmalıdır.
+  eden sahte bir sunucuya karşı kanıtlandı (gerçek QUIC bağlantısı). Sahte
+  sunucu Rust kaynağı okunarak yazıldı; kaynak yanlış okunduysa test yanlış
+  davranışı doğrular. Backend ayağa kalktığında yeniden sınanmalıdır.
+- **`insight.*` kapıları backend'de henüz tanımlı değil** (§5 madde 1). Servis
+  kendi takvimiyle çalışır; istek üzerine tetikleme kapılar gelene kadar
+  kapalıdır.
 - **Sertifika düz HTTP ile çekiliyor** (podcast ve Çelebi ile aynı).
   `AI_TLS_FINGERPRINT` verilirse parmak izi doğrulanır; verilmezse her açılışta
   uyarı basılır. Üretimde verilmelidir.
-- **ZEKA'nın veritabanı kullanıcısı** üretimde yalnız dokuz `zeka_*` tablosuna
-  yazma, kalan 69'una salt okuma yetkisine daraltılmalı. Bugün geliştirmede tam
-  yetkili kullanıcı kullanılıyor.
 - **`adim_sayisi` boyutu deneyseldir.** El yazısı probda 0,607 kararlılık aldı;
   tohumda çok adımlılık metne açıkça yazıldığı için oradaki yüksek skor bizim
   kendi kolay sınavımızdır. Etiketlenir, saklanır, **aşağı akışta okunmaz**.
@@ -270,15 +344,15 @@ tek satır yazılamıyordu. Mock istemci bunu göremez.
 ## 9. Yapı
 
 ```
-generator/   tohum üreticisi (SurrealQL + PostgreSQL, aynı geçiş)
-paket/       sunucuya gönderilecek paket — OKU.md
+generator/   tohum üreticisi (deterministik veri seti + bütünlük sorguları)
+paket/       sunucuya verilecek paket — OKU.md
 service/
-  src/       köprü, Source, compute/, segment/, report/, store_pg
-  tests/     686 test
-  schema/    ZEKA'nın DDL'i (postgres/ ve eski surql)
+  src/       köprü (bridge.py), depo (store.py), Source, capabilities,
+             compute/, segment/, report/, scheduler, pipeline
+  tests/     birim + canlı köprü testleri
   docs/      çıktı sözleşmesi, backend gereksinimleri, ölçüm raporları
 spec/        şema, senaryo, modüller, segmentasyon araştırması
-tools/       yükleyici, doğrulayıcı, ölçüm araçları
+tools/       doğrulayıcı, ölçüm araçları
 ```
 
 Frontend ve backend ekipleri için tek belge: **`service/docs/CIKTI-SOZLESMESI.md`**
@@ -290,14 +364,13 @@ isabeti: `service/docs/SEGMENT-CIKTI.md`.
 ## 10. Sırlar
 
 `.env` gitignore'ludur ve depoya **girmez**. `compose.yaml` yalnızca
-interpolasyon içerir, literal sır taşımaz. `AI_SHARED_TOKEN`, `ZEKA_PG_DSN` ve
-`LLM_API_KEY` `:?` ile **zorunludur**; eski `DEEPSEEK_API_KEY` adı artık
-**reddedilir** (temiz kesim): adressiz ya da anahtarsız bir servis
-ayağa kalkıp hiçbir şey yazmadan "çalışıyor" görünürdü. Açılışta bir satır hata,
-günler sonra boş bir tablo yerine.
+interpolasyon içerir, literal sır taşımaz. `AI_SHARED_TOKEN` ve `LLM_API_KEY`
+`:?` ile **zorunludur**; eski `DEEPSEEK_API_KEY` adı artık **reddedilir** (temiz
+kesim): anahtarsız bir servis ayağa kalkıp hiçbir şey yazmadan "çalışıyor"
+görünürdü. Açılışta bir satır hata, günler sonra boş bir tablo yerine.
 
-DSN hiçbir yerde loglanmaz; `pg_client._describe()` yalnız host/port/veritabanı
-döndürür, kullanıcı adı ve parola asla.
+Paylaşılan sır hiçbir yerde loglanmaz. Servisin koruyacak bir veritabanı
+parolası yoktur — öyle bir parola artık hiçbir yerde geçmez.
 
 ---
 
@@ -337,7 +410,7 @@ request'ler** beş katmanı `ci.yml`'den alır (aynı kapı iki kez koşmaz).
    ```bash
    mkdir -p ~/hezarfen_zeka
    cp deploy/hezarfen_zeka.env.example ~/hezarfen_zeka/hezarfen_zeka.env
-   # AI_SHARED_TOKEN / ZEKA_PG_DSN / LLM_API_KEY zorunlu
+   # AI_SHARED_TOKEN / LLM_API_KEY zorunlu
    chmod 0600 ~/hezarfen_zeka/hezarfen_zeka.env
    ```
 
@@ -347,6 +420,10 @@ request'ler** beş katmanı `ci.yml`'den alır (aynı kapı iki kez koşmaz).
    düzeltilince kendiliğinden kaydolur (bkz. `docs/DAGITIM.md`). Deploy bunu
    yalnız **uyarı** olarak bildirir — kayıt şartı aransaydı ZEKA'nın kendi
    tanımından daha sıkı bir kapı uydurmuş olurduk.
+
+   Kapı olmayan şey **davranıştır** da: `insight.*` çağrıları kapılar
+   tanımlanana kadar reddedilir (§5 madde 1); servis ölür değil, koşusunu
+   `partial` yazar ve devam eder.
 
 ### Kapı, rollback ve kapsam
 

@@ -535,7 +535,7 @@ cd service && python -m unittest tests.test_compute_attention -v
 ```
 
 `tools/build_student_fixtures.py` tohum `.surql` dosyalarını doğrudan
-ayrıştırır (SurrealDB konteyneri gerekmez) ve
+ayrıştırır (yüklenmiş bir veritabanı gerekmez) ve
 `service/fixtures/gold_students/` altına `Source` arayüzünün tam biçiminde
 yazar. `service/tests/test_compute_gold.py` içindeki eşikler dosyanın başında
 `SENARYO_*` (senaryo §7'den birebir) ve `OLCULEN_*` (gerileme koruması) diye

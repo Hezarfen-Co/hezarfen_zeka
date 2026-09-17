@@ -2,49 +2,105 @@
 
 Konteyner her yerde ayakta değildir (CI'ın bir kısmında, geliştiricinin
 makinesinde, bu testlerin koştuğu ortamda). Raporun "veri yoksa çöker mi,
-fikstürle çalışır mı" sorusu ayakta bir SurrealDB'ye bağlı olmamalıdır.
+fikstürle çalışır mı" sorusu bir veritabanına bağlı olmamalıdır — zaten
+ZEKA'nın veritabanı YOKTUR.
 
-`CapturingClient`, `store.Store`'un ürettiği **gerçek** UPSERT ifadelerini
-yakalar ve satırları bellekte tutar. Yani hat baştan sona koşar (`pipeline`
-→ `store`), yalnız taşıma değişir. Böylece rapor, gerçek koşunun yazdığı
-satırlarla sınanır — elle kurulmuş sahte satırlarla değil.
+`CapturingCaller`, `BridgeStore`'un gönderdiği **gerçek** `insight.*`
+çağrılarını yakalar ve satırları bellekte tutar. Yani hat baştan sona koşar
+(`pipeline` → `store`), yalnız taşıma değişir: köprüye bir tek bayt gitmez.
+Böylece rapor, gerçek koşunun ürettiği satırlarla sınanır — elle kurulmuş
+sahte satırlarla değil.
 
-Sınır: bu istemci bir veritabanı **değildir**. Sorguları (SELECT) boş
-döndürür; süpürme ve mezuniyet temizliği (DELETE) yok sayılır. Raporun
-okuma yolu bu satırlar üzerinde `MemoryReader` ile koşar.
+Sınır: bu bir köprü **değildir**. Süpürme ve mezuniyet temizliği başarılı
+sayılır (silmeleri yok sayılır), okuma yolu bu satırlar üzerinde
+`MemoryReader` ile koşar.
 """
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
+from ..store import (
+    CAP_PROFILE,
+    CAP_PURGE,
+    CAP_RECOMMENDATION,
+    CAP_RUN,
+    CAP_SEGMENT,
+    CAP_SCHOOLS,
+    CAP_SUMMARY,
+    CAP_SWEEP,
+    PURGE_TABLES,
+    SWEEP_TABLES,
+)
 from .reader import MemoryReader
 
-_UPSERT = re.compile(r"UPSERT type::record\('([A-Za-z_][A-Za-z0-9_]*)', \$k(\d+)\)")
 
-
-class CapturingClient:
-    """`store.DbClient` protokolünü karşılayan bellek içi yazma hedefi."""
+class CapturingCaller:
+    """`BridgeCaller` şeklini karşılayan bellek içi yazma hedefi."""
 
     def __init__(self) -> None:
-        #: tablo → kayıt anahtarı → satır
+        #: tablo → kayıt anahtarı → satır (okuyucunun beklediği adlarla;
+        #: köprünün `zeka_*` tablo adları DEĞİL, raporun gördüğü adlar).
         self.tables: dict[str, dict[str, dict[str, Any]]] = {}
-        self.statement_count = 0
+        #: Gönderilen her çağrı: (yetenek, okul, payload).
+        self.calls: list[tuple[str, str, dict[str, Any]]] = []
 
-    async def query(self, sql: str, variables: dict[str, Any]) -> Any:
-        self.statement_count += 1
-        for table, index in _UPSERT.findall(sql):
-            key = str(variables.get(f"k{index}"))
-            row = variables.get(f"v{index}")
-            if not isinstance(row, dict):
-                continue
-            bucket = self.tables.setdefault(table, {})
-            # MERGE ve CONTENT ayrımı burada önemsizdir: tek koşuda aynı
-            # anahtar bir kez yazılır. Yine de birleştirme yapılır ki iki
-            # koşuluk bir senaryo satırı sıfırlamasın.
-            bucket.setdefault(key, {}).update(row)
-        return []
+    def _put(self, table: str, key: str, row: dict[str, Any]) -> None:
+        self.tables.setdefault(table, {})[key] = row
+
+    async def call(
+        self, capability: str, school: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        self.calls.append((capability, school, payload))
+
+        if capability == CAP_SCHOOLS:
+            return {"schools": [school] if school else []}
+        if capability == CAP_SWEEP:
+            return {"tables": {table: True for table in SWEEP_TABLES}}
+        if capability == CAP_PURGE:
+            return {"tables": {table: True for table in PURGE_TABLES}}
+
+        rows = payload.get("rows") or []
+        if capability == CAP_SUMMARY:
+            for row in rows:
+                student = str(row.get("student"))
+                self._put("student_summary", student, {**row, "school": school})
+                for index, item in enumerate(row.get("attention") or []):
+                    self._put(
+                        "attention_item",
+                        f"{student}_{index}",
+                        {**item, "student": student, "school": school, "ord": index},
+                    )
+            return {"written": len(rows)}
+        if capability == CAP_RECOMMENDATION:
+            for row in rows:
+                key = "_".join(
+                    str(row.get(name))
+                    for name in ("audience", "product", "rule_id", "about", "scope")
+                )
+                self._put("recommendation", key, {**row, "school": school})
+            return {"written": len(rows), "rejected": 0}
+        if capability == CAP_SEGMENT:
+            for row in rows:
+                self._put(
+                    "question_segment",
+                    str(row.get("question")),
+                    {**row, "school": school},
+                )
+            return {"written": len(rows)}
+        if capability == CAP_PROFILE:
+            for row in rows:
+                key = "_".join(
+                    str(row.get(name)) for name in ("student", "dimension", "label")
+                )
+                self._put("student_segment_profile", key, {**row, "school": school})
+            return {"written": len(rows)}
+        if capability == CAP_RUN:
+            run = payload.get("run") or {}
+            self._put("insight_run", str(run.get("run_day")), {**run, "school": school})
+            return {"written": 1}
+        # `insight.pending.list` (ve tanınmayan bir yetenek).
+        return {"students": []}
 
     def as_tables(self) -> dict[str, list[dict[str, Any]]]:
         return {name: list(rows.values()) for name, rows in self.tables.items()}

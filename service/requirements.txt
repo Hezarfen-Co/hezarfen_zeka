@@ -32,16 +32,3 @@ service-identity==26.1.0
 #
 # Windows notu: yukaridaki surumlerin hepsi hazir tekerlek (wheel) olarak
 # gelir; kurulum icin derleyici GEREKMEZ.
-
-# --- Postgres (okul veritabanina yazma) -------------------------------------
-# Backend SurrealDB'den PostgreSQL'e gecti; ZEKA'nin cikti tablolari artik
-# okulun kendi Postgres veritabaninda. Tel protokolu stdlib'de yok, elle
-# yazilacak bir sey de degil.
-#
-# `[binary]` hazir tekerlek getirir: derleyici GEREKMEZ (Windows dahil).
-# Surum PINLI, yukaridakilerle ayni gerekce.
-#
-# YALNIZ `src/pg_client.py` import eder ve o da tembel (fonksiyon icinde).
-# `src/store_pg.py` bir Postgres surucusu import ETMEZ; birim testleri ve
-# `--dry-run` psycopg kurulu olmadan da kosar.
-psycopg[binary]==3.2.13

@@ -1,7 +1,7 @@
 # Hezarfen Tohum Verisi Üreticisi
 
-250 öğrencilik, gerçekçi ve **belirlenimci** bir K‑12 okulu üretir; çıktı doğrudan
-SurrealDB'ye yüklenebilen `.surql` dosyalarıdır.
+250 öğrencilik, gerçekçi ve **belirlenimci** bir K‑12 okulu üretir; çıktı, demo
+okulunun **veri setidir** — yüklemesi backend ekibinin işidir (`paket/OKU.md`).
 
 Girdi belgeleri: `../spec/schema.json` (otorite), `../spec/SENARYO.md` (senaryo),
 `../spec/PAROLA.md` (argon2 parametreleri).
@@ -52,55 +52,25 @@ Tipik süre (full): **~50 saniye**, ~170 MB çıktı.
 
 | Dosya | İçerik |
 |---|---|
-| `00_control.surql` | **CONTROL** veritabanına okul satırı (`school:ataturk-anadolu`), 21 modülün tamamı açık. `UPSERT` kullanır; okul builder ile zaten oluşturulmuşsa satırı günceller. |
-| `01_temel.surql` … `12_teslimler.surql` | **OKUL** veritabanı. Numaralar `schema.json → load_order` topolojik sırasını izler; `exam_answer` kendi dosyasındadır (en büyüğü). |
-| `99_dogrula.surql` | SENARYO §7.6'daki **48 bütünlük sorgusu**. Her sorgu **0 döndürmelidir**; `GROUP ALL` kullanıldığı için ihlal yoksa sonuç boş gelir. |
+| `00_kontrol.<uzantı>` | **CONTROL** tarafı: okul satırı (`hezarfen-demo`), 21 modülün tamamı açık. Yazımı idempotenttir; okul zaten oluşturulmuşsa satırı günceller. |
+| `01_…` … `12_…` | **OKUL** verisi. Numaralar `schema.json → load_order` topolojik sırasını izler; `exam_answer` kendi dosyasındadır (en büyüğü). |
+| `99_…` | SENARYO §7.6'daki **48 bütünlük sorgusu**. Her sorgu **0 döndürmelidir**. |
 | `MANIFEST.json` | Tablo başına satır sayısı, dosya boyutları, tohum, ölçek, üretim zamanı, `T_NOW` ve senaryo §7'deki beklenen değerlerin gerçekleşen karşılıkları + sapma gerekçeleri. |
-| `_seed_manifest.json` | **Gizli gerçek** (SENARYO §7.8): madde parametreleri (`a`, `b`, `c`, çeldirici), **bilişsel boyut etiketleri** (`dims`) ve **tuzak şık kimliği** (`trap_choice`), öğrenci arketipleri ve **boyut sapmaları** (`dim_delta`), kenar durum bayrakları, değiştirilen cevap anahtarları, silinen banka şablonları. DB'ye **yazılmaz**; doğrulama ve tavsiye sistemi değerlendirmesi bu dosyayla yapılır. |
+| `_seed_manifest.json` | **Gizli gerçek** (SENARYO §7.8): madde parametreleri (`a`, `b`, `c`, çeldirici), **bilişsel boyut etiketleri** (`dims`) ve **tuzak şık kimliği** (`trap_choice`), öğrenci arketipleri ve **boyut sapmaları** (`dim_delta`), kenar durum bayrakları, değiştirilen cevap anahtarları, silinen banka şablonları. Veritabanına **yazılmaz**; doğrulama ve tavsiye sistemi değerlendirmesi bu dosyayla yapılır. |
 
-Her `.surql` dosyasının başında hangi tabloları içerdiği, kaç satır olduğu ve hangi
+Her veri dosyasının başında hangi tabloları içerdiği, kaç satır olduğu ve hangi
 dosyadan sonra yüklenmesi gerektiği yorum bloğu olarak yazılıdır.
 
-## 4. Yükleme adımları
+## 4. Teslim
 
-1. **Önce backend okulu oluşturur ve göç ettirir.** Tohum yalnız veri ekler; hiçbir
-   `DEFINE TABLE` / `DEFINE FIELD` içermez. Okul veritabanı (`DB <slug>`) ve 60 tablonun
-   şeması backend'in `migrate()` çağrısıyla kurulmuş olmalıdır. Builder arayüzünden
-   `ataturk-anadolu` slug'ıyla okulu oluşturun (ya da mevcut okulu kullanın).
-2. **Control veritabanı:**
-   ```bash
-   surreal sql --endpoint http://127.0.0.1:8000 --username root --password root \
-     --namespace hezarfen --database control < seed/00_control.surql
-   ```
-3. **Okul veritabanı — numara sırasıyla:**
-   ```bash
-   for f in seed/0[1-9]_*.surql seed/1[0-2]_*.surql; do
-     echo ">> $f"
-     surreal sql --endpoint http://127.0.0.1:8000 --username root --password root \
-       --namespace hezarfen --database ataturk-anadolu < "$f"
-   done
-   ```
-   (Namespace ve veritabanı adları kurulumunuza göre değişir; `slug` aynı zamanda
-   veritabanı adıdır.)
-4. **Doğrulama:**
-   ```bash
-   surreal sql ... --database ataturk-anadolu < seed/99_dogrula.surql
-   ```
-   Tüm sorgular `0` dönmelidir (`GROUP ALL` kullananlar `[[{ count: 0 }]]`,
-   gruplanmış olanlar boş sonuç). Dosyadaki her sorgu **tek satırdır**:
-   `surreal sql` istemcisi girdiyi satır satır ayrıştırdığı için çok satırlı bir
-   ifade ikinci satırda sözdizimi hatası verir. Dosyanın başındaki yorum bloğu
-   kullanılan tüm SurrealQL fonksiyonlarını ve 3.1.6'da **bulunmayanları**
-   (`array::contains`, `HAVING`, `meta::version`) listeler.
-5. **Giriş denemesi:** herhangi bir öğrenci kullanıcı adı (`MANIFEST`/çıktıdaki
-   `username` alanı) + parola `Hezarfen2026!`.
+Üretici **veri setini üretir, yüklemez**. Yükleme adımları bu depoda değildir:
+çıktı backend ekibine verilir; okulun şemasını uygulayan ve veriyi döken taraf
+backend'dir (`paket/OKU.md`).
 
-**Önemli:** Şema işi (DDL) ile veri yazımı (DML) **aynı sorgu paketinde olmamalıdır**
-(bir paketteki ifadeler şemayı paket başındaki haliyle görür). Bu yüzden tohum,
-`migrate()` tamamen bittikten **sonra**, ayrı bir sorgu olarak çalıştırılır.
-
-**Toplu yükleme HTTP API üzerinden yapılmamalıdır:** varsayılan hız sınırı
-(300 istek/dk/IP) 571.000 satırda 429 üretir. Doğrudan SurrealQL kullanın.
+Bu ayrım bilinçlidir: şema işi ile veri yazımı aynı pakette olmamalıdır — şema
+tamamen kurulduktan **sonra** veri yazılır. Doğrulama da iki taraflıdır:
+`selfcheck.py` üretilen dosyaları denetler (§6), 48 bütünlük sorgusu ise
+yüklenmiş veriyi.
 
 ## 5. Kod düzeni
 
@@ -110,7 +80,7 @@ dosyadan sonra yüklenmesi gerektiği yorum bloğu olarak yazılıdır.
 | `config.py` | Tüm sabitler: takvim, ölçek profilleri, arketip parametreleri, isim havuzları, dosya düzeni. **Sihirli sayı başka dosyada yoktur.** |
 | `world.py` | Üretim bağlamı (`Ctx`) ve ölçek profilleri |
 | `ids.py` | ULID üretimi, kompozit anahtarlar, `table:⟨key⟩` kaçışlaması |
-| `emit.py` | Akışlı SurrealQL yazıcı; her satırın her alanını `schema.json` ile doğrular |
+| `emit.py` | Akışlı veri yazıcı; her satırın her alanını `schema.json` ile doğrular |
 | `timeline.py` | Yerel saat → unix‑ms, öğretim haftaları, gün numarası, tarih kaydırma |
 | `dists.py` | Dağılımlar (normal, log‑normal, Beta, Poisson, ağırlıklı seçim) |
 | `content_tr.py` | **Türkçe metin havuzları:** ders başına kavram listeleri, şık şablonları, soru kökü şablonları, öğrenci cevabı cümleleri ve §4.5'teki kavram yanılgısı tablosu (92 konu). Ayrıca **bilişsel boyut etiketlerinden metin üreten** katman (`make_labeled_question`, `make_labeled_stem`). Üretim kodunda gömülü metin yoktur. |
@@ -120,7 +90,7 @@ dosyadan sonra yüklenmesi gerektiği yorum bloğu olarak yazılıdır.
 | `engagement.py` | Ödev, pomodoro, soru havuzu, sohbet, not, mesaj, tahta, rozet |
 | `operations.py` | Randevu, etkinlik, yemek, ödeme, mesai |
 | `counters.py` | Sayaç materyalizasyonu ve sayaç taşıyan satırların yazımı; control dosyası |
-| `verify_queries.py` | `99_dogrula.surql` üretimi |
+| `verify_queries.py` | 48 bütünlük sorgusunun üretimi |
 | `selfcheck.py` | Üretilen çıktının bağımsız denetimi |
 
 ### Neden bu yapı
@@ -130,7 +100,7 @@ dosyadan sonra yüklenmesi gerektiği yorum bloğu olarak yazılıdır.
   göre numaralı dosyalara birleştirilir. Böylece 217.000 satırlık `exam_answer` hiçbir
   zaman bellekte tutulmaz, ama sayaç taşıyan satırlar (ör. `course.enrollment_count`)
   her şey sayıldıktan sonra yazılabilir.
-* **Şema disiplini.** SCHEMAFULL tabloda tanımsız alan **sessizce silinir**; bu yüzden
+* **Şema disiplini.** Şemada tanımsız bir alan **sessizce düşer**; bu yüzden
   `emit.validate_row()` her alanı yazmadan önce `schema.json` ile karşılaştırır ve
   yazım hatasında üretimi durdurur. Dizi alanları daima açıkça yazılır (`DEFAULT []`
   tam satır yazımında tetiklenmez).
@@ -138,8 +108,8 @@ dosyadan sonra yüklenmesi gerektiği yorum bloğu olarak yazılıdır.
   yazılır; ULID rakamla başladığı için çıplak yazım ayrıştırılamaz.
 * **Dize kaçışlaması tek yerde** (`emit.sq_string`). Ters bölülü tırnak kaçışı
   (`\'`) **kullanılmaz**: Türkçe metinde kesme işareti çok sık geçer
-  (Ali'nin, 2026'da, Atatürk'ün) ve bu dizinin SurrealQL tarafından kabul
-  edildiği çalıştırılarak doğrulanamadı. Risk varsayıma bırakılmak yerine
+  (Ali'nin, 2026'da, Atatürk'ün) ve bu dizinin okuyucu tarafından kabul
+  edildiği sınanarak doğrulanamadı. Risk varsayıma bırakılmak yerine
   ortadan kaldırıldı:
   tek tırnak yoksa `'…'`, tek tırnak varsa `"…"` (Türkçe metinde çift tırnak
   neredeyse hiç geçmez, kaçışa gerek kalmaz), ikisi de varsa çift tırnaklıda
@@ -180,9 +150,10 @@ Denetlenenler:
   (kelime ortasından kesme yok). Ayrıca aynı sorunun iki şıkkının aynı metne
   sahip olması hata sayılır.
 * (k) **dize kaçışlaması ve sözdizimi** — çıktının hiçbir yerinde `\'` dizisi
-  bulunmamalı (`BACKSLASH_QUOTE`), ve tüm `.surql` dosyaları (00 ve 99 dahil)
+  bulunmamalı (`BACKSLASH_QUOTE`), ve tüm veri dosyaları (00 ve 99 dahil)
   dize-farkında bir tarayıcıdan geçer: her dize satır sonunda kapanmış mı,
-  `[ ]` / `{ }` dengeli mi, fazladan kapanış var mı. SurrealDB çalıştırmadan
+  `[ ]` / `{ }` dengeli mi, fazladan kapanış var mı. Bir veritabanı
+  çalıştırmadan
   elimizdeki tek sözdizimi güvencesi budur.
 * (l) **konu-kavram uyumu** — sayısal derslerde soru kökünde geçen konu adı ile
   kökte/şıklarda geçen kavram aynı `SUBJECT_CONCEPTS` havuzundan olmalı; ihlal
@@ -194,7 +165,7 @@ Denetlenenler:
   kullanılması bilinçlidir (§4.8) ve madde istatistiğinin `n >= 30` kapısını
   besler.
 
-`99_dogrula.surql` ise aynı işi **veritabanı tarafında** 48 sorguyla yapar; ikisi
+48 bütünlük sorgusu ise aynı işi **yüklenmiş veri tarafında** yapar; ikisi
 birbirinin yerine geçmez (biri dosyayı, öteki yüklenmiş veriyi denetler).
 
 ### Bilişsel boyut zincirleri (A / B / C)

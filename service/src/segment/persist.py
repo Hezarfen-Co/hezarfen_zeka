@@ -13,7 +13,7 @@ Köprünün yaptığı dört şey:
   1. `LabelBatch` → `QuestionSegment` (soru başına etiket satırı),
   2. etiket + ham cevap → `StudentSegmentProfile` (öğrenci × boyut × etiket),
   3. profil + kohort referansı → segment tabanlı `Recommendation` satırları,
-  4. üçünü de `Store` üzerinden UPSERT.
+  4. üçünü de köprüden (`insight.*`) idempotent yaz.
 
 Kural motorunun burada çağrılmasının sebebi ölçüsel: segment kuralları kohort
 ortalamasına göre ateşler ve o ortalama ancak BÜTÜN öğrenciler hesaplandıktan
@@ -22,8 +22,8 @@ sonra bilinir. Tek öğrenci işleyen gece koşusu (`pipeline.run_school`) bu sa
 referansı hazır elde olan taraf burasıdır.
 
 Yazım **isteğe bağlıdır**: `runner.run(..., persist=True)` ya da CLI'da
-`--persist`. Varsayılan davranış değişmez; bayrak verilmezse tek bir SurrealQL
-ifadesi bile çalışmaz.
+`--persist`. Varsayılan davranış değişmez; bayrak verilmezse tek bir köprü çağrısı
+bile yapılmaz.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ from ..compute.segments import (
     reference_contrasts,
     student_profiles,
 )
-from ..store import Store, SurrealHttpClient
+from ..store import SchoolStore
 from .config import SegmentConfig, log
 from .labelers import LabelBatch
 from .rubric import DIMENSION_ORDER, EXPERIMENTAL_DIMENSIONS
@@ -233,17 +233,6 @@ def school_slug(cfg: SegmentConfig, override: str | None = None) -> str:
     return "bilinmeyen"
 
 
-def build_client(
-    url: str, *, namespace: str, database: str, user: str, password: str
-) -> SurrealHttpClient:
-    """Depo istemcisi. `store.py` ile aynı istemci — ikinci bir yol yok."""
-    client = SurrealHttpClient(
-        url, namespace=namespace, database=database, user=user, password=password
-    )
-    client.ensure_namespace()
-    return client
-
-
 async def persist(
     batch: LabelBatch,
     items: Sequence[dict],
@@ -251,7 +240,7 @@ async def persist(
     *,
     school: str,
     now_ms: int,
-    store: Store | None,
+    store: SchoolStore | None,
 ) -> PersistReport:
     """Dönüştür ve yaz. `store=None` ise yalnız sayar (kuru koşu)."""
     report = PersistReport(school=school, dry_run=store is None)
