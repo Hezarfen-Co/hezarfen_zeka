@@ -222,10 +222,32 @@ async def _cmd_schedule(args: argparse.Namespace) -> int:
 
     `--ticks` verilirse tam `serve()` dongusu kosar (test kipi); verilmezse
     tek tur (`run_once`) kosar. Ikisi de ayni kod yolunu kullanir.
+
+    Iki depo yolu vardir ve ikisi de URETIMDEKI ayni kodu kullanir:
+
+    * `--pg-dsn` (ya da `ZEKA_PG_DSN`) verilirse KONTROL veritabanidir;
+      okullar oradan cozulur (`tenants.open_postgres`) ve `--schools` FILTRE
+      olur (verilmezse butun aktif okullar kosar).
+    * verilmezse eski tek veritabani modu; `--schools` ZORUNLUDUR.
     """
-    client = _build_client(args)
-    store = Store(client)
-    schools = [s.strip() for s in args.schools.split(",") if s.strip()]
+    from .tenants import OneDatabase
+
+    schools = [s.strip() for s in (args.schools or "").split(",") if s.strip()]
+    dsn = (args.pg_dsn or os.environ.get("ZEKA_PG_DSN", "")).strip()
+    if dsn:
+        from .tenants import open_postgres
+
+        directory = await open_postgres(dsn)
+        only = schools or None
+    else:
+        if not schools:
+            raise SystemExit(
+                "--schools zorunlu (tek veritabani modu). Postgres icin "
+                "--pg-dsn verin; orada okullar kontrol veritabanindan gelir."
+            )
+        client = _build_client(args)
+        directory = OneDatabase(Store(client), schools, teardown=[client.close])
+        only = None
     budgets: dict[str, int] = {}
     for pair in (args.budget or "").split(","):
         if "=" in pair:
@@ -239,27 +261,31 @@ async def _cmd_schedule(args: argparse.Namespace) -> int:
     stamp = args.now or int(time.time() * 1000)
     scheduler = Scheduler(
         lambda school: FileSource(root),
-        store,
-        schools,
+        directory,
+        only=only,
         budget_ms=args.budget_ms,
         budgets=budgets,
         term_start_ms=args.term_start,
         clock_fn=lambda: stamp,
     )
-    if args.ticks:
-        await scheduler.serve(
-            tick_seconds=args.tick_seconds, ignore_window=True, max_ticks=args.ticks
-        )
-        results = []
-    else:
-        results = await scheduler.run_once(stamp)
+    try:
+        if args.ticks:
+            await scheduler.serve(
+                tick_seconds=args.tick_seconds, ignore_window=True, max_ticks=args.ticks
+            )
+            results = []
+        else:
+            results = await scheduler.run_once(stamp)
+    finally:
+        await directory.close()
+    gorulen = sorted({*schools, *(r.school for r in results)})
     print(
         json.dumps(
             {
                 "kosulan_okullar": [r.school for r in results],
                 "sonuclar": [dataclasses.asdict(r) for r in results],
                 "dusen_okullar": scheduler._failures,
-                "bekleyen": {s: scheduler.pending_for(s) for s in schools},
+                "bekleyen": {s: scheduler.pending_for(s) for s in gorulen},
             },
             ensure_ascii=False,
             indent=2,
@@ -397,7 +423,17 @@ def build_parser() -> argparse.ArgumentParser:
     schedule = sub.add_parser(
         "schedule", help="zamanlayıcıyı elle tetikle (gece penceresini beklemeden)"
     )
-    schedule.add_argument("--schools", required=True, help="virgülle ayrılmış slug")
+    schedule.add_argument(
+        "--schools",
+        help="virgülle ayrılmış slug listesi. Postgres modunda (--pg-dsn) "
+        "FİLTREDİR: verilmezse bütün aktif okullar koşar; eski tek veritabanı "
+        "modunda zorunludur",
+    )
+    schedule.add_argument(
+        "--pg-dsn",
+        help="KONTROL veritabanı DSN'i (verilmezse ZEKA_PG_DSN). Verilirse "
+        "okullar kontrol veritabanındaki `school` tablosundan çözülür",
+    )
     schedule.add_argument("--fixtures", required=True)
     schedule.add_argument("--now", type=int)
     schedule.add_argument("--term-start", type=int)

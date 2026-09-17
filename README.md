@@ -16,8 +16,8 @@ Bağlamak için gereken üç şey:
 
 ```sh
 AI_SHARED_TOKEN=<backend ile aynı sır>
-ZEKA_PG_DSN=postgres://<kullanıcı>:<parola>@<host>:5432/<okul_veritabanı>
-DEEPSEEK_API_KEY=<segment hattı için>
+ZEKA_PG_DSN=postgres://<kullanıcı>:<parola>@<host>:5432/<kontrol_veritabanı>
+LLM_API_KEY=<segment hattı için; OpenAI uyumlu her sağlayıcı olur>
 ```
 
 ```sh
@@ -291,7 +291,8 @@ isabeti: `service/docs/SEGMENT-CIKTI.md`.
 
 `.env` gitignore'ludur ve depoya **girmez**. `compose.yaml` yalnızca
 interpolasyon içerir, literal sır taşımaz. `AI_SHARED_TOKEN`, `ZEKA_PG_DSN` ve
-`DEEPSEEK_API_KEY` `:?` ile **zorunludur**: adressiz ya da anahtarsız bir servis
+`LLM_API_KEY` `:?` ile **zorunludur**; eski `DEEPSEEK_API_KEY` adı artık
+**reddedilir** (temiz kesim): adressiz ya da anahtarsız bir servis
 ayağa kalkıp hiçbir şey yazmadan "çalışıyor" görünürdü. Açılışta bir satır hata,
 günler sonra boş bir tablo yerine.
 
@@ -336,7 +337,7 @@ request'ler** beş katmanı `ci.yml`'den alır (aynı kapı iki kez koşmaz).
    ```bash
    mkdir -p ~/hezarfen_zeka
    cp deploy/hezarfen_zeka.env.example ~/hezarfen_zeka/hezarfen_zeka.env
-   # AI_SHARED_TOKEN / ZEKA_PG_DSN / DEEPSEEK_API_KEY zorunlu
+   # AI_SHARED_TOKEN / ZEKA_PG_DSN / LLM_API_KEY zorunlu
    chmod 0600 ~/hezarfen_zeka/hezarfen_zeka.env
    ```
 

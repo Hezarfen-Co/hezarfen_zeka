@@ -168,12 +168,30 @@ class Config:
 
         # --- kapsam -----------------------------------------------------------
         # Her frame kendi okulunu adlandirir (`ai/protocol.rs:36-47`); `Hello`
-        # okul tasimaz. Filo paylasimlidir, bu yuzden hangi okullari isleyecegimizi
-        # yapilandirmadan ogreniyoruz -- backend'de okul listeleme yolu yok.
-        self.schools = env_list("ZEKA_SCHOOLS", ("hezarfen-demo",))
+        # okul tasimaz. Filo paylasimlidir: ZEKA butun okullara hizmet eder.
+        #
+        # Okul KUTUGU kontrol veritabanindadir (`tenants.py`); burasi yalnizca
+        # bir FILTREDIR. Bos liste = butun aktif okullar. Sabit bir varsayilan
+        # okul yoktur: "hangi okullar var" sorusunun cevabi yapilandirma
+        # degil, kontrol veritabani olmalidir.
+        self.schools = env_list("ZEKA_SCHOOLS", ())
         self.student_source = env_choice("ZEKA_STUDENT_SOURCE", "config", STUDENT_SOURCES)
         self.students = env_list("ZEKA_STUDENTS", ())
         self.student_file = _absolute(env_str("ZEKA_STUDENT_FILE", ""))
+
+        # --- okul havuzlari ---------------------------------------------------
+        # Okul sayisi sinirsiz; acik baglanti sayisi sinirli olmali. Havuz
+        # tavani ve TTL'i `tenants.TenantStores` uygular.
+        self.max_school_pools = env_int("ZEKA_MAX_SCHOOL_POOLS", 8, 1, 256)
+        self.school_pool_ttl_secs = env_float(
+            "ZEKA_SCHOOL_POOL_TTL_SECS", 900.0, 0.0, 86400.0
+        )
+        self.school_registry_ttl_secs = env_float(
+            "ZEKA_SCHOOL_REGISTRY_TTL_SECS", 30.0, 0.0, 3600.0
+        )
+        self.school_connect_timeout_secs = env_float(
+            "ZEKA_SCHOOL_CONNECT_TIMEOUT_SECS", 10.0, 1.0, 120.0
+        )
 
         # --- veri cephesi ------------------------------------------------------
         self.source_mode = env_choice("ZEKA_SOURCE", "bridge", SOURCE_MODES)
@@ -223,7 +241,8 @@ class Config:
             f"token={'tanimli' if self.has_token else 'TANIMSIZ'} "
             f"max_es_zamanli={self.max_concurrent} "
             f"yeniden_baglanma={self.reconnect_secs}s..{self.reconnect_max_secs}s "
-            f"okullar={','.join(self.schools)} "
+            f"okullar={','.join(self.schools) if self.schools else 'hepsi(kontrol)'} "
+            f"okul_havuzu=en fazla {self.max_school_pools} TTL {self.school_pool_ttl_secs:g}s "
             f"ogrenci_kaynagi={self.student_source} ogrenci_sayisi={students} "
             f"veri_cephesi={self.source_mode} fikstur_kok={self.fixture_root} "
             f"api_zaman_asimi={self.api_timeout_secs}s "
@@ -240,6 +259,11 @@ def _depo_ozeti_impl(self) -> str:
     yazilirken bile "db=ws://hezarfen-surrealdb:8000/rpc" diyordu. Acilis
     logunun yanlis depoyu gostermesi, bir arizayi tesbit ederken insani
     saatlerce yanlis yere baktirir.
+
+    `ZEKA_PG_DSN` artik KONTROL veritabanidir; okul verileri okul basina
+    ayri veritabanlarindadir (`tenants.py`). Satir bunu soyler, yoksa "depo=
+    postgres /hezarfen_control" okuyan operator okul verisinin oraya
+    yazildigini sanirdi.
     """
     import os
 
@@ -252,7 +276,7 @@ def _depo_ozeti_impl(self) -> str:
             yer = f"{parsed.hostname or '?'}{parsed.path}"
         except Exception:  # noqa: BLE001
             yer = "<cozumlenemedi>"
-        return f"depo=postgres {yer}"
+        return f"depo=postgres kontrol {yer} (okullar kendi veritabanlarinda)"
     return (
         f"depo=surrealdb(eski) {self.db_url} ns={self.db_namespace} "
         f"db_ad={self.db_database} "

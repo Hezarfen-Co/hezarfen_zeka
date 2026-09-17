@@ -22,6 +22,20 @@ _LEVELS = {"debug": 10, "info": 20, "warn": 30, "error": 40}
 _active = _LEVELS["info"]
 
 
+#: KALDIRILAN LLM adlari. Dolu bulunurlarsa yapilandirma reddedilir: yarim
+#: kalan bir adi sessizce yok saymak, operatorun kendi ayar dosyasinin artik
+#: okunmadigini fark etmemesi demek olurdu.
+ESKI_LLM_ADLARI: tuple[str, ...] = (
+    "DEEPSEEK_API_KEY",
+    "SEGMENT_API_KEY",
+    "SEGMENT_BASE_URL",
+    "SEGMENT_MODEL_FLASH",
+    "SEGMENT_MODEL_PRO",
+    "SEGMENT_MODEL_REASONER",
+    "SEGMENT_MODEL_ROLE",
+)
+
+
 class SegmentConfigError(Exception):
     """Yapilandirma hatasi."""
 
@@ -188,20 +202,34 @@ class SegmentConfig:
         `root` verilirse tum goreli yollar onun altinda cozulur (depo koku).
         """
         cfg = cls()
-        cfg.base_url = (_env("SEGMENT_BASE_URL") or _env("LLM_BASE_URL")
-                        or cfg.base_url).rstrip("/")
-        # Anahtar arama sirasi: rag servisindeki desenle ayni (oku, kopyalama).
-        cfg.api_key = (_env("DEEPSEEK_API_KEY") or _env("LLM_API_KEY")
-                       or _env("SEGMENT_API_KEY"))
+        # --- LLM adlari: TEMIZ KESIM (2026-09-17) --------------------------
+        # Eski adlar KALDIRILDI: anahtar `LLM_API_KEY`, adres `LLM_BASE_URL`,
+        # modeller `LLM_MODEL_FLASH/PRO/REASONER`, rol `LLM_MODEL_ROLE`.
+        # Bir "eski ad da calissin" dali birakmak "hangi ad kazandi" sorusunu
+        # kodun icine tasirdi; onun yerine eski ad gorulunce yapilandirma
+        # ACIKCA REDDEDILIR -- sessizce calisan bir kurulum, adi degismemis
+        # bir operatoru fark ettirmez.
+        eski = [ad for ad in ESKI_LLM_ADLARI if (os.environ.get(ad) or "").strip()]
+        if eski:
+            raise SegmentConfigError(
+                "su adlar artik DESTEKLENMIYOR: %s. Yeni adlar: LLM_API_KEY, "
+                "LLM_BASE_URL, LLM_MODEL_FLASH / LLM_MODEL_PRO / "
+                "LLM_MODEL_REASONER, LLM_MODEL_ROLE."
+                % ", ".join(eski))
+        # Varsayilan adres DeepSeek'tir ama bu bir ZORUNLULUK degildir:
+        # OpenAI uyumlu her ag gecidi LLM_BASE_URL ile bu hatayi kosturur.
+        cfg.base_url = (_env("LLM_BASE_URL") or cfg.base_url).rstrip("/")
+        # Anahtar yoksa anahtar YOKTUR -- sessiz bir varsayilan yoktur.
+        cfg.api_key = _env("LLM_API_KEY")
         for role in ("flash", "pro", "reasoner"):
-            override = _env(f"SEGMENT_MODEL_{role.upper()}")
+            override = _env(f"LLM_MODEL_{role.upper()}")
             if override:
                 cfg.model_ids[role] = override
-        role = _env("SEGMENT_MODEL_ROLE")
+        role = _env("LLM_MODEL_ROLE")
         if role:
             if role not in cfg.model_ids:
                 raise SegmentConfigError(
-                    f"SEGMENT_MODEL_ROLE gecersiz: {role!r} "
+                    f"LLM_MODEL_ROLE gecersiz: {role!r} "
                     f"(beklenen: {', '.join(sorted(cfg.model_ids))})")
             cfg.model_role = role
 

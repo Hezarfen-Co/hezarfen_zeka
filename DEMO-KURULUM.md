@@ -104,7 +104,7 @@ Bu kurulmasaydı veri görünür, sistem kullanılamaz olurdu.
 ## 5. ZEKA servisi
 
 ```
-ZEKA_PG_DSN=postgresql://<kullanici>:<parola>@<host>:5432/hezarfen_control_school_0193000000007000800000000000de70
+ZEKA_PG_DSN=postgresql://<kullanici>:<parola>@<host>:5432/hezarfen_control
 ```
 
 Üretimde bu kullanıcı **yalnız dokuz `zeka_*` tablosuna yazma, kalan 77 tabloya

@@ -394,7 +394,7 @@ def cache_key(model: str, system: str | None, prompt: str, temperature: float,
 class DeepSeekProvider(BaseProvider):
     """OpenAI-uyumlu `/chat/completions` istemcisi.
 
-    Anahtar ortamdan (`DEEPSEEK_API_KEY`). Anahtar yokken de ORNEKLENEBILIR;
+    Anahtar ortamdan (`LLM_API_KEY`). Anahtar yokken de ORNEKLENEBILIR;
     hata yalnizca gercek cagri aninda yukselir — boylece tum boru hatti
     anahtarsiz ithal edilebilir.
     """
@@ -441,7 +441,7 @@ class DeepSeekProvider(BaseProvider):
               **kw) -> ChatResult:
         if not self.cfg.api_key:
             raise ProviderError(
-                "DEEPSEEK_API_KEY tanimsiz. Gercek kosu icin ortama anahtari yaz "
+                "LLM_API_KEY tanimsiz. Gercek kosu icin ortama anahtari yaz "
                 "ya da MockProvider kullan.")
         payload = self.build_payload(prompt, system, temperature, model,
                                      kind=kind, role=role)
@@ -740,7 +740,7 @@ def build_provider(cfg: SegmentConfig, *, mock: bool = False, cache=None,
     if mock:
         return MockProvider(cfg, cache=cache, budget=budget)
     if not cfg.api_key:
-        log("warn", "DEEPSEEK_API_KEY yok -> MockProvider'a dusuluyor. "
+        log("warn", "LLM_API_KEY yok -> MockProvider'a dusuluyor. "
                     "Mock ciktilari GERCEK MODEL KALITESI DEGILDIR.")
         return MockProvider(cfg, cache=cache, budget=budget)
     return DeepSeekProvider(cfg, cache=cache, budget=budget)

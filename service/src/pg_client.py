@@ -21,6 +21,10 @@ Baglanti bilgisi
 `ZEKA_PG_DSN` ortam degiskeninden gelir. Bu bir **sirdir**: hicbir kosulda
 loglanmaz. `PgPool.describe()` yalnizca host/port/veritabani doner, kullanici
 adi ve parola asla.
+
+DSN artik **kontrol** veritabanini adlandirir (`tenants.py`); okul
+veritabanlarina ayni sunucuda, `dbname` degistirilmis DSN'lerle baglanilir.
+Bu modul ikisini de bilmez: eline verilen DSN'e baglanir.
 """
 
 from __future__ import annotations
@@ -57,8 +61,15 @@ class PsycopgClient:
         self._conn = conn
 
     @classmethod
-    async def connect(cls, dsn: str | None = None) -> "PsycopgClient":
-        """`ZEKA_PG_DSN` ile baglanir. DSN loglanmaz."""
+    async def connect(
+        cls, dsn: str | None = None, *, connect_timeout: float | None = None
+    ) -> "PsycopgClient":
+        """`ZEKA_PG_DSN` ile baglanir. DSN loglanmaz.
+
+        `connect_timeout` saniyedir ve libpq'ye gecer: okul havuzlari istek
+        aninda acildigi icin, ulasilamayan bir veritabani sonsuza kadar
+        beklenmez (bkz. `tenants.py`).
+        """
         import psycopg
 
         target = dsn or os.environ.get("ZEKA_PG_DSN", "")
@@ -67,8 +78,11 @@ class PsycopgClient:
                 "ZEKA_PG_DSN tanimli degil; okul veritabanina baglanilamaz"
             )
         # autocommit: transaction sinirlarini PgStore belirler, surucu degil.
-        conn = await psycopg.AsyncConnection.connect(target, autocommit=True)
-        log.info("okul veritabanina baglanildi (%s)", _describe(target))
+        kwargs: dict[str, Any] = {"autocommit": True}
+        if connect_timeout is not None:
+            kwargs["connect_timeout"] = max(1, int(connect_timeout))
+        conn = await psycopg.AsyncConnection.connect(target, **kwargs)
+        log.info("veritabanina baglanildi (%s)", _describe(target))
         return cls(conn)
 
     async def execute(self, sql: str, params: Sequence[Any] = ()) -> None:

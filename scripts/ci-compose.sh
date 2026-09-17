@@ -4,7 +4,7 @@
 # Uc sey denetlenir ve UCU DE cift yonludur; yalnizca "gecerli mi" diye
 # sormak, asil kusurlari kacirir:
 #
-#   1. Zorunlu sirlar gercekten zorunlu mu? (AI_SHARED_TOKEN, DEEPSEEK_API_KEY,
+#   1. Zorunlu sirlar gercekten zorunlu mu? (AI_SHARED_TOKEN, LLM_API_KEY,
 #      ZEKA_PG_DSN -- tam liste compose.yaml'da.)
 #      `${VAR:?}` yerine `${VAR:-}` yazilirsa compose yine gecerli olur ama
 #      servis bos bir token'la ayaga kalkar ve backend'e kaydolamaz. Bu
@@ -40,19 +40,19 @@ kal() { echo "  [HATA] $1"; HATA=1; }
 
 # --- 1a. zorunlu env EKSIKKEN patlamali -----------------------------------
 # ZORUNLU SIRLAR LISTESI compose.yaml'DAN OKUNUR -- su an uctur
-# (AI_SHARED_TOKEN, DEEPSEEK_API_KEY, ZEKA_PG_DSN). Ucuncusu eklendiginde bu
+# (AI_SHARED_TOKEN, LLM_API_KEY, ZEKA_PG_DSN). Ucuncusu eklendiginde bu
 # betik ve `ci.yml`'in konteyner katmani iki sirla kalmis, ikisi de "sirlar
 # verilse bile patliyor" diyerek KIRMIZI kalmisti. Sir eklerseniz bu listeyi
 # ve ci.yml/main.yml adimini BIRLIKTE guncelleyin.
-if env -u AI_SHARED_TOKEN -u DEEPSEEK_API_KEY -u ZEKA_PG_DSN \
+if env -u AI_SHARED_TOKEN -u LLM_API_KEY -u ZEKA_PG_DSN \
      "${COMPOSE[@]}" config >/dev/null 2>&1; then
   kal "zorunlu sirlar olmadan gecti -- \${VAR:?} yerine \${VAR:-} yazilmis olabilir"
 else
-  gec "zorunlu sirlar olmadan REDDEDILDI (AI_SHARED_TOKEN / DEEPSEEK_API_KEY / ZEKA_PG_DSN)"
+  gec "zorunlu sirlar olmadan REDDEDILDI (AI_SHARED_TOKEN / LLM_API_KEY / ZEKA_PG_DSN)"
 fi
 
 # --- 1b. zorunlu env VARKEN gecerli olmali --------------------------------
-ZORUNLU_ENV=(AI_SHARED_TOKEN=ci-sahte DEEPSEEK_API_KEY=ci-sahte ZEKA_PG_DSN=postgres://ci:ci@127.0.0.1:5432/ci)
+ZORUNLU_ENV=(AI_SHARED_TOKEN=ci-sahte LLM_API_KEY=ci-sahte ZEKA_PG_DSN=postgres://ci:ci@127.0.0.1:5432/ci)
 CIKTI="$(env "${ZORUNLU_ENV[@]}" "${COMPOSE[@]}" config 2>&1)"
 if [ $? -ne 0 ]; then
   kal "zorunlu sirlar verildiginde bile config basarisiz:"

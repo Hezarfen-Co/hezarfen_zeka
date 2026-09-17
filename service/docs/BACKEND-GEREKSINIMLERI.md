@@ -197,8 +197,9 @@ gerekiyor ve kendi kendine kosmak icin bir liste gerekiyor.
 
 **Yapilandirmadan.** `service/src/config.py` icinde:
 
-- `ZEKA_SCHOOLS` -- islenecek okul sluglari, virgulle ayrilmis
-  (varsayilan: `ataturk-anadolu`),
+- `ZEKA_SCHOOLS` -- islenecek okul sluglari, virgulle ayrilmis. Artik bir
+  FILTREDIR: bos birakilirsa kontrol veritabanindaki (`school` tablosu)
+  butun aktif okullar islenir (varsayilan: bos),
 - `ZEKA_STUDENT_SOURCE` = `config` | `file`,
 - `ZEKA_STUDENTS` -- kullanici kimlikleri, virgulle ayrilmis,
 - `ZEKA_STUDENT_FILE` -- ayni listenin dosya hali.

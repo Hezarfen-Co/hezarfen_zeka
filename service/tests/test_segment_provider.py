@@ -452,7 +452,7 @@ class TestDeepSeekProvider(unittest.TestCase):
         p = DeepSeekProvider(c, budget=BudgetGuard(10.0), sleep=lambda _s: None)
         with self.assertRaises(ProviderError) as ctx:
             p.chat("x")
-        self.assertIn("DEEPSEEK_API_KEY", str(ctx.exception))
+        self.assertIn("LLM_API_KEY", str(ctx.exception))
 
     def test_anahtar_yoksa_build_provider_mocka_duser(self):
         p = build_provider(cfg(api_key=None), mock=False)

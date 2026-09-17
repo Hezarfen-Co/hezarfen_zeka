@@ -7,8 +7,12 @@ services:
     build:
       context: .
       dockerfile: Containerfile
-    # HEZARFEN_TAG deploy tarafindan yazilan stack.env'den gelir (--env-file
-    # sirasi onu kazanan yapar). Yerelde/elle `up` icin varsayilan `current`:
+    # HEZARFEN_TAG deploy tarafindan yazilan stack.env'den gelir: unit ve deploy
+    # tek `--env-file stack.env` verir, operator sirlari ise ORTAMDAN gelir
+    # (systemd `EnvironmentFile=` / deploy'un surece almasi) -- bu
+    # saglayicida `--env-file` yalniz SON dosyayi cozer, iki dosyali cagri
+    # operator dosyasini dusurur (podman_compose.py:2941-2946, :2559).
+    # Yerelde/elle `up` icin varsayilan `current`:
     # yani `podman compose up -d --build` yine calisiyor. Sabit bir `:current`
     # yazilsaydi deploy yeni imaji yukleyip ESKI imaji kosmaya devam ederdi --
     # tag rotasyonu ve geri donus (previous_tag) bu satira baglidir.
@@ -29,14 +33,16 @@ services:
       # --- LLM saglayicisi (segment hatti) ---
       # Zorunlu tutuluyor. DIKKAT, durust not: `src/bridge.py` bu anahtari
       # OKUMAZ; yalnizca `src/segment/config.py` okur (oradaki oncelik sirasi
-      # DEEPSEEK_API_KEY -> LLM_API_KEY -> SEGMENT_API_KEY). Yani anahtarsiz
+      # LLM_API_KEY -- TEMIZ KESIM (2026-09-17): eski adlar (DEEPSEEK_API_KEY,
+      # SEGMENT_API_KEY, SEGMENT_BASE_URL, SEGMENT_MODEL_*) KALDIRILDI; dolu
+      # bulunurlarsa yapilandirma acilista reddedilir). Yani anahtarsiz
       # bir kopru teknik olarak ayaga kalkardi, segment hatti kosulunca
       # patlardi. `:?` ile hatayi DAGITIM anina cekiyoruz: acilista bir satir
       # hata, uretimde saatler sonra sasirtici bir cokme yerine.
       # Sir DOSYAYA GOMULMEZ: burada yalnizca interpolasyon vardir, deger
       # operatorun ortamindan ya da `--env-file` ile verilen (gitignore'lu)
       # `.env` dosyasindan gelir.
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?DEEPSEEK_API_KEY gerekli -- segment hatti LLM saglayicisina bu anahtarla baglanir}
+      LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY gerekli -- segment hatti LLM saglayicisina bu anahtarla baglanir}
       # Sertifika pinleme. BOS BIRAKILIRSA TOFU: backend'in HTTP ile verdigi
       # sertifikaya sorgusuz guvenilir (podcast ve Celebi'nin bugunku hali,
       # denetimde zafiyet olarak isaretlendi). Uretimde backend'in acilista

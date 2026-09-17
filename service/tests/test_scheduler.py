@@ -24,6 +24,7 @@ from src.compute import clock
 from src.scheduler import WINDOW_END_HOUR, WINDOW_START_HOUR, Scheduler, in_window
 from src.source import FileSource
 from src.store import CollectingClient, Store
+from src.tenants import OneDatabase, SchoolDatabaseGone, TenantError
 
 from .fakes import FakeSource
 from .zeka_db import (
@@ -69,8 +70,7 @@ def make_scheduler(data_by_school: dict[str, dict], **kw) -> tuple[Scheduler, St
 
     scheduler = Scheduler(
         factory,
-        store,
-        list(data_by_school),
+        OneDatabase(store, list(data_by_school)),
         term_start_ms=TERM_START,
         clock_fn=lambda: NOW,
         **kw,
@@ -227,8 +227,7 @@ class TestServeTestMode(unittest.IsolatedAsyncioTestCase):
         store = Store(CollectingClient())
         scheduler = Scheduler(
             lambda school: FakeSource(data[school]),
-            store,
-            list(data),
+            OneDatabase(store, list(data)),
             clock_fn=lambda: noon,
         )
         await scheduler.serve(tick_seconds=0.001, max_ticks=2)
@@ -271,8 +270,7 @@ class TestFullCycleAgainstSurreal(unittest.IsolatedAsyncioTestCase):
     def _scheduler(self, **kw) -> Scheduler:
         return Scheduler(
             lambda school: FileSource(self.root),
-            self.store,
-            self.schools,
+            OneDatabase(self.store, self.schools),
             term_start_ms=TERM_START,
             clock_fn=lambda: NOW,
             **kw,
@@ -357,8 +355,7 @@ class TestFullCycleAgainstSurreal(unittest.IsolatedAsyncioTestCase):
 
         scheduler = Scheduler(
             factory,
-            self.store,
-            self.schools,
+            OneDatabase(self.store, self.schools),
             term_start_ms=TERM_START,
             clock_fn=lambda: NOW,
         )
@@ -406,6 +403,102 @@ class TestFullCycleAgainstSurreal(unittest.IsolatedAsyncioTestCase):
         scheduler._last_run_day.clear()  # gun kapisini elle ac
         await scheduler.run_once(NOW)
         self.assertEqual(count_rows(self.client, "student_summary"), before)
+
+
+class DirectoryDrivenTests(unittest.IsolatedAsyncioTestCase):
+    """Okul listesi YAPILANDIRMADAN degil, dizinden gelir.
+
+    Eskiden okullar kurucuya liste olarak veriliyordu ve tek bir `store`
+    paylasiliyordu; cok okullu sekilde okulun kimligi cerceveden/dizinden
+    gelir, depo da okul basina cozulur. Bu sinif o donusu pinler.
+    """
+
+    def _store(self):
+        return Store(CollectingClient())
+
+    async def test_the_tick_runs_exactly_what_the_directory_reports(self):
+        store = self._store()
+        data = {"a-okul": dataset(2), "b-okul": dataset(2)}
+
+        class Directory:
+            def __init__(self, schools):
+                self.schools = list(schools)
+
+            async def active_schools(self):
+                return list(self.schools)
+
+            async def store_for(self, slug):
+                if slug not in self.schools:
+                    raise TenantError("yok", school=slug)
+                return store
+
+            async def close(self):
+                return None
+
+            def describe(self):
+                return "test dizini"
+
+        directory = Directory(["a-okul"])
+        scheduler = Scheduler(
+            lambda school: FakeSource(data[school]),
+            directory,
+            term_start_ms=TERM_START,
+            clock_fn=lambda: NOW,
+        )
+        self.assertEqual([r.school for r in await scheduler.run_once(NOW)], ["a-okul"])
+
+        # Dizin okul eklerse surec YENIDEN BASLATILMADAN onu da gorur.
+        directory.schools.append("b-okul")
+        self.assertEqual([r.school for r in await scheduler.run_once(NOW)], ["b-okul"])
+
+    async def test_an_unreadable_directory_leaves_the_tick_empty_not_failed(self):
+        class Broken:
+            async def active_schools(self):
+                raise TenantError('relation "school" does not exist')
+
+            async def store_for(self, slug):
+                raise AssertionError("okul listesi yokken depo cozulmemeli")
+
+            async def close(self):
+                return None
+
+            def describe(self):
+                return "test dizini"
+
+        scheduler = Scheduler(
+            lambda school: FakeSource({}), Broken(), clock_fn=lambda: NOW
+        )
+        self.assertEqual(await scheduler.run_once(NOW), [])
+        self.assertEqual(scheduler._failures, [])
+
+    async def test_a_school_whose_store_cannot_open_fails_alone(self):
+        store = self._store()
+        data = {"b-okul": dataset(2)}
+
+        class Directory:
+            async def active_schools(self):
+                return ["a-okul", "b-okul"]
+
+            async def store_for(self, slug):
+                if slug == "a-okul":
+                    raise SchoolDatabaseGone("veritabani yok", school=slug)
+                return store
+
+            async def close(self):
+                return None
+
+            def describe(self):
+                return "test dizini"
+
+        scheduler = Scheduler(
+            lambda school: FakeSource(data[school]),
+            Directory(),
+            term_start_ms=TERM_START,
+            clock_fn=lambda: NOW,
+        )
+        results = await scheduler.run_once(NOW)
+        self.assertEqual([r.school for r in results], ["b-okul"])
+        self.assertEqual(scheduler._failures, ["a-okul"])
 
 
 if __name__ == "__main__":

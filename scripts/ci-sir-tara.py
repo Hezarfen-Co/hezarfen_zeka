@@ -248,7 +248,7 @@ def main() -> int:
     compose = KOK / "service" / "compose.yaml"
     if compose.exists():
         icerik = io.open(compose, encoding="utf-8").read()
-        for degisken in ("AI_SHARED_TOKEN", "DEEPSEEK_API_KEY", "ZEKA_PG_DSN"):
+        for degisken in ("AI_SHARED_TOKEN", "LLM_API_KEY", "ZEKA_PG_DSN"):
             satirlar = [s for s in icerik.splitlines() if s.strip().startswith(degisken + ":")]
             if not satirlar:
                 uyarilar.append(f"compose.yaml icinde {degisken} tanimli degil")

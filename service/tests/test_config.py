@@ -25,6 +25,10 @@ _CLEARED = {
         "ZEKA_STUDENT_FILE",
         "ZEKA_SOURCE",
         "ZEKA_DB_PASSWORD",
+        "ZEKA_MAX_SCHOOL_POOLS",
+        "ZEKA_SCHOOL_POOL_TTL_SECS",
+        "ZEKA_SCHOOL_REGISTRY_TTL_SECS",
+        "ZEKA_SCHOOL_CONNECT_TIMEOUT_SECS",
     )
 }
 
@@ -94,6 +98,23 @@ class ParsingTests(unittest.TestCase):
         with _env(AI_SHARED_TOKEN="t", ZEKA_STUDENT_SOURCE="file"):
             with self.assertRaises(config.ConfigError):
                 config.Config()
+
+    def test_no_school_list_means_every_school(self):
+        # Okul listesi artik kontrol veritabanindan gelir; buradaki degisken
+        # yalnizca bir FILTREdir. Sabit bir varsayilan okul olmamali.
+        with _env(AI_SHARED_TOKEN="t", ZEKA_SCHOOLS=""):
+            self.assertEqual(config.Config().schools, ())
+
+    def test_school_pool_knobs_are_parsed_and_bounded(self):
+        with _env(AI_SHARED_TOKEN="t", ZEKA_MAX_SCHOOL_POOLS="3", ZEKA_SCHOOL_POOL_TTL_SECS="60"):
+            settings = config.Config()
+        self.assertEqual(settings.max_school_pools, 3)
+        self.assertEqual(settings.school_pool_ttl_secs, 60.0)
+        self.assertEqual(settings.school_registry_ttl_secs, 30.0)
+        self.assertEqual(settings.school_connect_timeout_secs, 10.0)
+        with _env(ZEKA_MAX_SCHOOL_POOLS="0"):
+            with self.assertRaises(config.ConfigError):
+                config.Config(require_token=False)
 
     def test_defaults_are_the_documented_ones(self):
         with _env(AI_SHARED_TOKEN="t"):

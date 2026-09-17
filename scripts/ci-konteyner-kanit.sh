@@ -144,17 +144,37 @@ else
 fi
 
 # Kopru surecinin KENDI icinden depo yolunu bir kez daha aciyoruz: "env'i
-# gectim" degil, "O env ile depo ACILIYOR" kaniti budur (ayni `open_store`).
+# gectim" degil, "O env ile depo ACILIYOR" kaniti budur.
+#
+# IKINCI YARISI (cok okullu sekil): `open_store` tek veritabani yoludur;
+# URETIMDE kosan yol `tenants.open_directory`dir. Kanit onu da acar ve
+# SUNU olcer: kanit Postgres'i BOS bir veritabanidir (ne `school` tablosu ne
+# okul satiri var) -- servis yine de acilir. Okul LISTESI bu yuzden burada
+# hata verebilir; verirse bu bir cokme degil, tik basina bir uyari olur
+# (`scheduler._listing`). Beklenen tek sey acilisin TAMAMLANMASIDIR.
 DEPO_CIKTI="$(MSYS_NO_PATHCONV=1 "$MOTOR" exec -i "$KAP" python - 2>&1 <<'PY'
 import asyncio
 
+from src import config
 from src.store_factory import open_store
+from src.tenants import TenantError, open_directory
 
 
 async def main() -> None:
     _store, db = await open_store()
     await db.close()
     print("DEPO_ACILDI")
+
+    directory = await open_directory(config.load(require_token=False))
+    try:
+        print("OKUL_DIZINI_ACILDI")
+        try:
+            aktif = await directory.active_schools()
+            print("OKUL_SAYISI=%d" % len(aktif))
+        except TenantError as exc:
+            print("OKUL_LISTESI_YOK (beklenen: kanit DB'si bos) %s" % exc)
+    finally:
+        await directory.close()
 
 
 asyncio.run(main())
@@ -163,6 +183,10 @@ PY
 case "$DEPO_CIKTI" in
   *DEPO_ACILDI*) gec "zorunlu env ile depo GERCEKTEN aciliyor (open_store -> kapat)" ;;
   *) kal "depo acilamadi: $(echo "$DEPO_CIKTI" | tail -2 | tr '\n' ' ')" ;;
+esac
+case "$DEPO_CIKTI" in
+  *OKUL_DIZINI_ACILDI*) gec "cok okullu acilis tamamlaniyor (kontrol DB'si BOSKEN bile)" ;;
+  *) kal "okul dizini acilamadi: $(echo "$DEPO_CIKTI" | tail -2 | tr '\n' ' ')" ;;
 esac
 
 # --- 2. geri cekilme ustel mi? --------------------------------------------

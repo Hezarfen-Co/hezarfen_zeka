@@ -103,8 +103,8 @@ if [ "$KONTEYNER" -eq 1 ]; then
   if [ -n "$MOTOR" ]; then
     kosu "imaj derlemesi" bash -c \
       "cd '$SERVIS' && MSYS_NO_PATHCONV=1 $MOTOR build -t hezarfen-zeka:ci -f Containerfile ."
-    kosu "kosu kaniti" bash -c "'$KOK/scripts/ci-konteyner-kanit.sh' '$MOTOR' hezarfen-zeka:ci"
-    kosu "compose denetimi" bash -c "'$KOK/scripts/ci-compose.sh'"
+    kosu "kosu kaniti" bash -c "bash '$KOK/scripts/ci-konteyner-kanit.sh' '$MOTOR' hezarfen-zeka:ci"
+    kosu "compose denetimi" bash -c "bash '$KOK/scripts/ci-compose.sh'"
   fi
 else
   echo ""

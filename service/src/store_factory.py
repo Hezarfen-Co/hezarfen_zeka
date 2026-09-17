@@ -36,7 +36,12 @@ def is_postgres() -> bool:
 
 
 async def open_store(dsn: str | None = None) -> tuple[Any, Any]:
-    """Yapilandirmaya gore depoyu acar.
+    """TEK veritabanina baglanir (eski mod / araclar).
+
+    Coklu okul uretim yolu bu fonksiyon DEGILDIR: `tenants.open_directory`
+    kontrol veritabanindan okul dizinini kurar ve her okul icin ayri havuz
+    acar. Burada DSN neyi adlandiriyorsa ona baglanilir -- okul veritabani da
+    olabilir, kontrol veritabani da; karar cagiranindir.
 
     `(store, client)` doner; cagiran taraf isi bitince `client.close()`
     cagirmalidir.
@@ -72,9 +77,15 @@ async def open_store(dsn: str | None = None) -> tuple[Any, Any]:
 
 
 def describe() -> str:
-    """Acilista loglanacak tek satir. DSN'in kendisi ASLA loglanmaz."""
+    """Acilista loglanacak tek satir. DSN'in kendisi ASLA loglanmaz.
+
+    Doluysa DSN KONTROL veritabanidir; okul ciktilari okul basina ayri
+    veritabanlarina yazilir (`tenants.py`). Satir bunu soyler.
+    """
     if not is_postgres():
         return "depo: SurrealDB (eski kurulum)"
     from .pg_client import _describe
 
-    return "depo: PostgreSQL (%s)" % _describe(os.environ["ZEKA_PG_DSN"])
+    return "depo: PostgreSQL kontrol (%s) — okullar kendi veritabanlarinda" % _describe(
+        os.environ["ZEKA_PG_DSN"]
+    )

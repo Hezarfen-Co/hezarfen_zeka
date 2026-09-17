@@ -50,6 +50,7 @@ from .protocol import (
     FrameStream,
     HandshakeRejected,
 )
+from .tenants import TenantError
 
 RequestHandler = Callable[[protocol.Request], Any]
 """Backend'den gelen bir `Request`'i karsilayan kanca.
@@ -424,7 +425,11 @@ class BridgeProtocol(QuicConnectionProtocol):
                 self._handle(request), timeout=request.timeout_secs
             )
             response = protocol.ok_response(request_id, school, result)
-        except CapabilityError as exc:
+        except (CapabilityError, TenantError) as exc:
+            # Okul cozumlemesi redleri (`unknown_school`, `school_suspended`,
+            # `school_not_migrated`) backend'e AYNEN gider: hepsi beklenen
+            # durumlardir ve ayrimlari backend'in yeniden deneme kararini
+            # etkiler. `internal` yalnizca TANINMAYAN hatalar icin.
             response = protocol.err_response(request_id, school, exc.code, str(exc))
         except asyncio.TimeoutError:
             response = protocol.err_response(
@@ -621,41 +626,47 @@ async def _serve(settings: config.Config) -> int:
     """
     from .scheduler import Scheduler
     from .source import BridgeSource
-    from .store_factory import describe, open_store
+    from .store_factory import describe
+    from .tenants import open_directory
 
-    if settings.refresh_interval_secs <= 0:
-        config.log("info", "gece zamanlayicisi KAPALI (ZEKA_REFRESH_INTERVAL_SECS=0)")
-        return await run_forever(settings)
-
-    config.log("info", describe())
-    store, db = await open_store()
-    kopru: dict[str, Any] = {"protocol": None}
-
-    def hazir(proto: BridgeProtocol) -> None:
-        kopru["protocol"] = proto
-
-    # Zamanlayici her okul icin bir `Source` ister. Baglanti kopmussa
-    # `BridgeSource` cagrisi hata verir ve zamanlayici o okulu duser --
-    # dogru davranis: veri cekilemeden hesap yapilmaz.
-    def source_for(_school: str) -> Any:
-        proto = kopru["protocol"]
-        if proto is None:
-            raise RuntimeError("kopru henuz bagli degil")
-        return BridgeSource(proto)
-
-    scheduler = Scheduler(
-        source_for,
-        store,
-        settings.schools,
-        budget_ms=int(settings.refresh_interval_secs * 1000),
-    )
+    # Okul dizini ACILISTA kurulur ve isleyicilere baglanir; okul LISTESI
+    # acilista okunmaz (kontrol veritabaninda hic okul olmayabilir) ve okul
+    # VERITABANLARINA acilista baglanilmaz (biri eksikse bu bir istek
+    # hatasidir, acilis hatasi degil -- `tenants.py`).
+    directory = await open_directory(settings)
+    capabilities.bind_directory(directory)
     try:
+        config.log("info", describe())
+        config.log("info", directory.describe())
+        if settings.refresh_interval_secs <= 0:
+            config.log("info", "gece zamanlayicisi KAPALI (ZEKA_REFRESH_INTERVAL_SECS=0)")
+            return await run_forever(settings)
+        kopru: dict[str, Any] = {"protocol": None}
+
+        def hazir(proto: BridgeProtocol) -> None:
+            kopru["protocol"] = proto
+
+        # Zamanlayici her okul icin bir `Source` ister. Baglanti kopmussa
+        # `BridgeSource` cagrisi hata verir ve zamanlayici o okulu duser --
+        # dogru davranis: veri cekilemeden hesap yapilmaz.
+        def source_for(_school: str) -> Any:
+            proto = kopru["protocol"]
+            if proto is None:
+                raise RuntimeError("kopru henuz bagli degil")
+            return BridgeSource(proto)
+
+        scheduler = Scheduler(
+            source_for,
+            directory,
+            only=settings.schools,
+            budget_ms=int(settings.refresh_interval_secs * 1000),
+        )
         await asyncio.gather(
             run_forever(settings, on_ready=hazir),
             scheduler.serve(tick_seconds=settings.refresh_interval_secs),
         )
     finally:
-        await db.close()
+        await directory.close()
     return 0
 
 

@@ -28,6 +28,12 @@ Tasarım kararları (`MODULLER.md` §2.12)
   sıradaki okul bütçesiz kalır" durumu **görünür** olur; dönüşümlü sıra bunu
   gizlerdi. Tek istisna: geçen gece `partial` biten okullar **öne alınır**
   (`MODULLER.md` §3.4).
+* **Okul listesi her tikte dizinden okunur**: hangi okulların var olduğunu
+  kontrol veritabanı bilir (`tenants.py`), yapılandırma değil. `ZEKA_SCHOOLS`
+  artık yalnızca bir filtredir; boşsa bütün aktif okullar işlenir.
+* **Her okul KENDİ veritabanına yazar**: depo, okulun slug'ından çözülür.
+  Tek bir `store` nesnesi paylaşılmaz — paylaşılsaydı bütün okulların satırı
+  ilk okulun veritabanına düşerdi.
 * **Günde bir kez.** Bir okul için o TR gününde koşu yapıldıysa tekrar
   yapılmaz.
 * **Tek koşu güvencesi.** Süreç içi `asyncio.Lock`; tek süreç olduğu için
@@ -41,12 +47,11 @@ import asyncio
 import contextlib
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any
 
 from .compute import clock
 from .pipeline import DEFAULT_BUDGET_MS, RunResult, run_school
-from .store import Store
 
 log = logging.getLogger(__name__)
 
@@ -74,19 +79,26 @@ class Scheduler:
     def __init__(
         self,
         source_factory: Callable[[str], Any],
-        store: Store,
-        schools: list[str],
+        stores: Any,
         *,
+        only: Sequence[str] | None = None,
         budget_ms: int = DEFAULT_BUDGET_MS,
         budgets: dict[str, int] | None = None,
         term_start_ms: int | None = None,
         clock_fn: Callable[[], int] = now_ms,
         monotonic_fn: Callable[[], float] = time.monotonic,
     ) -> None:
-        # Sabit sıra: slug alfabetik (`MODULLER.md` §2.12 adım 3).
-        self._schools = sorted(schools)
+        # Okul listesi ARTIK yapilandirmadan gelmiyor: her tikte dizinden
+        # (`stores.active_schools()`) okunur. `only` yalnizca bir FILTREdir --
+        # daraltir, uretmez. Bos liste = butun aktif okullar.
+        self._stores = stores
+        self._only = tuple(sorted({str(s) for s in (only or ()) if str(s).strip()}))
         self._source_factory = source_factory
-        self._store = store
+        # Turun okul listesi; `run_once` her cagrildiginda tazelenir.
+        self._schools: list[str] = []
+        # Filtrede olup dizinde olmayan okullar bir kez uyarilir (tik basina
+        # tekrar tekrar ayni satiri basmak gunlugu okunmaz kilar).
+        self._missing_filter: set[str] = set()
         self._budget_ms = budget_ms
         # Okul başına bütçe. Bir okulun öğrenci sayısı çok farklıysa ortak
         # bütçe ya küçük okula savurgan ya büyük okula cimri davranır; bu
@@ -115,6 +127,33 @@ class Scheduler:
         """Bu okulda bir sonraki koşuya devredilen öğrenciler."""
         return list(self._pending.get(school, []))
 
+    async def _listing(self) -> list[str]:
+        """Bu turun okul listesi: dizindeki aktif okullar ∩ filtre.
+
+        Dizin okunamazsa (kontrol veritabani kapali, `school` tablosu yok)
+        tur DUSMEZ: o tur okulsuz kosar, sonraki tik yeniden dener. Acilista
+        kutuk okunmadigi icin (bkz. `tenants.py`) bu, okul satiri olmayan bir
+        kurulumun da normal hali.
+        """
+        try:
+            active = await self._stores.active_schools()
+        except Exception as exc:  # noqa: BLE001 — tik dusmez, okul yok
+            log.warning("okul listesi okunamadi, tur okulsuz kosuyor: %s", exc)
+            return []
+        listing = sorted(s for s in active if not self._only or s in set(self._only))
+        if self._only:
+            seen = set(listing)
+            for slug in self._only:
+                if slug not in active and slug not in self._missing_filter:
+                    self._missing_filter.add(slug)
+                    log.warning(
+                        "ZEKA_SCHOOLS'teki '%s' bu dagitimda aktif bir okul degil; "
+                        "atlanacak",
+                        slug,
+                    )
+            self._missing_filter &= seen
+        return listing
+
     def _order(self) -> list[str]:
         """Sabit sıra + `partial` önceliği (`MODULLER.md` §2.12 adım 3 uyarısı)."""
         rest = [s for s in self._schools if s not in self._priority]
@@ -132,25 +171,31 @@ class Scheduler:
         self._failures = []
         async with self._lock:
             partial_now: list[str] = []
+            self._schools = await self._listing()
             for school in self._order():
                 if self._last_run_day.get(school) == day:
                     continue
-                # Süreç yeniden başladıysa bellek içi `pending` boştur;
-                # devreden liste `insight_run` satırından okunur.
-                if school not in self._pending:
-                    carried = await self._store.last_pending(school)
-                    if carried:
-                        self._pending[school] = carried
-                        log.info(
-                            "önceki koşudan devralındı: okul=%s bekleyen=%d",
-                            school,
-                            len(carried),
-                        )
+                # Her okul KENDI deposundan yazar: okulun veritabani,
+                # cercevedeki slug'dan cozulur (`tenants.py`). Deposu
+                # acilamayan okul dusen okuldur -- tur devam eder, `internal`
+                # diye bir seye donusmez.
                 try:
+                    store = await self._stores.store_for(school)
+                    # Süreç yeniden başladıysa bellek içi `pending` boştur;
+                    # devreden liste `insight_run` satırından okunur.
+                    if school not in self._pending:
+                        carried = await store.last_pending(school)
+                        if carried:
+                            self._pending[school] = carried
+                            log.info(
+                                "önceki koşudan devralındı: okul=%s bekleyen=%d",
+                                school,
+                                len(carried),
+                            )
                     source = self._source_factory(school)
                     result = await run_school(
                         source,
-                        self._store,
+                        store,
                         school,
                         now_ms=stamp,
                         term_start_ms=self._term_start_ms,
@@ -207,11 +252,11 @@ class Scheduler:
         stop = stop or asyncio.Event()
         ticks = 0
         log.info(
-            "zamanlayıcı açıldı: pencere %02d:00–%02d:00 TR, tik %ds, okul=%d",
+            "zamanlayıcı açıldı: pencere %02d:00–%02d:00 TR, tik %ds, okul filtresi=%s",
             WINDOW_START_HOUR,
             WINDOW_END_HOUR,
             TICK_SECONDS,
-            len(self._schools),
+            ",".join(self._only) if self._only else "hepsi (dizinden)",
         )
         while not stop.is_set():
             stamp = self._now()
