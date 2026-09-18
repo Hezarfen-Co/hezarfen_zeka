@@ -11,7 +11,8 @@ What is proven here, in the order it matters:
    (`store.summary_rows` / `recommendation_rows` / `profile_rows` / `run_row`),
    with NO `school` key anywhere (ZEKA never wrote one; the frame carries it) --
    render the school report HTML: the display name, the student count, the
-   per-student attention lines, and only the roles the `okul` report may show.
+   per-student attention lines, the class NAMES (never the raw ids), and only
+   the roles the `okul` report may show.
 3. Refusals are typed and leave no half-built document behind: an empty row set
    (`insufficient_rows`), an unserved kind or a payload that breaks the contract
    (`bad_request`), a package failure (`internal`), an over-cap document
@@ -20,6 +21,7 @@ What is proven here, in the order it matters:
 
 from __future__ import annotations
 
+import re
 import time
 import unittest
 from typing import Any
@@ -46,11 +48,21 @@ RUN_DAY = clock.tr_date_key(NOW)
 FACT_A = "Son 30 günde 4 ödev teslim edilmedi"
 FACT_B = "Not eğilimi son üç sınavda düştü"
 
+#: Şube KİMLİKLERİ (satırlarda `marks.classes` olarak giden şey) ve GÖRÜNEN
+#: adları (payload'ın `classes` haritasından gelen şey). İkisinin sırası
+#: KASITLI olarak farklıdır (kimlikte A<B, adda "10-B"<"9-A"): tablonun
+#: kimliğe göre değil ADA göre sıralandığı böyle görünür.
+CLASS_A_ID = "01a0b1a6-f984-7483-94ee-7643d137fe08"
+CLASS_B_ID = "01a0b1a6-f984-7483-94ee-7643d137fe09"
+CLASS_A_NAME = "9-A"
+CLASS_B_NAME = "10-B"
+CLASS_LABEL_UNKNOWN = "Adı bilinmeyen şube"
 
-def _marks(course: str, title: str, band: str) -> dict[str, Any]:
+
+def _marks(course: str, title: str, band: str, class_id: str) -> dict[str, Any]:
     """One course's evidence block, in the shape `marks.py` writes."""
     return {
-        "classes": ["9-A"],
+        "classes": [class_id],
         "courses": {
             course: {
                 "course": course,
@@ -91,7 +103,7 @@ def summaries() -> list[dict[str, Any]]:
                 school=SCHOOL,
                 student="ogrenci-a",
                 computed_at=NOW,
-                marks=_marks("course-1", "Matematik", "review"),
+                marks=_marks("course-1", "Matematik", "review", CLASS_A_ID),
                 attendance={"overall": {"rate": 0.82}, "courses": {}},
                 submission={"overall": {"n": 12, "n_submitted": 9, "n_missing": 3}},
                 study={"recent_28d": {"n_stints": 11, "active_days": 7}},
@@ -102,7 +114,7 @@ def summaries() -> list[dict[str, Any]]:
                 school=SCHOOL,
                 student="ogrenci-b",
                 computed_at=NOW,
-                marks=_marks("course-2", "Fen Bilimleri", "on_track"),
+                marks=_marks("course-2", "Fen Bilimleri", "on_track", CLASS_B_ID),
                 attendance={"overall": {"rate": 0.95}, "courses": {}},
                 submission={"overall": {"n": 11, "n_submitted": 11, "n_missing": 0}},
                 study={"recent_28d": {"n_stints": 15, "active_days": 9}},
@@ -113,7 +125,7 @@ def summaries() -> list[dict[str, Any]]:
                 school=SCHOOL,
                 student="ogrenci-c",
                 computed_at=NOW,
-                marks=_marks("course-1", "Matematik", "insufficient_data"),
+                marks=_marks("course-1", "Matematik", "insufficient_data", CLASS_A_ID),
                 attendance={"overall": {"rate": 1.0}, "courses": {}},
                 submission={"overall": {"n": 10, "n_submitted": 10, "n_missing": 0}},
                 study={"recent_28d": {"n_stints": 8, "active_days": 6}},
@@ -240,6 +252,12 @@ def payload(**over: Any) -> dict[str, Any]:
         "run_day": RUN_DAY,
         "requested_by": "mudur-1",
         "school": {"id": "01990000-0000-7000-8000-000000000001", "slug": SCHOOL, "name": DISPLAY},
+        # Sibling key, read whole from the school's own class table: the rows
+        # carry class IDS, and the document must print NAMES.
+        "classes": [
+            {"id": CLASS_A_ID, "name": CLASS_A_NAME},
+            {"id": CLASS_B_ID, "name": CLASS_B_NAME},
+        ],
         "summaries": summaries(),
         "recommendations": recommendations(),
         "profiles": profiles(),
@@ -295,8 +313,25 @@ class DocumentTests(ReportCase):
         # 3) the student count is the number of summaries the backend sent --
         #    rows carry no `school`, so this also proves the frame's stamp
         self.assertIn('<td>Öğrenci</td><td class="num">3</td>', html)
-        # 4) one line per student's attention item, with the student's id
+        # 3b) the Şube cells print the MAPPED NAMES, never the raw ids, and the
+        #     class count is unchanged by the labelling
+        self.assertIn('<td>Şube</td><td class="num">2</td>', html)
+        self.assertIn(f"<td>{CLASS_A_NAME}</td>", html)
+        self.assertIn(f"<td>{CLASS_B_NAME}</td>", html)
+        self.assertNotIn(CLASS_A_ID, html)
+        self.assertNotIn(CLASS_B_ID, html)
+        #     ...and the tables read in NAME order, not id order (the fixture's
+        #     names sort the other way round from its ids on purpose)
+        pairs = [
+            (label, course)
+            for label, course in re.findall(r"<tr><td>([^<]+)</td><td>([^<]+)</td>", html)
+            if label in (CLASS_A_NAME, CLASS_B_NAME, CLASS_LABEL_UNKNOWN)
+        ]
+        self.assertEqual(pairs, sorted(pairs))
+        # 4) one line per student's attention item, with the student's id and
+        #    the student's class NAME in the same row
         self.assertIn("<td>ogrenci-a</td>", html)
+        self.assertIn(f"<td>ogrenci-a</td><td>{CLASS_A_NAME}</td>", html)
         self.assertIn(FACT_A, html)
         self.assertIn("<td>ogrenci-b</td>", html)
         self.assertIn(FACT_B, html)
@@ -329,6 +364,42 @@ class DocumentTests(ReportCase):
         del sent["run_day"]
         answer = await self.dispatch(sent)
         self.assertEqual(answer["run_day"], RUN_DAY)
+
+    async def test_class_names_mapping_shape_labels_too(self) -> None:
+        """The `class_names: {<id>: name}` fallback shape works as well."""
+        sent = payload()
+        sent.pop("classes")
+        sent["class_names"] = {CLASS_A_ID: CLASS_A_NAME, CLASS_B_ID: CLASS_B_NAME}
+        html = (await self.dispatch(sent))["html"]
+        self.assertIn(f"<td>{CLASS_A_NAME}</td>", html)
+        self.assertIn(f"<td>{CLASS_B_NAME}</td>", html)
+        self.assertNotIn(CLASS_A_ID, html)
+        self.assertNotIn(CLASS_B_ID, html)
+
+    async def test_an_unmapped_class_gets_the_label_never_the_id(self) -> None:
+        """A class the map lacks is a label, and the numbers do not move."""
+        sent = payload(classes=[{"id": CLASS_A_ID, "name": CLASS_A_NAME}])
+        answer = await self.dispatch(sent)
+        html = answer["html"]
+        self.assertIn(f"<td>{CLASS_A_NAME}</td>", html)
+        self.assertIn(CLASS_LABEL_UNKNOWN, html)
+        self.assertNotIn(CLASS_B_ID, html)
+        # Labelling is not counting: 2 classes, 3 students, both unchanged.
+        self.assertIn('<td>Şube</td><td class="num">2</td>', html)
+        self.assertIn('<td>Öğrenci</td><td class="num">3</td>', html)
+
+    async def test_a_backend_without_a_class_map_still_builds(self) -> None:
+        """An older backend sends no map: the document builds, labelled."""
+        sent = payload()
+        sent.pop("classes")
+        answer = await self.dispatch(sent)
+        html = answer["html"]
+        self.assertTrue(html.startswith("<!DOCTYPE html>"))
+        self.assertIn(CLASS_LABEL_UNKNOWN, html)
+        self.assertNotIn(CLASS_A_ID, html)
+        self.assertNotIn(CLASS_B_ID, html)
+        self.assertIn('<td>Öğrenci</td><td class="num">3</td>', html)
+        self.assertIn('<td>Şube</td><td class="num">2</td>', html)
 
 
 class RefusalTests(ReportCase):
@@ -366,6 +437,15 @@ class RefusalTests(ReportCase):
         with self.assertRaises(CapabilityError) as caught:
             await self.dispatch(payload(profiles={"student": "ogrenci-a"}))
         self.assertEqual(caught.exception.code, "bad_request")
+
+    async def test_a_malformed_class_list_is_refused(self) -> None:
+        # A container that is not a list, and an entry with no usable id
+        # (an id is what the mapping keys on; swallowing it would strip every
+        # label silently).
+        for bad in ({"id": CLASS_A_ID}, ["9-A"], [{"name": CLASS_A_NAME}]):
+            with self.assertRaises(CapabilityError) as caught:
+                await self.dispatch(payload(classes=bad))
+            self.assertEqual(caught.exception.code, "bad_request")
 
     async def test_a_render_failure_is_a_typed_refusal(self) -> None:
         with patch.object(

@@ -12,7 +12,7 @@ Kapı burada **okuma anında** uygulanır:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Mapping
 
 from .gate import (
     StaffBundle,
@@ -53,8 +53,13 @@ async def load_staff_bundle(
     *,
     now_ms: int,
     teacher: str | None = None,
+    class_names: Mapping[str, str] | None = None,
 ) -> StaffBundle:
-    """Yönetim / öğretmen / teknik rapor demeti."""
+    """Yönetim / öğretmen / teknik rapor demeti.
+
+    `class_names` şube KİMLİĞİ -> görünen ad haritasıdır (payload'dan). Verilmezse
+    rapor "Adı bilinmeyen şube" yazar; ham kimlik hiçbir koşulda yazılmaz.
+    """
     rows = await reader.summaries(school, columns=summary_columns(kind))
     summaries = [staff_summary(row) for row in rows]
     summaries.sort(key=lambda s: s.student)
@@ -73,6 +78,7 @@ async def load_staff_bundle(
         segment_profiles=profiles,
         runs=runs,
         question_segments=question_segments,
+        class_names=dict(class_names or {}),
         teacher=teacher,
     )
 
@@ -85,6 +91,7 @@ async def load_bundle(
     now_ms: int,
     student: str | None = None,
     teacher: str | None = None,
+    class_names: Mapping[str, str] | None = None,
 ) -> Any:
     """Rapor tipine göre doğru demeti kurar."""
     if kind == "ogrenci":
@@ -94,5 +101,5 @@ async def load_bundle(
     if kind == "ogretmen" and not teacher:
         raise ValueError("öğretmen raporu için --teacher zorunlu")
     return await load_staff_bundle(
-        reader, school, kind, now_ms=now_ms, teacher=teacher
+        reader, school, kind, now_ms=now_ms, teacher=teacher, class_names=class_names
     )

@@ -628,6 +628,74 @@ def _report_tables(
     return tables
 
 
+def _class_names(payload: dict[str, Any]) -> dict[str, str]:
+    """The school's class id -> display name map, from either payload shape.
+
+    The backend sends `classes: [{id, name}]`, read whole from the school's own
+    class table; the mapping shape (`class_names: {<id>: "<name>"}`) is
+    accepted too, so a sibling caller or an older backend still labels its
+    document. An absent key is legal: the report then prints its honest
+    `text.CLASS_LABEL_UNKNOWN` label -- NEVER a raw id, and never a guess.
+
+    A malformed container is a refusal; an entry whose NAME is missing or blank
+    is not -- that is a class the school has no name for, which is exactly what
+    the fallback label is for. An entry with no usable `id` IS refused: it can
+    only be a key mismatch, and swallowing it would silently strip every label.
+    """
+    listed = payload.get("classes")
+    if listed is not None:
+        if not isinstance(listed, list) or any(
+            not isinstance(entry, dict) for entry in listed
+        ):
+            raise CapabilityError("bad_request", "'classes' bir nesne listesi olmali")
+        names: dict[str, str] = {}
+        for entry in listed:
+            class_id = entry.get("id")
+            name = entry.get("name")
+            if not isinstance(class_id, str) or not class_id.strip():
+                raise CapabilityError(
+                    "bad_request",
+                    "'classes' ogesinde 'id' bos olmayan bir metin olmali",
+                )
+            if isinstance(name, str) and name.strip():
+                names[class_id.strip()] = name.strip()
+        return names
+    mapped = payload.get("class_names")
+    if mapped is None:
+        return {}
+    if not isinstance(mapped, dict):
+        raise CapabilityError("bad_request", "'class_names' bir nesne olmali")
+    return {
+        class_id.strip(): name.strip()
+        for class_id, name in mapped.items()
+        if isinstance(class_id, str)
+        and class_id.strip()
+        and isinstance(name, str)
+        and name.strip()
+    }
+
+
+def _unmapped_class_count(
+    tables: dict[str, list[dict[str, Any]]], class_names: dict[str, str]
+) -> int:
+    """Distinct class ids the rows name that the payload did not name.
+
+    Non-zero is the honest signal that some `Şube` cell is the fallback label.
+    The live document once printed raw uuids because no names arrived
+    (2026-09-18) and no counter could see it: the label was the only symptom.
+    """
+    seen: set[str] = set()
+    for row in tables["student_summary"]:
+        marks = row.get("marks")
+        if not isinstance(marks, dict):
+            continue
+        for class_id in marks.get("classes") or []:
+            text_id = str(class_id).strip()
+            if text_id and text_id not in class_names:
+                seen.add(text_id)
+    return len(seen)
+
+
 def _report_run_day(value: Any, runs: list[dict[str, Any]], now_ms: int) -> str:
     """The document's day: the request's `run_day`, else the newest run's.
 
@@ -689,9 +757,12 @@ async def report(school: str, payload: dict[str, Any]) -> dict[str, Any]:
             "hepsi bos: belge uretilecek satir yok",
         )
     run_day = _report_run_day(payload.get("run_day"), tables["insight_run"], now_ms)
+    class_names = _class_names(payload)
     reader = MemoryReader(tables)
     try:
-        bundle = await load_bundle(reader, display, kind, now_ms=now_ms)
+        bundle = await load_bundle(
+            reader, display, kind, now_ms=now_ms, class_names=class_names
+        )
         document = build_report(kind, bundle)
         html = report_render.to_html(document)
     except Exception as exc:  # the refusal IS the contract: no half document
@@ -707,7 +778,8 @@ async def report(school: str, payload: dict[str, Any]) -> dict[str, Any]:
     config.log(
         "info",
         f"insight.report: belge uretildi (okul={school}, tip={kind}, "
-        f"satir={total}, bayt={len(encoded)}, isteyen="
+        f"satir={total}, bayt={len(encoded)}, "
+        f"sinif_adi_yok={_unmapped_class_count(tables, class_names)}, isteyen="
         f"{who.strip() if isinstance(who, str) and who.strip() else '-'})",
     )
     return {

@@ -25,20 +25,25 @@ class CapabilityNameTests(unittest.TestCase):
 
     def test_backend_callable_set_is_the_dispatch_table(self):
         # constant.rs:568,574 (chat.reply, rag.index) + ai/insight.rs
-        # (compute_student/refresh) ve web/insights.rs kapilari -- 2026-09-18.
+        # (compute_student/refresh/**report**) ve web/insights.rs kapilari --
+        # 2026-09-18. `insight.report`in sabiti (constant.rs:645), dagitimi ve
+        # `POST /runs/{run_day}/report` kapisi ayni gun landedi.
         self.assertEqual(
             capabilities.BACKEND_CALLABLE_CAPABILITIES,
-            ("chat.reply", "rag.index", "insight.student", "insight.refresh"),
+            (
+                "chat.reply",
+                "rag.index",
+                "insight.student",
+                "insight.refresh",
+                "insight.report",
+            ),
         )
         # `insight.class` ilan edilir ama backend GONDERMEZ (kadro listeleme
-        # yolu yok). `insight.report` da ayni: servis tarafi HAZIR (ilan +
-        # handlers.report) ama backend'in dagitim tablosunda adi yok
-        # (hezarfen_backend/src, 2026-09-18). Backend tarafi acildiginda bu
-        # satiri ve docs/BACKEND-GEREKSINIMLERI.md `## insight.report`i
-        # birlikte guncelleyin.
+        # yolu yok). Backend tarafi acildiginda bu satiri ve
+        # docs/BACKEND-GEREKSINIMLERI.md Madde 1'i birlikte guncelleyin.
         self.assertEqual(
             set(capabilities.NAMES) - set(capabilities.BACKEND_CALLABLE_CAPABILITIES),
-            {"insight.class", "insight.report"},
+            {"insight.class"},
         )
 
     def test_sections_vocabulary_is_the_summary_modules(self):
@@ -101,17 +106,15 @@ class DispatchTests(unittest.TestCase):
         # 1) backend'in GONDEREBILDIGI adlar ...
         self.assertIn(
             "backend'in cagirabildigi yetenekler: "
-            "chat.reply, rag.index, insight.student, insight.refresh",
+            "chat.reply, rag.index, insight.student, insight.refresh, "
+            "insight.report",
             text,
         )
         # 2) ... depo yolunu (2. yon) kapsamadigi ...
         self.assertIn("servis->backend depo yolu: kopru/insight.*", text)
         # 3) ... ve ilan edilen her adin bir isleyicisi oldugu.
         self.assertIn("servis tarafi isleyiciler: 4/4 kayitli", text)
-        self.assertIn(
-            "backend'in dagitim tablosunda olmayan: insight.class, insight.report",
-            text,
-        )
+        self.assertIn("backend'in dagitim tablosunda olmayan: insight.class", text)
         # Eski hali "TANIMSIZ" diyordu ve isleyici kayitliyken bile servisin
         # bir sey yapmadigini ima ediyordu.
         self.assertNotIn("TANIMSIZ", text)

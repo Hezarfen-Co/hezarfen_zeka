@@ -420,8 +420,8 @@ bu tuzak yapısal olarak imkânsızdır.
    tarafı aynı gün bağlandı (`service/src/handlers.py`; ilan ile dağıtım
    açılışta `verify_dispatchable()` ile denetlenir). `insight.class` ilan
    edilir ama gönderilmez: kadro listeleme yolu yok. **`insight.report`
-   (okul raporu BELGESİ) servis tarafında aynı gün hazır** — belgeyi
-   backend'in gönderdiği satırlardan üretir; backend'in dağıtım tablosuna
-   girmesi bekleniyor (`docs/BACKEND-GEREKSINIMLERI.md` `## insight.report`).
+   (okul raporu BELGESİ) iki tarafta da açıldı (2026-09-18)** — belgeyi
+   backend'in gönderdiği satırlardan üretir; şube hücreleri artık ham uuid
+   değil, `classes` haritasından gelen görünen addır (`## insight.report`).
    Sahibi backend'deki `InsightDoors` hattı — `docs/BACKEND-GEREKSINIMLERI.md`
    Madde 1.

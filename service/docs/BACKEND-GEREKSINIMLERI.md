@@ -29,8 +29,10 @@ Yani asagidaki uc madde ZEKA'nin nelerin **disinda** kaldigini tarif eder.
 > servis tarafi ayni gun baglandi (`src/handlers.py`; ilan ile dagitim
 > acilista `capabilities.verify_dispatchable()` ile denetlenir).
 > `insight.class` ilan edilir ama hala GONDERILMEZ -- kadro listeleme yolu
-> yok (Madde 3). `insight.report` icin servis tarafi da hazir (2026-09-18):
-> backend'in dagitim tablosuna girmesi bekleniyor, bkz. `## insight.report`.
+> yok (Madde 3). `insight.report` icin iki taraf da AYNI GUN LANDEDI
+> (2026-09-18): servis ilan eder ve dagitir (`handlers.report`), backend'in
+> sabiti (`constant.rs:645`), dagitimi (`ai/insight.rs::report`) ve
+> `POST /runs/{run_day}/report` kapisi yerindedir -- bkz. `## insight.report`.
 > Asagidaki "yoktur / tanimli degil" ifadeleri bu iki yonu
 > ayirmadan okunmamalidir; `src/capabilities.py` modul dokumani ayni ayrimi
 > yapar.
@@ -149,16 +151,15 @@ inmesidir.
 
 ---
 
-## insight.report -- okul raporu BELGESI (sunucu-baslatimli; servis tarafi HAZIR 2026-09-18)
+## insight.report -- okul raporu BELGESI (sunucu-baslatimli; IKI TARAF DA ACILDI 2026-09-18)
 
-**Sahibi: backend'deki `InsightDoors` hatti.** Servis tarafi bugun hazir:
-`insight.report` ilan edilir, isleyicisi kayitlidir (`handlers.report`) ve
-acilistaki `capabilities.verify_dispatchable()` onu dagitilabilir sayar.
-Eksik olan tek sey backend'in dagitim tablosudur (`hezarfen_backend/src`
-icinde bu ad 2026-09-18 itibariyla hic gecmez), yani bugun kimse bu yetenegi
-cagiramaz. Kapi acildiginda uc sey BIRLIKTE guncellenir: `src/capabilities.py`
-`BACKEND_CALLABLE_CAPABILITIES`, `tests/test_capabilities.py` pini ve
-yukaridaki durum cumlesi.
+**Sahibi: backend'deki `InsightDoors` hatti.** Iki taraf da yerinde; eksik
+kalan bir sey yok:
+servis ilan eder ve dagitir (`handlers.report`; acilista
+`capabilities.verify_dispatchable()` denetler), backend'in sabiti
+(`constant.rs:645`), dagitimi (`ai/insight.rs::report`) ve kapisi
+(`POST /runs/{run_day}/report`, `web/insights.rs`) yerindedir. `insight.class`
+icin durum ayni degildir: o ad hala ilan edilir ama gonderilmez (Madde 3).
 
 ### Ne isteniyor
 
@@ -178,6 +179,7 @@ esleme yok:
 | `run_day` | str | `YYYY-MM-DD` (TR gunu); yoksa en yeni kosu satirindan turetilir |
 | `requested_by` | str | Belgeyi isteyen mudur; okuma yapilmadigi icin yalniz log'a yazilir |
 | `school` | nesne | `{id, slug, name}`; `name` belge BASLIGIDIR, `slug` cerceveyle ayni olmali |
+| `classes` | liste | `[{id, name}]`: okulun butun subeleri, ad sirasinda. Satirlardaki `marks.classes` KIMLIK tasir; tabloya yazilan GORUNEN ad bu haritadan gelir. Kabul edilen ikinci bicim `class_names: {<id>: "<ad>"}` (`classes` varsa o kazanir) |
 | `summaries` | liste | `zeka_student_summary` satirlari (`attention` listesi dahil) |
 | `recommendations` | liste | `zeka_recommendation` satirlari |
 | `profiles` | liste | `zeka_student_segment_profile` satirlari |
@@ -186,6 +188,14 @@ esleme yok:
 Satirlarda `school` GONDERILMEZ: ZEKA onu hic yazmaz, cercevede gelir ve
 servis her satira kendisi damgalar (tek kimlik kaynagi). Yine de bir satir
 baska bir okul tasirsa istek reddedilir -- damgalamak degil, reddetmek.
+
+**Sube ETIKETI (2026-09-18 canli kusuru).** Belge artik ham sube kimligini
+YAZMAZ: `marks.classes`teki bir kimlik `classes` haritasinda varsa GORUNEN ad,
+yoksa `Adı bilinmeyen şube` basilir. Harita hic yoksa (eski backend) ayni
+yedek etiket kullanilir; belge kurulur, kimlik gorunmez. Siralama gorunen ADA
+gore yapilir. Sayilar etiketten bagimsizdir: kovalar kimlige gore kurulur,
+"Sube" sayaci kimlikten sayilir -- adı bilinmeyen iki sube tek satira
+dusmez.
 
 **Cevap payload'i** (belge cercevenin ICINDE gider):
 
@@ -381,7 +391,7 @@ Yani kapsam **elle** tutulur.
 | 1 | Dokuz `insight.*` operasyonu (yazma + liste + supurme) **ve** `insight.student` / `insight.class` / `insight.refresh` sabitleri + dagitim kodu | `src/constant.rs`, `src/ai/` | ZEKA satirlarini **yazamaz** (gece kosusu `partial`); backend ZEKA'yi **hic cagiramaz**, istege bagli her senaryo duser. Sahibi: `InsightDoors`. **Durum 2026-09-18: student + refresh ACILDI; sinif hala acik (Madde 3).** |
 | 2 | 9 sinav yolu (+3 sinif/ders yolu) izin listesine | `src/constant.rs:656-676` | **Madde analizi, konu karnesi, sinif isi haritasi** hic uretilemez |
 | 3 | `GET /users/search` izin listesine (okul listesi Madde 1a'da) | `src/constant.rs:656-676` | Ogrenci kadrosu elle tutulur; yeni ogrenci **sessizce** gorunmez |
-| 4 | `insight.report` dagitim kapisi: backend kendi `zeka_*` satirlarini okuyup gondersin (bkz. `## insight.report`) | `src/ai/`, `src/constant.rs`, `src/web/` | Okul raporu **belgesi** uretilemez; servis tarafi hazir (2026-09-18) |
+| 4 | `insight.report` dagitim kapisi: backend kendi `zeka_*` satirlarini okuyup gondersin (bkz. `## insight.report`) | `src/ai/`, `src/constant.rs`, `src/web/` | **ACILDI 2026-09-18** (`constant.rs:645`, `ai/insight.rs::report`, `POST /runs/{run_day}/report`); servis tarafi ayni gun baglandi |
 
 ---
 

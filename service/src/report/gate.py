@@ -174,6 +174,9 @@ class StaffBundle:
     segment_profiles: list[dict[str, Any]] = field(default_factory=list)
     runs: list[dict[str, Any]] = field(default_factory=list)
     question_segments: list[dict[str, Any]] = field(default_factory=list)
+    #: Şube kimliği -> görünen ad. Boş olabilir: o zaman etiket
+    #: `text.CLASS_LABEL_UNKNOWN`dır ve KİMLİK ASLA yazılmaz (`build._class_labels`).
+    class_names: dict[str, str] = field(default_factory=dict)
     #: Öğretmen raporunda kim için üretildiği; diğerlerinde `None`.
     teacher: str | None = None
 

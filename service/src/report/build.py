@@ -26,7 +26,7 @@ Kurucuların uyduğu değişmezler (hepsi `docs/CIKTI-SOZLESMESI.md`'den):
 from __future__ import annotations
 
 from collections import Counter
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from ..compute import marks as marks_mod
 from ..compute import recommend as recommend_mod
@@ -97,10 +97,35 @@ def _courses(summary: Any) -> dict[str, Any]:
     return courses if isinstance(courses, dict) else {}
 
 
+#: Şube verisi hiç yokken kullanılan yer tutucu — bir KİMLİK değil, bir olgu.
+NO_CLASS_ID = "(şube bilinmiyor)"
+
+
 def _class_ids(summary: Any) -> list[str]:
     marks = getattr(summary, "marks", None) or {}
     classes = marks.get("classes") if isinstance(marks, dict) else None
-    return [str(c) for c in (classes or [])] or ["(şube bilinmiyor)"]
+    return [str(c) for c in (classes or [])] or [NO_CLASS_ID]
+
+
+def _class_labels(summary: Any, class_names: Mapping[str, str]) -> list[str]:
+    """Öğrencinin şubelerinin GÖRÜNEN adları; ham kimlik ASLA yazılmaz.
+
+    Ad haritasında olmayan bir kimlik `text.CLASS_LABEL_UNKNOWN` olur: canlı
+    raporda yöneticiye ham uuid gitti ve okunamadı (2026-09-18). Harita hiç
+    yoksa (eski backend) aynı yedek etiket kullanılır -- belge yine kurulur,
+    kimlik yine görünmez. Şube verisi hiç yoksa `NO_CLASS_ID` geçer: o da bir
+    kimlik değil, "bilinmiyor" olgusudur.
+    """
+    labels: list[str] = []
+    for class_id in _class_ids(summary):
+        name = class_names.get(class_id)
+        if isinstance(name, str) and name.strip():
+            labels.append(name.strip())
+        elif class_id == NO_CLASS_ID:
+            labels.append(NO_CLASS_ID)
+        else:
+            labels.append(text.CLASS_LABEL_UNKNOWN)
+    return labels
 
 
 def _placement(cstat: dict[str, Any]) -> dict[str, Any]:
@@ -145,17 +170,26 @@ def _cards(
     return items
 
 
-def _class_course_rows(summaries: list[StaffSummary]) -> list[dict[str, Any]]:
-    """Şube × ders toplaması. Kohort ölçüleri `placement`'tan gelir."""
+def _class_course_rows(
+    summaries: list[StaffSummary], class_names: Mapping[str, str]
+) -> list[dict[str, Any]]:
+    """Şube × ders toplaması. Kohort ölçüleri `placement`'tan gelir.
+
+    Kova anahtarı şube **kimliğidir**: iki kimliğin etiketi aynı olsa da
+    (adı bilinmeyen iki şube) satırlar ve sayılar karışmaz. Tabloya yazılan
+    `class` alanı ise GÖRÜNEN addır (`_class_labels`) -- ham kimlik yazılmaz.
+    """
     buckets: dict[tuple[str, str], dict[str, Any]] = {}
     for summary in summaries:
-        for class_id in _class_ids(summary):
+        for class_id, class_label in zip(
+            _class_ids(summary), _class_labels(summary, class_names)
+        ):
             for course_id, cstat in _courses(summary).items():
                 key = (class_id, str(course_id))
                 bucket = buckets.setdefault(
                     key,
                     {
-                        "class": class_id,
+                        "class": class_label,
                         "course": str(course_id),
                         "course_title": cstat.get("course_title") or str(course_id),
                         "n_students": 0,
@@ -180,7 +214,8 @@ def _class_course_rows(summaries: list[StaffSummary]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for (class_id, course_id), bucket in sorted(buckets.items()):
         row = {
-            "class": class_id,
+            # Görünen ad (kimlik değil); kova anahtarı yukarıda kimliktir.
+            "class": bucket["class"],
             "course": bucket["course_title"],
             "course_id": course_id,
             "n_students": bucket["n_students"],
@@ -198,7 +233,9 @@ def _class_course_rows(summaries: list[StaffSummary]) -> list[dict[str, Any]]:
         # öğrencileri birbirine göre dizmez.
         row["heat"] = (row["review"] / n) if n else 0.0
         rows.append(row)
-    # Gösterilen ada göre alfabetik: tabloda ders adı görünür, kimliği değil.
+    # Görünen ADA göre alfabetik (kimliğe göre değil): tabloda şube adı ve
+    # ders adı görünür. İki kimliğin etiketi çakışsa bile kimlik son anahtar
+    # olarak düzeni deterministik tutar.
     rows.sort(key=lambda r: (r["class"], r["course"], r["course_id"]))
     return rows
 
@@ -216,17 +253,20 @@ CLASS_COURSE_COLUMNS = [
 ]
 
 
-def _attention_rows(summaries: list[StaffSummary]) -> list[dict[str, Any]]:
+def _attention_rows(
+    summaries: list[StaffSummary], class_names: Mapping[str, str]
+) -> list[dict[str, Any]]:
     """Dikkat listesi satırları — **yalnız personel raporlarında** çağrılır."""
     rows: list[dict[str, Any]] = []
     for summary in sorted(summaries, key=lambda s: s.student):
+        class_label = ", ".join(_class_labels(summary, class_names))
         for item in summary.attention:
             if not item.get("evidence"):
                 continue  # kanıtsız madde rapora girmez
             rows.append(
                 {
                     "student": summary.student,
-                    "class": ", ".join(_class_ids(summary)),
+                    "class": class_label,
                     "trigger": text.TRIGGER_LABELS.get(
                         str(item.get("trigger") or ""), str(item.get("trigger") or "")
                     ),
@@ -341,10 +381,14 @@ def build_school_report(bundle: Any) -> Report:
     visible = filters.visible_recommendations(
         staff.recommendations, now_ms=now, allowed_roles=allowed_roles("okul")
     )
-    class_course = _class_course_rows(staff.summaries)
-    attention = _attention_rows(staff.summaries)
+    class_course = _class_course_rows(staff.summaries, staff.class_names)
+    attention = _attention_rows(staff.summaries, staff.class_names)
 
-    classes = sorted({row["class"] for row in class_course})
+    # Şube SAYISI kimlikten sayılır: iki kimliğin etiketi çakışsa da (adı
+    # bilinmeyen iki şube) toplam sayı düşmez -- etiket işi sayıyı değiştirmez.
+    classes = {
+        class_id for summary in staff.summaries for class_id in _class_ids(summary)
+    }
     overview = Table(
         id="toplu_gorunum",
         title="Toplu görünüm",
@@ -423,8 +467,8 @@ def build_teacher_report(bundle: Any) -> Report:
     if not scoped and not students:
         scoped = []
 
-    class_course = _class_course_rows(scoped)
-    attention = _attention_rows(scoped)
+    class_course = _class_course_rows(scoped, staff.class_names)
+    attention = _attention_rows(scoped, staff.class_names)
 
     heat = Table(
         id="isi_haritasi",

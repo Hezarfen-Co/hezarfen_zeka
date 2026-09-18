@@ -152,6 +152,7 @@ Aynı bölümden gelen iki ek kapı:
 | 6 | Süresi geçmiş görünmez | `filters.is_expired` (damga yoksa da gösterilmez) | `GorunurlukKapilari` |
 | 7 | Segment = karşıtlık | `reader` SELECT'inde `accuracy` yok; `text.contrast_sentence` | `SegmentKarsitlik` |
 | 8 | Öğrenci raporunda akran sıralaması yok | yalnız kendi geçmişi + **anonim** şube ortalaması | `DikkatListesiKapisi`, `SiralamaYok` |
+| 9 | Şube hücresi **ham kimlik yazmaz** | `build._class_labels`: ad haritası → ad, yoksa `text.CLASS_LABEL_UNKNOWN`; sıralama görünen ada göre | `test_report_capability.RefusalTests`/`DocumentTests` |
 
 ### Neden ham doğruluk gösterilmiyor (kural 7)
 
@@ -249,3 +250,9 @@ gösterilmez.
    bağımlılık kuralını bozardı.
 6. **Rapor gönderilmez.** E-posta, paylaşım bağlantısı, zamanlanmış dağıtım
    yoktur; CLI dosya yazar, dağıtımı çağıran taraf yapar.
+7. **Şube adı rapor katmanında bulunmaz.** Rapor `marks.classes`teki
+   **kimlikleri** taşır; görünen adı çağıran verir (`insight.report`ta
+   `classes: [{id, name}]`, bkz. `BACKEND-GEREKSINIMLERI.md` `## insight.report`).
+   Harita yoksa her şube hücresi `Adı bilinmeyen şube` olur — ham kimlik hiçbir
+   koşulda yazılmaz. Fikstür/CLI yolunda ad kaynağı yoktur, o yüzden orada
+   etiket budur.

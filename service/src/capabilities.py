@@ -12,8 +12,11 @@ IKI YON VARDIR; karistirilmamalidir:
    (`ai/insight.rs` module docs; `docs/BACKEND-GEREKSINIMLERI.md` item 3).
    `insight.report` is the fourth name and the one whose answer is a DOCUMENT:
    the backend reads its own `zeka_*` rows and dispatches them, and the service
-   renders the school report from them without reading anything itself
-   (`docs/BACKEND-GEREKSINIMLERI.md`, `## insight.report`).
+   renders the school report from them without reading anything itself. Its
+   door landed the same day the service side did (`constant.rs:645`,
+   `ai/insight.rs::report`, `web/insights.rs`), so the name is in
+   `BACKEND_CALLABLE_CAPABILITIES` -- unlike `insight.class`, whose door still
+   does not exist (`docs/BACKEND-GEREKSINIMLERI.md`, `## insight.report`).
    Routing is an EXACT match (`ai/protocol.rs:91-94`): every advertised name
    gets its handler from `handlers.wire()`, and `verify_dispatchable()` checks
    the pair at startup -- if advertising and dispatch ever drift apart, the
@@ -85,18 +88,17 @@ NAMES: tuple[str, ...] = (
 #: `ai/insight.rs::compute_student/refresh` + the `web/insights.rs` doors
 #: (insight.student, insight.refresh; merged 2026-09-18). `insight.class` is
 #: NOT in the set: the constant exists, the code that would send it does not.
-#: `insight.report` is NOT in it either, for the same reason and one more: the
-#: service side is READY (advertised + `handlers.report`), but the backend's
-#: dispatch table carries no `insight.report` yet (`hezarfen_backend/src` has
-#: no such name as of 2026-09-18). When that door lands, three edits move
-#: together: this tuple, the pin in `tests/test_capabilities.py`, and the
-#: status line of `docs/BACKEND-GEREKSINIMLERI.md` `## insight.report`.
-#: `tests/test_capabilities.py` pins this.
+#: `insight.report` IS in the set (since 2026-09-18): the backend's constant
+#: (`constant.rs:645`) and its dispatch (`ai/insight.rs::report`, the
+#: `POST /runs/{run_day}/report` door in `web/insights.rs`) all landed, so the
+#: name left the "advertised but never dispatched" list the same day the
+#: service side was written. `tests/test_capabilities.py` pins this.
 BACKEND_CALLABLE_CAPABILITIES: tuple[str, ...] = (
     "chat.reply",
     "rag.index",
     "insight.student",
     "insight.refresh",
+    "insight.report",
 )
 
 #: The `sections` vocabulary: the summary's four compute modules. A request
@@ -202,6 +204,14 @@ class ReportRequest(TypedDict, total=False):
     """Belgeyi isteyen mudur. Okuma yapilmadigi icin yalniz log'a yazilir."""
     school: dict[str, Any]
     """`{"id": ..., "slug": ..., "name": ...}` -- `name` belge basligidir."""
+    classes: list[dict[str, Any]]
+    """`[{"id": ..., "name": ...}]` -- okulun butun subeleri (kimlik -> GORUNEN
+    ad). Satirlardaki `marks.classes` KIMLIK tasir; tabloya yazilan ad bu
+    haritadan gelir. Haritada olmayan kimlik `text.CLASS_LABEL_UNKNOWN` olur:
+    ham kimlik belgeye HICBIR kosulda girmez (canli kusur, 2026-09-18)."""
+    class_names: dict[str, Any]
+    """Kabul edilen ikinci bicim: `{"<kimlik>": "<ad>"}`. `classes` varsa o
+    kazanir; ikisi de yoksa belge yedek etiketle kurulur (eski backend)."""
     summaries: list[dict[str, Any]]
     """`zeka_student_summary` satirlari; `attention` listesi DAHIL (personel
     raporunun dikkat tablosunu besleyen tek alan odur)."""

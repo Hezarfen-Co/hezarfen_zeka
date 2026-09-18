@@ -26,6 +26,12 @@ LOW_CONFIDENCE_TEXT = "yeterli veri yok"
 #: Ön bulgu kademesinin eki.
 EXPLORATORY_SUFFIX = "ön bulgu"
 
+#: Şube kimliğinin ADI bilinmediğinde gösterilen etiket. Ham kimlik ASLA
+#: yazılmaz: canlı raporda yöneticiye `01a0b1a6-…` gitti ve okunamadı
+#: (2026-09-18). Ad haritası payload'da gelir (`insight.report.classes`);
+#: gelmezse etiket budur — uydurulmuş bir ad değil.
+CLASS_LABEL_UNKNOWN = "Adı bilinmeyen şube"
+
 #: Sayı gösterilmeyen güven kademeleri.
 LOW_CONFIDENCE = frozenset({"none", "", "None"})
 
