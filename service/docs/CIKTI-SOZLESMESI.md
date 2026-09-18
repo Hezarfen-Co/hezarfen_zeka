@@ -416,6 +416,8 @@ bu tuzak yapısal olarak imkânsızdır.
 5. **`T3.segment_class_gap` gerçek bir sınıfta hiç ateşlemedi** — yalnız yapay
    pozitif kontrolde. Ekranı kurulabilir, ama boş kalabileceği varsayılmalıdır.
 6. **`insight.*` depo kapıları açıldı (`f84c29d`); backend'in ZEKA'yı çağırması
-   hâlâ kapalı.** Servis satırlarını bu depo kapılarından yazar; sunucu-baslatımlı
-   üç yetenek için dağıtım kapısı gelene kadar gece koşusu `partial` yazılır.
-   Sahibi backend'deki `InsightDoors` hattı — `docs/BACKEND-GEREKSINIMLERI.md` Madde 1.
+   2026-09-18'de `insight.student` + `insight.refresh` için açıldı** ve servis
+   tarafı aynı gün bağlandı (`service/src/handlers.py`; ilan ile dağıtım
+   açılışta `verify_dispatchable()` ile denetlenir). `insight.class` ilan
+   edilir ama gönderilmez: kadro listeleme yolu yok. Sahibi backend'deki
+   `InsightDoors` hattı — `docs/BACKEND-GEREKSINIMLERI.md` Madde 1.

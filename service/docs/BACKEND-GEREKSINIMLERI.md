@@ -19,22 +19,28 @@ istemci-baslatimli bir yetenek cercevesi tanimli degildir (Madde 1).
 
 Yani asagidaki uc madde ZEKA'nin nelerin **disinda** kaldigini tarif eder.
 
-> **DURUM (2026-09-17).** Madde 1'in **(a) servisin cagirdigi `insight.*`
+> **DURUM (2026-09-18).** Madde 1'in **(a) servisin cagirdigi `insight.*`
 > operasyonlari** yonu backend'de **acildi** (`f84c29d`): kapi listesi
 > `/api-docs/openapi.json` icinde gorunur ve `insight.schools.list`,
 > `insight.pending.list`, `insight.retention.sweep` canli backend'e karsi
 > kosturuldu (uclu de basarili dondu). **(b) backend'in ZEKA'yi cagirmasi**
-> yonu -- dagitim tablosundaki `insight.student` / `insight.class` /
-> `insight.refresh` -- **HALA ACIKTIR**. Asagidaki "yoktur / tanimli degil"
-> ifadeleri bu iki yonu ayirmadan okunmamalidir; `src/capabilities.py` modul
-> dokumani ayni ayrimi yapar.
+> yonu 2026-09-18'de `insight.student` ve `insight.refresh` icin **acildi**
+> (`ai/insight.rs::compute_student/refresh` + `web/insights.rs` kapilari) ve
+> servis tarafi ayni gun baglandi (`src/handlers.py`; ilan ile dagitim
+> acilista `capabilities.verify_dispatchable()` ile denetlenir).
+> `insight.class` ilan edilir ama hala GONDERILMEZ -- kadro listeleme yolu
+> yok (Madde 3). Asagidaki "yoktur / tanimli degil" ifadeleri bu iki yonu
+> ayirmadan okunmamalidir; `src/capabilities.py` modul dokumani ayni ayrimi
+> yapar.
 
 ---
 
-## Madde 1 -- `insight.*`: depo yolu ACILDI, sunucu-baslatimli yon acik
+## Madde 1 -- `insight.*`: depo yolu ACILDI, sunucu-baslatimli yon student+refresh icin ACILDI
 
 **Sahibi: backend'deki `InsightDoors` hatti.** Asagidaki zarf DONMUS'TUR; servis
-ona karsi yazildi. (a) yonu 2026-09-17'de acildi (`f84c29d`); (b) yonu aciktir.
+ona karsi yazildi. (a) yonu 2026-09-17'de acildi (`f84c29d`); (b) yonu
+2026-09-18'de `insight.student` + `insight.refresh` icin acildi; `insight.class`
+icin hala aciktir (kadro listeleme yolu -- Madde 3).
 
 ### Ne isteniyor
 
@@ -80,6 +86,12 @@ kolonu yoktur.
 
 **b) Servisin servis ettigi yetenekler (sunucu-baslatimli akis).**
 `src/constant.rs` icine yeni yetenek sabitleri ve onlari cagiran dagitim kodu:
+
+> **DURUM (2026-09-18).** Sabitler ve dagitim kodu merged: `insight.student`
+> ve `insight.refresh` gonderilir (`ai/insight.rs`, `web/insights.rs`);
+> `insight.class` sabiti durur ama onu gonderen bir yol yoktur. Servis tarafi
+> ayni gun baglandi: `handlers.wire()` uc adi da kaydeder ve acilista
+> `capabilities.verify_dispatchable()` ilan ile dagitimi karsilastirir.
 
 ```rust
 /// ZEKA -- tek ogrenci icin analiz/tavsiye.
@@ -283,7 +295,7 @@ Yani kapsam **elle** tutulur.
 
 | # | Istenen | Kaynak dosya | Olmazsa kaybedilen |
 |---|---|---|---|
-| 1 | Dokuz `insight.*` operasyonu (yazma + liste + supurme) **ve** `insight.student` / `insight.class` / `insight.refresh` sabitleri + dagitim kodu | `src/constant.rs`, `src/ai/` | ZEKA satirlarini **yazamaz** (gece kosusu `partial`); backend ZEKA'yi **hic cagiramaz**, istege bagli her senaryo duser. Sahibi: `InsightDoors` |
+| 1 | Dokuz `insight.*` operasyonu (yazma + liste + supurme) **ve** `insight.student` / `insight.class` / `insight.refresh` sabitleri + dagitim kodu | `src/constant.rs`, `src/ai/` | ZEKA satirlarini **yazamaz** (gece kosusu `partial`); backend ZEKA'yi **hic cagiramaz**, istege bagli her senaryo duser. Sahibi: `InsightDoors`. **Durum 2026-09-18: student + refresh ACILDI; sinif hala acik (Madde 3).** |
 | 2 | 9 sinav yolu (+3 sinif/ders yolu) izin listesine | `src/constant.rs:656-676` | **Madde analizi, konu karnesi, sinif isi haritasi** hic uretilemez |
 | 3 | `GET /users/search` izin listesine (okul listesi Madde 1a'da) | `src/constant.rs:656-676` | Ogrenci kadrosu elle tutulur; yeni ogrenci **sessizce** gorunmez |
 

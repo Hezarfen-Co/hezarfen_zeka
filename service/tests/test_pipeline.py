@@ -115,8 +115,13 @@ class TestEndToEnd(PipelineTestCase):
         )
 
     async def test_cleanup_calls_go_out_once(self) -> None:
-        """Koşu sonunda süpürme ve mezuniyet temizliği çağrılır."""
-        _, caller = await self._run(dataset())
+        """Koşu sonunda süpürme ve mezuniyet temizliği çağrılır.
+
+        Kadro DİZİNDEN okunur (`student_ids=None`): temizlik yalnız tam kadro
+        için koşar, çağıranın verdiği alt küme için koşmaz (bkz.
+        `run_school` docstring'i).
+        """
+        _, caller = await self._run(dataset(), student_ids=None)
         kinds = [capability for capability, _, _ in caller.calls]
         self.assertEqual(kinds.count(CAP_SWEEP), 1)
         purge = [
@@ -375,18 +380,18 @@ class TestPipelineWritesThroughTheBridge(unittest.IsolatedAsyncioTestCase):
         """Ayrilan ogrenci temizlik listesinde YOKTUR: profili kalmamalidir.
 
         Silme backend'in isidir; burada dogrulanan sey gonderilen listenin
-        gercekten daralmis olmasidir.
+        gercekten daralmis olmasidir. Kadro her iki kosuda da DIZINDEN okunur:
+        `student-11` okulun odev listesinden cikar ve temizlik onu istemez.
         """
         await self._run()
         self.assertEqual(len(self.tables["student_summary"]), 12)
-        await run_school(
-            FileSource(self.root),
-            self.store.store_for("okul-a"),
-            "okul-a",
-            now_ms=NOW,
-            term_start_ms=TERM_START,
-            student_ids=[f"student-{i:02d}" for i in range(10)],
-        )
+        roster = [f"student-{i:02d}" for i in range(10)]
+        data = {key: value for key, value in self.data.items() if key in roster}
+        data["_school"] = {
+            "homework_list": [homework("hw-school", "course-1", NOW + DAY, roster)]
+        }
+        write_fixtures(self.root, "okul-a", data)
+        await self._run()
         purge_calls = [
             payload
             for capability, _, payload in self.caller.calls
@@ -395,6 +400,16 @@ class TestPipelineWritesThroughTheBridge(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(purge_calls), 2)
         self.assertEqual(len(purge_calls[-1]["students"]), 10)
         self.assertNotIn("student-11", purge_calls[-1]["students"])
+
+    async def test_a_scoped_list_never_purges(self) -> None:
+        """Cagiranin verdigi liste bir ALT KUME: temizlige verilemez.
+
+        `refresh user_ids` ve `cli --students` boyle kosar; o listeyi "aktif
+        kadro" saymak, adi gecmeyen herkesin turetilmis verisini sildirirdi.
+        """
+        await self._run(student_ids=[f"student-{i:02d}" for i in range(10)])
+        self.assertEqual(self.tables["student_summary"][0]["student"], "student-00")
+        self.assertNotIn(CAP_PURGE, [capability for capability, _, _ in self.caller.calls])
 
 
 if __name__ == "__main__":

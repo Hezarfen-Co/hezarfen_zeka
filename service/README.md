@@ -150,13 +150,14 @@ Tohum verisinde 217.498 sınav cevabı ve kasıtlı olarak bozuk maddeler var. Y
 
 `docs/BACKEND-GEREKSINIMLERI.md` üç maddelik listeyi gerekçeleriyle içerir:
 
-1. **`insight.*` depo yolu açıldı; sunucu-baslatımlı yön açık.** ZEKA'nın
+1. **`insight.*` depo yolu açıldı; sunucu-baslatımlı yön `insight.student` +
+   `insight.refresh` için açık.** ZEKA'nın
    çağırdığı dokuz operasyon backend'de 2026-09-17'de açıldı (`f84c29d`) ve
-   çalışır. Backend'in **çağırabildiği** adlar hâlâ yalnız `chat.reply` ve
-   `rag.index`'tir: servis ettiği üç yetenek (`insight.student`,
-   `insight.class`, `insight.refresh`) dağıtım kapısı bekliyor; backend'de bu iş
-   **`InsightDoors`** hattının sahibindedir ve o yön kapılar gelene kadar istek
-   üzerine tetikleme kapalıdır.
+   çalışır. Backend'in **çağırabildiği** adlar 2026-09-18 itibarıyla
+   `chat.reply`, `rag.index`, `insight.student` ve `insight.refresh`'tir;
+   `insight.class` ilan edilir ama gönderilmez (kadro listeleme yolu yok --
+   Madde 3). Servis tarafında ilan ile dağıtım açılışta denetlenir
+   (`src/handlers.py`, `capabilities.verify_dispatchable()`).
 2. **Sınav yolları izin listesinde yok.** Madde analizi için gereken 9 yol listelenmiştir.
 3. **Öğrenci listeleme yolu yok.** Okul listesi artık köprüden (`insight.schools.list`),
    ama kimlerin işleneceği hâlâ yapılandırmadan çözülüyor. Dönem ortası kayıt olan

@@ -40,7 +40,7 @@ from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import ConnectionTerminated, QuicEvent, StreamDataReceived
 
-from . import capabilities, config, protocol
+from . import capabilities, config, handlers, protocol
 from .protocol import (
     ApiRefused,
     ApiResponse,
@@ -553,7 +553,17 @@ async def run_once(
     handler: RequestHandler | None = None,
     on_ready: Callable[[BridgeProtocol], Any] | None = None,
 ) -> None:
-    """Sertifikayi cek, bagla, kaydol, baglanti kapanana kadar bekle."""
+    """Sertifikayi cek, bagla, kaydol, baglanti kapanana kadar bekle.
+
+    Kaydolmadan HEMEN once iki sey yapilir: isleyici defteri kurulur
+    (`handlers.wire()`) ve ilan edilecek her adin karsiligi oldugu denetlenir
+    (`capabilities.verify_dispatchable()`). `Hello` cercevesinin ciktigi tek
+    yer burasidir; denetim buraya konunca ilan edip servis edememe durumu
+    yapisal olarak imkansiz olur -- defter haftalarca bosken uc ad ilan
+    ediliyordu ve backend'in her istegi `unknown_capability` ile donuyordu.
+    """
+    handlers.wire()
+    capabilities.verify_dispatchable()
     cert_pem = fetch_certificate(settings)
     quic_config = build_quic_configuration(settings, cert_pem)
     config.log(
@@ -771,18 +781,24 @@ async def _serve(settings: config.Config) -> int:
     capabilities.bind_store(store)
     config.log("info", "depo: kopru (insight.*) -- yerel veritabani yok")
     config.log("info", capabilities.summary())
-    if settings.refresh_interval_secs <= 0:
-        config.log("info", "gece zamanlayicisi KAPALI (ZEKA_REFRESH_INTERVAL_SECS=0)")
-        return await run_forever(settings)
 
-    # Zamanlayici her okul icin bir `Source` ister. Baglanti kopmussa
-    # `BridgeSource` cagrisi hata verir ve zamanlayici o okulu duser --
-    # dogru davranis: veri cekilemeden hesap yapilmaz.
+    # Zamanlayici da yetenek isleyicileri de her okul icin bir `Source` ister.
+    # Baglanti kopmussa `BridgeSource` cagrisi hata verir: zamanlayici o okulu
+    # duser, isleyici `unavailable` doner -- dogru davranis, cunku veri
+    # cekilemeden hesap yapilmaz ve sessiz bos cevap uretilmez. Baglama
+    # ZAMANLAYICI KAPALIYKEN DE yapilir: istekleri karsilayan sey zamanlayici
+    # degil koprudur.
     def source_for(_school: str) -> Any:
         proto = kopru["protocol"]
         if proto is None:
             raise RuntimeError("kopru henuz bagli degil")
         return BridgeSource(proto)
+
+    handlers.bind_source(source_for)
+
+    if settings.refresh_interval_secs <= 0:
+        config.log("info", "gece zamanlayicisi KAPALI (ZEKA_REFRESH_INTERVAL_SECS=0)")
+        return await run_forever(settings)
 
     scheduler = Scheduler(
         source_for,

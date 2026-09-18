@@ -32,7 +32,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any
 
 from .compute import attendance as attendance_mod
@@ -95,6 +95,45 @@ class RunResult:
         return {"school": self.school, **row}
 
 
+#: The `sections` vocabulary (`capabilities.SECTIONS`), as a set the pipeline
+#: can test against. Validation lives at the edge (`handlers._sections`); the
+#: pipeline only applies the filter a caller hands it.
+SECTION_NAMES: tuple[str, ...] = ("marks", "attendance", "submission", "study")
+
+
+@dataclasses.dataclass(slots=True)
+class StudentOutcome:
+    """One student's result, for the capability handlers.
+
+    `RunResult` is bookkeeping only: it says how many students were counted,
+    not what any of them produced. A dispatched compute answers with a
+    payload per student, and this is where the per-student truth travels --
+    which modules were read (`coverage`, empty when the fetch failed), what
+    was computed, and how it failed if it did.
+
+    Only filled when the caller passes an `outcomes` list; the night run
+    collects none.
+    """
+
+    student: str
+    #: Source name -> records read. An EMPTY dict means the fetch failed, which
+    #: is a different claim from "read, and it was empty".
+    coverage: dict[str, int] = dataclasses.field(default_factory=dict)
+    summary: StudentSummary | None = None
+    recommendations: list[Recommendation] = dataclasses.field(default_factory=list)
+    error: str | None = None
+    #: `fetch` (the data could not be read) or `compute` (the arithmetic fell
+    #: over). `handlers._ERROR_CODES` maps it to the refusal code.
+    error_kind: str | None = None
+
+
+def _section_filter(sections: Sequence[str] | None) -> frozenset[str] | None:
+    """`None` = every module (the night run). Otherwise the requested subset."""
+    if sections is None:
+        return None
+    return frozenset(str(name) for name in sections)
+
+
 async def discover_students(source: Any, school: str) -> list[str]:
     """Okulun öğrenci kimliklerini türetir.
 
@@ -138,16 +177,51 @@ class _Fetched:
     class_ids: list[str]
     course_stats: dict[str, dict[str, Any]]
     attendance_stats: dict[str, dict[str, Any]]
+    #: Source name -> records read (see `StudentOutcome.coverage`).
+    coverage: dict[str, int]
 
 
-async def _fetch_student(source: Any, school: str, student: str) -> _Fetched:
-    """Tek öğrencinin verisini çeker. Yasaklı alan çağrısı **yoktur**."""
+async def _fetch_student(
+    source: Any, school: str, student: str, *, sections: frozenset[str] | None = None
+) -> _Fetched:
+    """Tek öğrencinin verisini çeker. Yasaklı alan çağrısı **yoktur**.
+
+    `sections` verilirse YALNIZ istenen modüllerin kaynakları okunur: bir
+    isteğe iki uç fazladan çağrı yapmak, okunmayan veri için de bir maliyet
+    ve bir hata yüzeyi yaratırdı. `profile` her hâlükârda okunur (şube
+    kimlikleri oradan gelir), ödev raporu da `submission` ya da `study`
+    istenmişse (çalışma profilinin teslim tarihleri ondan çıkar).
+    """
+    everything = sections is None
+
+    def want(name: str) -> bool:
+        return everything or name in sections
+
     profile = await source.profile(school, student)
-    marks_raw = await source.marks(school, student)
-    attendance_raw = await source.attendance(school, student)
-    pomodoro_raw = await source.pomodoro(school, student)
-    report_raw = await source.homework_report(school, student)
-    homework_raw = await source.homework_list(school, student)
+    marks_raw = await source.marks(school, student) if want("marks") else None
+    attendance_raw = (
+        await source.attendance(school, student) if want("attendance") else None
+    )
+    pomodoro_raw = await source.pomodoro(school, student) if want("study") else None
+    need_report = want("submission") or want("study")
+    report_raw = (
+        await source.homework_report(school, student) if need_report else None
+    )
+    homework_raw = (
+        await source.homework_list(school, student) if need_report else None
+    )
+    coverage: dict[str, int] = {"profile": 1 if profile else 0}
+    if want("marks"):
+        coverage["marks"] = len(marks_mod.normalize_rows(marks_raw))
+    if want("attendance"):
+        coverage["attendance"] = len(attendance_mod.normalize_rows(attendance_raw))
+    if want("study"):
+        coverage["pomodoro"] = len(study_mod.normalize_rows(pomodoro_raw))
+    if need_report:
+        coverage["homework_report"] = len(
+            submission_mod.normalize_items(report_raw)
+        )
+        coverage["homework_list"] = len(homework_raw or [])
     return _Fetched(
         profile=profile,
         marks_raw=marks_raw,
@@ -158,6 +232,7 @@ async def _fetch_student(source: Any, school: str, student: str) -> _Fetched:
         class_ids=marks_mod.class_ids_of(profile),
         course_stats=marks_mod.student_course_stats(marks_raw),
         attendance_stats=attendance_mod.course_stats(attendance_raw),
+        coverage=coverage,
     )
 
 
@@ -192,11 +267,33 @@ async def run_school(
     budget_ms: int = DEFAULT_BUDGET_MS,
     resume_students: list[str] | None = None,
     monotonic_fn: Callable[[], float] = time.monotonic,
+    nightly: bool = True,
+    sections: Sequence[str] | None = None,
+    outcomes: list[StudentOutcome] | None = None,
 ) -> RunResult:
     """Bir okul için hattı uçtan uca koşturur.
 
     `source` yalnız `Source` protokolündeki sekiz metodu uygular; bu fonksiyon
     başka hiçbir şey çağırmaz.
+
+    `nightly=False` (yetenek isleyicileri): koşu defteri, mezuniyet temizliği
+    ve saklama süpürmesi YAPILMAZ. Bunlar okul geneli gece işinin parçasıdır;
+    tek öğrencilik bir hesap günün `zeka_run` satırını (anahtar `run_day`)
+    ezmemeli ve bir ALT KÜMEYİ "aktif kadro" diye temizliğe vermemelidir.
+    Mezuniyet temizliği zaten yalnız kadro DİZİNDEN çıkarıldığında koşar:
+    çağıranın verdiği liste (`refresh user_ids`, `cli --students`) bir alt
+    kümedir ve backend'in `insight.departed.purge` kapısı tam bu yüzden
+    boş/kısmi listeyi reddeder.
+
+    `sections`: hangi modüllerin hesaplanacağı (`SECTION_NAMES`). İstenmeyen
+    modül hesaplanmaz ve `StudentSummary` alanı `None` kalır -- satıra `null`
+    gider, backend'in `SummaryRow` sözleşmesindeki "hesaplanmadı". Ad
+    doğrulaması kenarda (`handlers._sections`) yapılır; burada bilinmeyen ad
+    sessizce "istenmemiş" sayılır.
+
+    `outcomes`: verilirse her öğrenci için bir `StudentOutcome` eklenir
+    (başarılı, düşen ve bütçeye takılanlar için birer kayıt). Gece koşusu
+    toplamaz; yetenek isleyicileri cevabı oradan kurar.
 
     `resume_students`: geçen koşuda bütçe yüzünden işlenemeyenler. Bunlar
     listenin **başına** alınır — "bir sonraki koşu oradan devam eder"
@@ -207,6 +304,14 @@ async def run_school(
     testlerde sahte saat verilerek bütçe aşımı **deterministik** kurulur —
     aksi halde "60 sn'yi aş" testi makinenin hızına bağlı olurdu.
     """
+    # Was the roster handed in (a subset) or read from the directory (the
+    # roster)? The departed purge is only honest for the latter.
+    roster_from_directory = student_ids is None
+    wanted = _section_filter(sections)
+
+    def want(name: str) -> bool:
+        return wanted is None or name in wanted
+
     started_wall = now_ms
     started_mono = monotonic_fn()
     result = RunResult(
@@ -218,7 +323,8 @@ async def run_school(
 
     # Koşu defterine "running" satırı — süreç yeniden başlarsa bayat koşu
     # buradan görülür (`MODULLER.md` §3.4).
-    await store.write_run(result.as_row(), result.run_key())
+    if nightly:
+        await store.write_run(result.as_row(), result.run_key())
 
     if student_ids is None:
         try:
@@ -229,7 +335,8 @@ async def run_school(
             result.failed_modules.append("discover_students")
             result.finished_at = now_ms
             result.duration_ms = elapsed_ms()
-            await store.write_run(result.as_row(), result.run_key())
+            if nightly:
+                await store.write_run(result.as_row(), result.run_key())
             return result
 
     if resume_students:
@@ -256,12 +363,18 @@ async def run_school(
             pending = list(student_ids[index:])
             break
         try:
-            fetched[student] = await _fetch_student(source, school, student)
+            fetched[student] = await _fetch_student(
+                source, school, student, sections=wanted
+            )
         except Exception as exc:  # noqa: BLE001 — kısmi başarısızlıkta devam
             log.warning("öğrenci atlandı (okul=%s, id=%s): %s", school, student, exc)
             result.students_failed += 1
             if "fetch" not in result.failed_modules:
                 result.failed_modules.append("fetch")
+            if outcomes is not None:
+                outcomes.append(
+                    StudentOutcome(student=student, error=str(exc), error_kind="fetch")
+                )
 
     # ---------------- kohort kurulumu --------------------------------------
     #
@@ -280,6 +393,10 @@ async def run_school(
     )
 
     # ---------------- 2. geçiş: hesap + tavsiye ----------------------------
+    #
+    # İstenmeyen modül (`sections`) hesaba hiç girmez ve özette `None` kalır.
+    # Dikkat ve tavsiye kuralları yine çağrılır: modül profillerinin kapıları
+    # kendi içindedir, eksik profil zaten "ateşlemez" demektir.
     summaries: list[StudentSummary] = []
     recommendations: list[Recommendation] = []
     for student, data in fetched.items():
@@ -288,69 +405,99 @@ async def run_school(
             pending.append(student)
             continue
         try:
-            marks_profile = marks_mod.student_profile(
-                data.marks_raw, data.profile, distributions
+            marks_profile = (
+                marks_mod.student_profile(data.marks_raw, data.profile, distributions)
+                if want("marks")
+                else None
             )
-            attendance_profile = attendance_mod.student_profile(
-                data.attendance_raw, data.class_ids, medians
+            attendance_profile = (
+                attendance_mod.student_profile(
+                    data.attendance_raw, data.class_ids, medians
+                )
+                if want("attendance")
+                else None
             )
-            submission_profile = submission_mod.student_profile(
-                data.report_raw, data.homework_raw, now_ms
+            submission_profile = (
+                submission_mod.student_profile(
+                    data.report_raw, data.homework_raw, now_ms
+                )
+                if want("submission")
+                else None
             )
-            study_profile = study_mod.student_profile(
-                data.pomodoro_raw, now_ms, _due_dates(data.report_raw)
+            study_profile = (
+                study_mod.student_profile(
+                    data.pomodoro_raw, now_ms, _due_dates(data.report_raw)
+                )
+                if want("study")
+                else None
             )
             items = attention_mod.order_items(
                 attention_mod.evaluate(
                     student,
-                    attendance_profile=attendance_profile,
-                    submission_profile=submission_profile,
-                    marks_profile=marks_profile,
+                    attendance_profile=attendance_profile or {},
+                    submission_profile=submission_profile or {},
+                    marks_profile=marks_profile or {},
                     now_ms=now_ms,
                     term_start_ms=term_start_ms,
                 )
             )
-            recommendations.extend(
-                recommend_mod.for_student(
-                    school,
-                    student,
-                    marks_profile=marks_profile,
-                    attendance_profile=attendance_profile,
-                    submission_profile=submission_profile,
-                    study_profile=study_profile,
-                    attention_items=items,
-                    course_teachers=marks_mod.course_teachers(data.marks_raw),
-                    now_ms=now_ms,
-                )
+            recs = recommend_mod.for_student(
+                school,
+                student,
+                marks_profile=marks_profile or {},
+                attendance_profile=attendance_profile or {},
+                submission_profile=submission_profile or {},
+                study_profile=study_profile or {},
+                attention_items=items,
+                course_teachers=marks_mod.course_teachers(data.marks_raw),
+                now_ms=now_ms,
             )
-            summaries.append(
-                StudentSummary(
-                    school=school,
-                    student=student,
-                    computed_at=now_ms,
-                    marks=marks_profile,
-                    attendance=attendance_profile,
-                    submission=submission_profile,
-                    study=study_profile,
-                    attention=[
-                        {
-                            "trigger": i.trigger.value,
-                            "fact": i.fact,
-                            "evidence": i.evidence,
-                            "window_from": i.window_from,
-                            "window_to": i.window_to,
-                        }
-                        for i in items
-                    ],
-                    confidence=_summary_confidence(marks_profile),
-                )
+            recommendations.extend(recs)
+            summary = StudentSummary(
+                school=school,
+                student=student,
+                computed_at=now_ms,
+                marks=marks_profile,
+                attendance=attendance_profile,
+                submission=submission_profile,
+                study=study_profile,
+                attention=[
+                    {
+                        "trigger": i.trigger.value,
+                        "fact": i.fact,
+                        "evidence": i.evidence,
+                        "window_from": i.window_from,
+                        "window_to": i.window_to,
+                    }
+                    for i in items
+                ],
+                confidence=_summary_confidence(marks_profile or {}),
             )
+            summaries.append(summary)
             result.students_ok += 1
+            if outcomes is not None:
+                outcomes.append(
+                    StudentOutcome(
+                        student=student,
+                        coverage=dict(data.coverage),
+                        summary=summary,
+                        recommendations=recs,
+                    )
+                )
         except Exception as exc:  # noqa: BLE001
             log.warning("hesap düştü (okul=%s, id=%s): %s", school, student, exc)
             result.students_failed += 1
             if "compute" not in result.failed_modules:
                 result.failed_modules.append("compute")
+            if outcomes is not None:
+                outcomes.append(
+                    StudentOutcome(
+                        student=student,
+                        coverage=dict(data.coverage),
+                        error=str(exc),
+                        error_kind="compute",
+                    )
+                )
 
     # ---------------- yazma ------------------------------------------------
     summary_report = await store.write_summaries(summaries)
@@ -360,10 +507,14 @@ async def run_school(
         result.failed_modules.append("store")
 
     # Mezuniyet/ayrılma temizliği: listede olmayanın **profili kalmamalıdır**.
-    if not result.budget_exceeded and student_ids:
+    # Yalnız dizinden çıkarılan TAM kadro ve yalnız gece koşusu için: çağıranın
+    # verdiği liste bir ALT KÜMEDİR (refresh `user_ids`, `cli --students`) ve
+    # onu kadro saymak, adı geçmeyen herkesin türetilmiş verisini sildirirdi.
+    if nightly and roster_from_directory and not result.budget_exceeded and student_ids:
         await store.purge_departed(school, list(student_ids))
 
-    await store.sweep(now_ms)
+    if nightly:
+        await store.sweep(now_ms)
 
     result.students_skipped = len(pending)
     result.pending_students = pending
@@ -382,5 +533,6 @@ async def run_school(
     if result.write_failed and result.status == "ok":
         result.status = "partial"
 
-    await store.write_run(result.as_row(), result.run_key())
+    if nightly:
+        await store.write_run(result.as_row(), result.run_key())
     return result

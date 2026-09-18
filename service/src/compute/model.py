@@ -178,10 +178,13 @@ class StudentSummary:
     school: str
     student: str
     computed_at: int
-    marks: dict[str, Any] = field(default_factory=dict)
-    attendance: dict[str, Any] = field(default_factory=dict)
-    submission: dict[str, Any] = field(default_factory=dict)
-    study: dict[str, Any] = field(default_factory=dict)
+    #: Dört modül `None` OLABİLİR: `sections` ile istenmeyen modül hesaplanmaz
+    #: ve satıra `null` gider ("hesaplanmadı"), boş sözlük ise "okundu, kaynak
+    #: satır yok" demektir (backend `db/insight.rs` `SummaryRow` sözleşmesi).
+    marks: dict[str, Any] | None = field(default_factory=dict)
+    attendance: dict[str, Any] | None = field(default_factory=dict)
+    submission: dict[str, Any] | None = field(default_factory=dict)
+    study: dict[str, Any] | None = field(default_factory=dict)
     attention: list[dict[str, Any]] = field(default_factory=list)
     confidence: Confidence = Confidence.NONE
 

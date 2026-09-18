@@ -1,17 +1,18 @@
 """Yetenek defterinin testleri.
 
-Buradaki en onemli test bir EKSIKLIGI pinler: backend ZEKA'nin yeteneklerinin
-hicbirini **cagiramaz** (dagitim tablosunda bu adlar yok), dolayisiyla ZEKA'ya
-hic `Request` gondermez. Bu, servisin backend'i cagirdigi depo yolundan (2. yon,
-`insight.*` -- calisir) AYRI bir yondur. Backend tarafi duzeldiginde bu test
-guncellenecek ve degisiklik goze carpacak.
+Buradaki en onemli test bir GERCEGI pinler: backend'in ZEKA'ya gonderebildigi
+adlar `chat.reply`, `rag.index`, `insight.student`, `insight.refresh`tir;
+`insight.class` ilan edilir ama backend'de onu gonderen bir yol yoktur. Bu,
+servisin backend'i cagirdigi depo yolundan (2. yon, `insight.*` -- calisir)
+AYRI bir yondur. Iki taraf da degistiginde bu testler ve
+`docs/BACKEND-GEREKSINIMLERI.md` madde 1 birlikte guncellenir.
 """
 
 from __future__ import annotations
 
 import unittest
 
-from src import capabilities
+from src import capabilities, handlers
 from src.protocol import CapabilityError
 
 
@@ -22,16 +23,24 @@ class CapabilityNameTests(unittest.TestCase):
             ("insight.student", "insight.class", "insight.refresh"),
         )
 
-    def test_backend_can_call_none_of_them(self):
-        # constant.rs:568 ve :574 -- backend'in cagirabildigi tek iki ad.
+    def test_backend_callable_set_is_the_dispatch_table(self):
+        # constant.rs:568,574 (chat.reply, rag.index) + ai/insight.rs
+        # (compute_student/refresh) ve web/insights.rs kapilari -- 2026-09-18.
         self.assertEqual(
-            capabilities.BACKEND_CALLABLE_CAPABILITIES, ("chat.reply", "rag.index")
+            capabilities.BACKEND_CALLABLE_CAPABILITIES,
+            ("chat.reply", "rag.index", "insight.student", "insight.refresh"),
         )
+        # `insight.class` ilan edilir ama backend GONDERMEZ (kadro listeleme
+        # yolu yok). Backend tarafi acildiginda bu satiri ve
+        # docs/BACKEND-GEREKSINIMLERI.md madde 1'i birlikte guncelleyin.
         self.assertEqual(
-            set(capabilities.NAMES) & set(capabilities.BACKEND_CALLABLE_CAPABILITIES),
-            set(),
-            "backend artik bir ZEKA yetenegini cagirabiliyorsa bu testi ve "
-            "docs/BACKEND-GEREKSINIMLERI.md madde 1'i guncelleyin",
+            set(capabilities.NAMES) - set(capabilities.BACKEND_CALLABLE_CAPABILITIES),
+            {"insight.class"},
+        )
+
+    def test_sections_vocabulary_is_the_summary_modules(self):
+        self.assertEqual(
+            capabilities.SECTIONS, ("marks", "attendance", "submission", "study")
         )
 
     def test_every_name_has_a_schema(self):
@@ -53,6 +62,9 @@ class DispatchTests(unittest.TestCase):
         capabilities._handlers.clear()
 
     def test_unknown_capability_is_refused(self):
+        # Kayit defteri modul genelidir ve baska testler `handlers.wire()`
+        # cagirir; bu test BOS bir defteri sart kosar.
+        capabilities._handlers.clear()
         with self.assertRaises(CapabilityError) as caught:
             capabilities.dispatch("insight.student", "demo", {})
         self.assertEqual(caught.exception.code, "unknown_capability")
@@ -80,15 +92,22 @@ class DispatchTests(unittest.TestCase):
             capabilities.dispatch("insight.class", "demo", ["liste"])
         self.assertEqual(caught.exception.code, "bad_request")
 
-    def test_summary_names_the_callable_direction_only(self):
+    def test_summary_separates_the_three_facts(self):
+        handlers.wire()
         text = capabilities.summary()
-        # Liste backend'in CAGIRABILDIGIDIR ...
-        self.assertIn("backend'in cagirabildigi yetenekler: chat.reply, rag.index", text)
-        self.assertIn("HENUZ cagrilmiyor", text)
-        # ... ve depo yolunu (2. yon) kapsamadigi acikca yazilidir.
+        # 1) backend'in GONDEREBILDIGI adlar ...
+        self.assertIn(
+            "backend'in cagirabildigi yetenekler: "
+            "chat.reply, rag.index, insight.student, insight.refresh",
+            text,
+        )
+        # 2) ... depo yolunu (2. yon) kapsamadigi ...
         self.assertIn("servis->backend depo yolu: kopru/insight.*", text)
-        # Eski hali depo yolu calismaya basladiktan sonra "backend insight'i
-        # hic bilmiyor" diye okunuyordu.
+        # 3) ... ve ilan edilen her adin bir isleyicisi oldugu.
+        self.assertIn("servis tarafi isleyiciler: 3/3 kayitli", text)
+        self.assertIn("backend'in dagitim tablosunda olmayan: insight.class", text)
+        # Eski hali "TANIMSIZ" diyordu ve isleyici kayitliyken bile servisin
+        # bir sey yapmadigini ima ediyordu.
         self.assertNotIn("TANIMSIZ", text)
 
 
