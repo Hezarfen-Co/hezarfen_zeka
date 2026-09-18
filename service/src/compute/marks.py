@@ -168,8 +168,10 @@ def course_average(results: list[dict[str, Any]]) -> float | None:
     return total / total_w
 
 
-def _ordered_marks(results: list[dict[str, Any]]) -> list[tuple[int, float]]:
-    """(zaman, not) çiftleri, zamana göre artan.
+def _ordered_marks(
+    results: list[dict[str, Any]],
+) -> tuple[list[tuple[int, float]], int]:
+    """(zaman, not) çiftleri artan sırada + çapası çözülemeyen not sayısı.
 
     Zaman çapası: `exam` kimliğinin zaman bölümü (`model.id_ms`). Kimlik göç
     hâlinde iki biçimde gelir — eski satırlar ULID, yeniler uuid v7; ikisi de
@@ -177,21 +179,28 @@ def _ordered_marks(results: list[dict[str, Any]]) -> list[tuple[int, float]]:
     zaman damgası yok** (`web/marks.rs:32`), bu yüzden sıralamanın tek dürüst
     kaynağı budur.
 
+    İkinci dönüş değeri, **notu olup** kimliği çözülemeyen satır sayısıdır.
+    Böyle bir satıra damga **uydurulmaz** (uydurma damga yanlış sıralama
+    üretir); satır atlanır ama sayısı çağırana taşınır ki "az not var" ile
+    "not var ama çapası yok" birbirine karışmasın.
+
     ⚠️ SINIR: bu damga sınavın **oluşturulma** anıdır, öğrencinin sınava girme
     anı değildir. Eğilim hesabı sıralamaya dayanır, mutlak tarihe değil
     (`MODULLER.md` §2.8 "zaman çapası" ile aynı kabul).
     """
     pairs: list[tuple[int, float]] = []
+    unanchored = 0
     for r in results:
         mark = r.get("mark")
         if mark is None:
             continue
         ts = id_ms(str(r.get("exam") or ""))
         if ts is None:
+            unanchored += 1
             continue
         pairs.append((ts, float(mark)))
     pairs.sort(key=lambda p: p[0])
-    return pairs
+    return pairs, unanchored
 
 
 def course_trend(results: list[dict[str, Any]]) -> dict[str, Any]:
@@ -200,13 +209,31 @@ def course_trend(results: list[dict[str, Any]]) -> dict[str, Any]:
     Güven kapısı: `MIN_MARKS_FOR_TREND` altında eğilim **hesaplanmaz**;
     `available = False` döner. Yeni gelen öğrenci işaretlenemez
     (`MODULLER.md` §2.8 "Önceki pencere gözlemi" kapısı, `[N§7.5]` P25 = 0).
+
+    Her sonuç `n_total` (notu olan satır) ve `n_unanchored` (çapası
+    çözülemeyen not) taşır; eğilim çalıştığında bile okur `n` notun kaç
+    notluk diziden geldiğini görebilir. Sekiz notu olup kimlikleri
+    çözülemeyen bir ders, "6 not yok" cümlesiyle **aynı** cevabı vermez:
+    çapa yokluğu kendi cümlesiyle söylenir (2026-09-18 uuid v7 kusurunun
+    dersi — iki durum aynı metni basınca kusur görünmez oluyordu).
     """
-    pairs = _ordered_marks(results)
+    pairs, unanchored = _ordered_marks(results)
+    n_total = len(pairs) + unanchored
     if len(pairs) < MIN_MARKS_FOR_TREND:
+        if unanchored:
+            reason = (
+                f"{unanchored} notun zaman damgası çözümlenemedi; "
+                f"{len(pairs)} not kaldı "
+                f"(en az {MIN_MARKS_FOR_TREND} gerekir)"
+            )
+        else:
+            reason = f"eğilim için en az {MIN_MARKS_FOR_TREND} not gerekir"
         return {
             "available": False,
-            "reason": f"eğilim için en az {MIN_MARKS_FOR_TREND} not gerekir",
+            "reason": reason,
             "n": len(pairs),
+            "n_total": n_total,
+            "n_unanchored": unanchored,
             "slope_per_30d": None,
             "recent_mean": None,
             "previous_mean": None,
@@ -229,6 +256,10 @@ def course_trend(results: list[dict[str, Any]]) -> dict[str, Any]:
         "available": True,
         "reason": None,
         "n": len(pairs),
+        # Eğilim süzülmüş bir kümeden geldiyse bu GÖRÜNÜR olmalı: `n` kaç
+        # notluk diziden hesaplandı, kaç satır çapasız kaldı.
+        "n_total": n_total,
+        "n_unanchored": unanchored,
         "slope_per_30d": slope_30d,
         "recent_mean": recent_mean,
         "previous_mean": previous_mean,

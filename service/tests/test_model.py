@@ -113,5 +113,63 @@ class TestTrendWithUuid7Ids(unittest.TestCase):
         self.assertAlmostEqual(trend["delta"], -20.0)
 
 
+class TestUnanchoredMarksAreVisible(unittest.TestCase):
+    """Çapası çözülemeyen not sessizce kaybolmaz.
+
+    Eski `reason` cümlesi "6 not yok" diyordu; 8 notu olup kimlikleri
+    çözülemeyen bir derste de **aynı** cümle çıkıyordu — uuid v7 kusurunu
+    görünmez kılan tam da bu örtüşmeydi. Artık iki durum ayrı söylenir ve
+    düşen satır sayısı sonuçta alan olarak taşınır.
+    """
+
+    def _unparsable(self, values: list[int]) -> list[dict]:
+        # Gerçek biçimde ama uuid **v4** — damga taşımaz, çapa çözülemez.
+        return [
+            {"exam": "01a0b1af-f86f-476d-a344-3eec7547708b", "mark": v, "weight": 1}
+            for v in values
+        ]
+
+    def test_all_unparsable_ids_get_a_distinct_reason(self) -> None:
+        results = self._unparsable([70, 70, 70, 70, 45, 50, 48, 52])
+        results.append({"exam": "x", "mark": None, "weight": 1})  # notsuz satır sayılmaz
+        trend = marks.course_trend(results)
+        self.assertFalse(trend["available"])
+        # Önce SEBEP: eski kod burada "6 not gerekir" cümlesini basıyordu.
+        self.assertNotEqual(
+            trend["reason"],
+            f"eğilim için en az {marks.MIN_MARKS_FOR_TREND} not gerekir",
+        )
+        self.assertIn("zaman damgası", trend["reason"])
+        self.assertEqual(trend["n"], 0)
+        self.assertEqual(trend["n_total"], 8)
+        self.assertEqual(trend["n_unanchored"], 8)
+
+    def test_short_but_anchorable_series_keeps_the_gate_reason(self) -> None:
+        results = [
+            _uuid7_mark_entry(BASE + i * DAY, m)
+            for i, m in enumerate([70, 70, 70, 50, 50])
+        ]
+        trend = marks.course_trend(results)
+        self.assertFalse(trend["available"])
+        self.assertEqual(trend["n_total"], 5)
+        self.assertEqual(trend["n_unanchored"], 0)
+        self.assertEqual(
+            trend["reason"],
+            f"eğilim için en az {marks.MIN_MARKS_FOR_TREND} not gerekir",
+        )
+
+    def test_filtered_subset_reports_the_drop_count(self) -> None:
+        results = [
+            _uuid7_mark_entry(BASE + i * DAY, m)
+            for i, m in enumerate([70, 70, 70, 50, 50, 50])
+        ] + self._unparsable([60, 60])
+        trend = marks.course_trend(results)
+        self.assertTrue(trend["available"])
+        self.assertEqual(trend["n"], 6)
+        self.assertEqual(trend["n_total"], 8)
+        self.assertEqual(trend["n_unanchored"], 2)
+        self.assertAlmostEqual(trend["delta"], -20.0)
+
+
 if __name__ == "__main__":
     unittest.main()
