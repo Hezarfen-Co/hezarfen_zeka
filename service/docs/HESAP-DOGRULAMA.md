@@ -104,10 +104,11 @@ ve A8'den birer öğrenci.
 > tüketiciye bırakıyor. Sebep: **modül kusuru** (eksik ürün), veri kısıtı değil
 > — veri sinyali fazlasıyla taşıyor.
 
-> **Sınır (kusur değil).** Sıralama `exam` ULID'inin **oluşturulma** damgasına
-> dayanıyor (`marks._ordered_marks` bunu yazıyor). Bu veride sınav ULID'leri
-> 2025-10-03 – 2026-03-31 arasında dağılmış ve sıralama tutarlı çıktı; yine de
-> öğrencinin sınava girme anı bilinmiyor.
+> **Sınır (kusur değil).** Sıralama `exam` kimliğinin **oluşturulma** damgasına
+> dayanıyor (`marks._ordered_marks` bunu yazıyor; kimlik ULID ya da uuid v7
+> olabilir, ikisi de aynı 48 bitlik unix-ms damgasını taşır). Bu veride sınav
+> kimlikleri 2025-10-03 – 2026-03-31 arasında dağılmış ve sıralama tutarlı
+> çıktı; yine de öğrencinin sınava girme anı bilinmiyor.
 
 ### [2] Konu boşluğu tespiti ↔ `gap_course` / `gap_subjects`
 

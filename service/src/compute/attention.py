@@ -341,8 +341,8 @@ def _mark_trend_items(
     """Tetikleyici 3 — not eğilimi.
 
     `MODULLER.md` §2.8 tablosu: aynı derste son 3 oturum ortalaması, önceki
-    3'ten **≥ 15 puan** düşük. Zaman çapası sınav kimliğinin ULID damgasıdır
-    (bkz. `marks._ordered_marks`).
+    3'ten **≥ 15 puan** düşük. Zaman çapası sınav kimliğinin kendi damgasıdır
+    (ULID ya da uuid v7; bkz. `marks._ordered_marks`).
     """
     items: list[AttentionItem] = []
     for course_id, cstat in (marks_profile.get("courses") or {}).items():
@@ -365,7 +365,11 @@ def _mark_trend_items(
                     "delta": trend["delta"],
                     "n_marks": trend["n"],
                     "rule_basis": BASIS_CHANGE,
-                    "time_anchor": "exam_ulid_created_at",
+                    # Eski ad `exam_ulid_created_at` idi; çapa artık iki
+                    # biçimi de (ULID + uuid v7) çözüyor, ad da onu söylüyor.
+                    # Bu bir kanıt anahtarıdır, insan metni değil: ham raporda
+                    # teknik ekip okur (bkz. `docs/CIKTI-SOZLESMESI.md`).
+                    "time_anchor": "exam_id_created_at",
                     "limitation": (
                         "Sıralama sınavın oluşturulma anına göredir; "
                         "öğrencinin sınava girme anı bilinmiyor."

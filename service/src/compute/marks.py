@@ -23,7 +23,7 @@ from __future__ import annotations
 from typing import Any
 
 from . import stat
-from .model import Band, Confidence, ulid_ms
+from .model import Band, Confidence, id_ms
 
 # --- Eşikler ----------------------------------------------------------------
 
@@ -171,10 +171,11 @@ def course_average(results: list[dict[str, Any]]) -> float | None:
 def _ordered_marks(results: list[dict[str, Any]]) -> list[tuple[int, float]]:
     """(zaman, not) çiftleri, zamana göre artan.
 
-    Zaman çapası: `exam` kimliği ms-monotonic ULID'dir
-    (`spec/schema.json` → `id_rules.exam`), ilk 10 karakteri unix-ms damgasıdır.
-    `MarkEntry` üzerinde **hiçbir zaman damgası yok** (`web/marks.rs:32`), bu
-    yüzden sıralamanın tek dürüst kaynağı budur.
+    Zaman çapası: `exam` kimliğinin zaman bölümü (`model.id_ms`). Kimlik göç
+    hâlinde iki biçimde gelir — eski satırlar ULID, yeniler uuid v7; ikisi de
+    aynı 48 bitlik unix-ms damgasını taşır. `MarkEntry` üzerinde **hiçbir
+    zaman damgası yok** (`web/marks.rs:32`), bu yüzden sıralamanın tek dürüst
+    kaynağı budur.
 
     ⚠️ SINIR: bu damga sınavın **oluşturulma** anıdır, öğrencinin sınava girme
     anı değildir. Eğilim hesabı sıralamaya dayanır, mutlak tarihe değil
@@ -185,7 +186,7 @@ def _ordered_marks(results: list[dict[str, Any]]) -> list[tuple[int, float]]:
         mark = r.get("mark")
         if mark is None:
             continue
-        ts = ulid_ms(str(r.get("exam") or ""))
+        ts = id_ms(str(r.get("exam") or ""))
         if ts is None:
             continue
         pairs.append((ts, float(mark)))

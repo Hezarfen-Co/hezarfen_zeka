@@ -290,12 +290,20 @@ class StudentSegmentProfile:
         return f"{self.school}_{self.student}_{self.dimension}_{self.label}"
 
 
-# --- Crockford base32 ULID zaman çözümü -------------------------------------
+# --- Kimlik → unix-ms zaman çözümü ------------------------------------------
 #
-# `spec/schema.json` → `id_rules.exam` ve `id_rules.homework`:
-# "ulid_monotonic — ms-monotonic ULID, 26 chars Crockford base32".
-# ULID'in ilk 10 karakteri 48 bitlik unix-ms damgasıdır. Bu, `MarkEntry`'de
-# **hiç zaman damgası olmaması** sorununun tek dürüst çözümüdür.
+# `MarkEntry`'de **hiç zaman damgası yoktur** (`web/marks.rs:32`); sıralamanın
+# tek dürüst kaynağı kimliğin kendi zaman bölümüdür. Kimlikler geçiş hâlinde
+# iki biçimde gelir ve ikisinin de ilk 48 biti unix-ms'tir:
+#
+#   * **ULID** — göç öncesi satırlar, 26 karakter Crockford base32
+#     (`spec/schema.json` → `id_rules.exam`); ilk 10 karakter damgadır.
+#   * **uuid v7** — göç sonrası satırlar; backend'in tek kimlik sözleşmesi
+#     (`domain/monotonic_id.rs`: "her kimlik `next_uuid`'den"). İlk 12 hex
+#     karakter (tirelerden önceki 8 + sonraki 4) damgadır; sürüm nibble'ı 13.
+#     karakterdir, damgaya karışmaz. Bu biçim 2026-09-18'e kadar tanınmıyordu:
+#     her satır "zamanı bilinmiyor" sayılıp düşüyor, 8 notu olan derste bile
+#     eğilim "yetersiz veri" görünüyordu.
 #
 # ⚠️ SINIR: çözülen damga sınavın/ödevin **oluşturulma** anıdır; öğrencinin
 # sınava girme anı değildir. `MODULLER.md` §2.8 "zaman çapası" bölümü aynı
@@ -305,20 +313,37 @@ _CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 _CROCKFORD_INDEX = {c: i for i, c in enumerate(_CROCKFORD)}
 
 
-def ulid_ms(record_id: str) -> int | None:
-    """ULID'in zaman bölümünü unix-ms olarak çözer; ULID değilse `None`.
+def id_ms(record_id: str | None) -> int | None:
+    """Kimliğin zaman bölümünü unix-ms olarak çözer; tanınmayan biçimde `None`.
 
-    Kimlik `table:key` biçiminde gelebilir — ayrıştırılır.
+    İki biçim kabul edilir (ikisinin de ilk 48 biti unix-ms):
+
+      * UUIDv7 — 36 karakter, `8-4-4-4-12` tireli; sürüm nibble'ı 7 olmalı.
+        Sürüm şartı bilinçlidir: bir v4'ün rastgele alanını damga sanmak
+        sessiz bir yanlış sıralama üretirdi.
+      * ULID — 26 karakter Crockford base32; ilk 10 karakter damgadır.
+
+    Kimlik `table:key` biçiminde gelebilir — ayrıştırılır. Tanınmayan biçim
+    `None` döner; çağıran onu "bu satırın zamanı bilinmiyor" diye okur,
+    uydurma bir damga üretilmez.
     """
     if not record_id:
         return None
     key = record_id.split(":", 1)[-1]
-    if len(key) != 26:
-        return None
-    ts = 0
-    for ch in key[:10].upper():
-        idx = _CROCKFORD_INDEX.get(ch)
-        if idx is None:
+    if len(key) == 36 and key[8] == key[13] == key[18] == key[23] == "-":
+        plain = key.replace("-", "")
+        if plain[12] != "7":  # RFC 9562 §5.7 sürüm nibble'ı
             return None
-        ts = ts * 32 + idx
-    return ts
+        try:
+            return int(plain, 16) >> 80
+        except ValueError:
+            return None
+    if len(key) == 26:
+        ts = 0
+        for ch in key[:10].upper():
+            idx = _CROCKFORD_INDEX.get(ch)
+            if idx is None:
+                return None
+            ts = ts * 32 + idx
+        return ts
+    return None
