@@ -98,6 +98,10 @@ class StudentRequest(TypedDict, total=False):
     user_id: str  # zorunlu
     since: str  # ISO-8601 tarih; yoksa donem basi
     sections: list[str]  # istenen bolumler; yoksa hepsi
+    #: Cagriyi baslatan kullanicinin kimligi. Okumalar bu kimlikle
+    #: (`on_behalf_of`) gider; yoksa (eski backend) servis kendi `ai`
+    #: kimligiyle okur ve sonuc bos/403 olur (`handlers._principal`).
+    requested_by: str
 
 
 class StudentResponse(TypedDict, total=False):
@@ -117,6 +121,7 @@ class ClassRequest(TypedDict, total=False):
     course_id: str  # zorunlu: hangi ders/sinif
     term: str  # donem anahtari; yoksa gecerli donem
     top_n: int  # dikkat listesi uzunlugu
+    requested_by: str  # bkz. StudentRequest.requested_by
 
 
 class ClassResponse(TypedDict, total=False):
@@ -137,6 +142,7 @@ class RefreshRequest(TypedDict, total=False):
 
     user_ids: list[str]
     force: bool  # onbellek gecerli olsa bile yeniden hesapla
+    requested_by: str  # bkz. StudentRequest.requested_by
 
 
 class RefreshResponse(TypedDict, total=False):

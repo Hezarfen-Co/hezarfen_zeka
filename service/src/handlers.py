@@ -33,16 +33,47 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 
 from . import capabilities
+from . import config
 from .compute import attention as attention_mod
 from .compute import marks as marks_mod
 from .pipeline import StudentOutcome, run_school
 from .protocol import CapabilityError
+from .source import NOT_PERMITTED
 from .store import attention_items, recommendation_rows
 
 #: `StudentOutcome.error_kind` -> the refusal code the caller branches on.
 #: A read that could not be made is `unavailable` (the source may come back);
 #: a compute that fell over is `internal` (it will not).
 _ERROR_CODES = {"fetch": "unavailable", "compute": "internal"}
+
+#: A structured read-refusal code (`SourceError.code`) -> the refusal code the
+#: answer carries. Only a genuine authority stop earns its own code: HTTP
+#: 401/403 means "the identity we read as may not see this", which the caller
+#: must be able to tell apart from "the service broke" (`unavailable`) --
+#: `not_permitted` says exactly that. Every other source error keeps the
+#: module's `_ERROR_CODES` mapping.
+_REFUSAL_CODES = {NOT_PERMITTED: NOT_PERMITTED}
+
+
+def _refusal_code(outcome: StudentOutcome) -> str:
+    """The refusal code for one failed student, preferring a typed read code."""
+    if outcome.error_code in _REFUSAL_CODES:
+        return _REFUSAL_CODES[outcome.error_code]
+    return _ERROR_CODES.get(outcome.error_kind or "compute", "internal")
+
+
+def _refusals(outcomes: list[StudentOutcome]) -> list[dict[str, Any]]:
+    """The structured read-refusals across a run, each with `user_id`.
+
+    Empty when every failure was a compute break (no path/status to report):
+    a bare message is all the caller can be told in that case.
+    """
+    rows: list[dict[str, Any]] = []
+    for outcome in outcomes:
+        refusal = outcome.refusal()
+        if refusal is not None:
+            rows.append({"user_id": outcome.student, **refusal})
+    return rows
 
 #: What this version cannot answer, said once. These notes travel in every
 #: answer's `coverage.unavailable`: the contract's response members are all
@@ -92,6 +123,30 @@ def _source(school: str) -> Any:
             "no data source is bound; bridge._serve() binds it at startup",
         )
     return _source_factory(school)
+
+
+def _principal(payload: dict[str, Any], capability: str) -> str | None:
+    """The identity a dispatch's reads run as: the payload's `requested_by`.
+
+    Every read this dispatch makes must run as someone the backend will
+    actually authorize. Named, the id travels as `on_behalf_of`; unnamed (an
+    older backend that does not send the field yet) the reads fall back to
+    today's behaviour -- the synthetic `ai` role -- which sees no course and
+    therefore answers empty or 403. That is a degradation, never a refusal:
+    the service must not start rejecting work merely because a field is
+    missing, so the fallback is logged LOUDLY, once per dispatch, naming the
+    consequence, and the dispatch proceeds.
+    """
+    who = payload.get("requested_by")
+    if isinstance(who, str) and who.strip():
+        return who.strip()
+    config.log(
+        "warn",
+        f"{capability}: payload'da 'requested_by' yok (eski backend); okumalar "
+        "servisin kendi 'ai' kimligiyle yapilir -- o rol hicbir dersi goremedigi "
+        "icin sonuc BOS ya da 403 olur (ai/server.rs:853-867)",
+    )
+    return None
 
 
 def wire() -> None:
@@ -189,6 +244,7 @@ async def _sweep(
     term_start_ms: int | None = None,
     sections: tuple[str, ...] | None = None,
     nightly: bool = False,
+    on_behalf_of: str | None = None,
 ) -> tuple[Any, list[StudentOutcome]]:
     """One scoped compute: the pipeline, the store, and the outcomes.
 
@@ -211,6 +267,7 @@ async def _sweep(
         term_start_ms=term_start_ms,
         nightly=nightly,
         sections=sections,
+        on_behalf_of=on_behalf_of,
         outcomes=outcomes,
     )
     return result, outcomes
@@ -230,15 +287,43 @@ async def student(school: str, payload: dict[str, Any]) -> dict[str, Any]:
     since = payload.get("since")
     term_start_ms = _iso_ms(since, "since") if since is not None else None
     sections = _sections(payload.get("sections"))
+    on_behalf_of = _principal(payload, "insight.student")
     now = _now_ms()
     async with _lock_for(school):
         result, outcomes = await _sweep(
-            school, [user_id], now=now, term_start_ms=term_start_ms, sections=sections
+            school,
+            [user_id],
+            now=now,
+            term_start_ms=term_start_ms,
+            sections=sections,
+            on_behalf_of=on_behalf_of,
         )
     outcome = outcomes[0]
     if outcome.error is not None or outcome.summary is None:
+        # A read the requester's identity could not make is NOT an exception:
+        # it is a fact the answer must carry, with the path and the status, so
+        # the caller can separate "the requester may not read this" from "the
+        # service broke". Everything else still raises a typed refusal.
+        refusal = outcome.refusal()
+        if refusal is not None and outcome.error_code == NOT_PERMITTED:
+            return {
+                "user_id": user_id,
+                "generated_at": _iso(now),
+                "signals": [],
+                "recommendations": [],
+                "coverage": {
+                    "reads": dict(outcome.coverage),
+                    "sections": sorted(sections) if sections else "all",
+                    "write": {"rows_written": 0, "write_failed": 0},
+                    "unavailable": {
+                        **_UNAVAILABLE,
+                        "attention_triggers": attention_mod.unavailable_triggers(),
+                        "permission": [refusal],
+                    },
+                },
+            }
         raise CapabilityError(
-            _ERROR_CODES.get(outcome.error_kind or "compute", "internal"),
+            _refusal_code(outcome),
             f"'{user_id}' could not be computed: {outcome.error}",
         )
     summary = outcome.summary
@@ -275,7 +360,7 @@ async def student(school: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 async def _roster_for_course(
-    source: Any, school: str, course_id: str
+    source: Any, school: str, course_id: str, *, on_behalf_of: str | None = None
 ) -> tuple[list[str], dict[str, int]]:
     """The students this course's homework was addressed to, in order.
 
@@ -284,8 +369,12 @@ async def _roster_for_course(
     read allowlist (`docs/BACKEND-GEREKSINIMLERI.md` item 3). A student who
     never received addressed homework for this course is invisible here, and
     the answer says so in `coverage.unavailable.roster`.
+
+    `on_behalf_of`: the school-wide list is only populated for manager+
+    (`web/homework.rs::list_homework`), so this read runs as the dispatch's
+    requester; without it the roster comes back empty.
     """
-    rows = await source.homework_list(school)
+    rows = await source.homework_list(school, on_behalf_of)
     if isinstance(rows, dict):
         rows = rows.get("items") or []
     found: list[str] = []
@@ -319,10 +408,13 @@ async def klass(school: str, payload: dict[str, Any]) -> dict[str, Any]:
     term = payload.get("term")
     term_start_ms = _iso_ms(term, "term") if term is not None else None
     top_n = _top_n(payload.get("top_n"))
+    on_behalf_of = _principal(payload, "insight.class")
     now = _now_ms()
     async with _lock_for(school):
         source = _source(school)
-        roster, roster_reads = await _roster_for_course(source, school, course_id)
+        roster, roster_reads = await _roster_for_course(
+            source, school, course_id, on_behalf_of=on_behalf_of
+        )
         store = capabilities.store().store_for(school)
         outcomes: list[StudentOutcome] = []
         result = await run_school(
@@ -333,6 +425,7 @@ async def klass(school: str, payload: dict[str, Any]) -> dict[str, Any]:
             student_ids=roster,
             term_start_ms=term_start_ms,
             nightly=False,
+            on_behalf_of=on_behalf_of,
             outcomes=outcomes,
         )
     attention_list: list[dict[str, Any]] = []
@@ -369,7 +462,10 @@ async def klass(school: str, payload: dict[str, Any]) -> dict[str, Any]:
                 "rows_written": result.rows_written,
                 "write_failed": result.write_failed,
             },
-            "unavailable": _UNAVAILABLE,
+            "unavailable": {
+                **_UNAVAILABLE,
+                "permission": _refusals(outcomes),
+            },
         },
     }
 
@@ -396,9 +492,12 @@ async def refresh(school: str, payload: dict[str, Any]) -> dict[str, Any]:
                 "bad_request", "'user_ids' must be a list of non-empty strings"
             )
         user_ids = [uid.strip() for uid in user_ids]
+    on_behalf_of = _principal(payload, "insight.refresh")
     now = _now_ms()
     async with _lock_for(school):
-        result, outcomes = await _sweep(school, user_ids, now=now, nightly=True)
+        result, outcomes = await _sweep(
+            school, user_ids, now=now, nightly=True, on_behalf_of=on_behalf_of
+        )
     return {
         "started_at": _iso(result.started_at),
         "requested": result.students_total,
@@ -407,8 +506,16 @@ async def refresh(school: str, payload: dict[str, Any]) -> dict[str, Any]:
         "failed": [
             {
                 "user_id": outcome.student,
-                "code": _ERROR_CODES.get(outcome.error_kind or "compute", "internal"),
+                "code": _refusal_code(outcome),
                 "message": outcome.error or "",
+                # A structured refusal carries which path and status stopped it,
+                # so a reader can tell "the requester may not read this" (403)
+                # from "the service broke" and does not have to parse a string.
+                **{
+                    key: value
+                    for key, value in (outcome.refusal() or {}).items()
+                    if key != "code"
+                },
             }
             for outcome in outcomes
             if outcome.error is not None

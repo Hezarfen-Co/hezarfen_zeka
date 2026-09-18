@@ -47,17 +47,34 @@ class Source(Protocol):
 
     Her yontem tek bir okul icin calisir; okul cerceve seviyesinde tasinir ve
     varsayilani yoktur (`ai/protocol.rs:36-47`).
+
+    `on_behalf_of`: okumanin backend'de KIM olarak kosacagi. Kopruda bu alan
+    zorunludur -- verilmezse okuma sentetik `ai` rolu olarak gider ve o rol
+    hicbir dersi goremez (`ai/server.rs:853-867`), yani sonuc bos ya da 403
+    olur. Bir yetenek gonderiminde (dispatch) cagri sahibinin (`requested_by`)
+    kimligi tasinir; hedefi ogrencinin KENDISI olan okumalar (or. kisisel
+    `/homework`) o ogrenci olarak gider. Ayrinti: `pipeline._fetch_student`.
     """
 
-    async def profile(self, school: str, user_id: str) -> dict | None: ...
+    async def profile(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> dict | None: ...
 
-    async def marks(self, school: str, user_id: str) -> list[dict]: ...
+    async def marks(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> list[dict]: ...
 
-    async def attendance(self, school: str, user_id: str) -> list[dict]: ...
+    async def attendance(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> list[dict]: ...
 
-    async def pomodoro(self, school: str, user_id: str) -> list[dict]: ...
+    async def pomodoro(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> list[dict]: ...
 
-    async def homework_report(self, school: str, user_id: str) -> dict | None: ...
+    async def homework_report(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> dict | None: ...
 
     async def homework_list(
         self, school: str, on_behalf_of: str | None = None
@@ -66,7 +83,11 @@ class Source(Protocol):
     async def notes(self, school: str, on_behalf_of: str) -> list[dict]: ...
 
     async def course_notes(
-        self, school: str, course_id: str | None = None
+        self,
+        school: str,
+        course_id: str | None = None,
+        *,
+        on_behalf_of: str | None = None,
     ) -> list[dict]: ...
 
 
@@ -127,12 +148,28 @@ if set(_TEMPLATES) != set(SOURCE_METHODS):
     raise RuntimeError("yol defteri ile cephe yuzeyi ayristi")
 
 
-class SourceError(Exception):
-    """Veri okunamadi. `code` makine okunabilirdir."""
+#: Bir okumanin "kimligi yetmedi" reddi. HTTP 401/403 -- yani istek ROUTER'a
+#: ulasti ve yetki kapisinda durdu -- bu koda duser. `http_error`'dan ayri
+#: tutulur, cunku cagri sahibi ikisini AYIRT ETMEK ZORUNDADIR: "istek sahibi
+#: bunu okuyamiyor" bir yetki sonucudur, "servis bozuldu" degil.
+NOT_PERMITTED = "not_permitted"
 
-    def __init__(self, code: str, message: str) -> None:
+
+class SourceError(Exception):
+    """Veri okunamadi. `code` makine okunabilirdir.
+
+    `path` ve `status` yalniz bir HTTP reddinde dolar; cagri sahibi cevaba
+    "hangi yol, hangi kod" diye yazabilsin diye tasinirlar. Bir bicim hatasi
+    (`unexpected_shape`) ya da fikstur hatasinda bos/0 kalirlar.
+    """
+
+    def __init__(
+        self, code: str, message: str, *, path: str = "", status: int = 0
+    ) -> None:
         super().__init__(message)
         self.code = code
+        self.path = path
+        self.status = status
 
 
 def _require_id(value: Any, name: str) -> str:
@@ -292,13 +329,28 @@ class BridgeSource:
             # Router calisti ve "yok" dedi. Bu bir tasima hatasi degil
             # (`ai/protocol.rs:196-198`); bos sonuc olarak gecer.
             return None
+        if response.status in (401, 403):
+            # Router calisti ve yetki kapisi durdurdu. Bu `http_error` DEGILDIR:
+            # istek sahibinin kimligi bu okuma icin yetmiyor. Kod ve durum
+            # tasinir ki cagri sahibi cevaba "hangi yol, hangi kod" yazabilsin.
+            raise SourceError(
+                NOT_PERMITTED,
+                f"{path} -> HTTP {response.status}",
+                path=path,
+                status=response.status,
+            )
         if not response.ok:
             raise SourceError(
-                "http_error", f"{path} -> HTTP {response.status}"
+                "http_error",
+                f"{path} -> HTTP {response.status}",
+                path=path,
+                status=response.status,
             )
         return response.body
 
-    async def profile(self, school: str, user_id: str) -> dict | None:
+    async def profile(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> dict | None:
         """Izin listesi yolu: `/users/{id}/profile` (`constant.rs:659`).
 
         YANIT BICIMI -- `ProfileResponse`, DUZ NESNE (`web/users.rs:707`,
@@ -313,7 +365,7 @@ class BridgeSource:
         """
         user_id = _require_id(user_id, "user_id")
         path = f"/users/{user_id}/profile"
-        body = await self._get("profile", school, path)
+        body = await self._get("profile", school, path, on_behalf_of=on_behalf_of)
         return _extract_object(
             body,
             method="profile",
@@ -322,7 +374,9 @@ class BridgeSource:
             require=("id",),
         )
 
-    async def marks(self, school: str, user_id: str) -> list[dict]:
+    async def marks(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> list[dict]:
         """Izin listesi yolu: `/marks/{user}` (`constant.rs:670`).
 
         YANIT BICIMI -- `MarksReport`, RAPOR NESNESI (`web/marks.rs:65`,
@@ -348,7 +402,7 @@ class BridgeSource:
         """
         user_id = _require_id(user_id, "user_id")
         path = f"/marks/{user_id}"
-        body = await self._get("marks", school, path)
+        body = await self._get("marks", school, path, on_behalf_of=on_behalf_of)
         return _extract_rows(
             body,
             "courses",
@@ -358,7 +412,9 @@ class BridgeSource:
             "(web/marks.rs:65)",
         )
 
-    async def attendance(self, school: str, user_id: str) -> list[dict]:
+    async def attendance(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> list[dict]:
         """Izin listesi yolu: `/attendance/{user}` (`constant.rs:672`).
 
         YANIT BICIMI -- `AttendanceReport`, RAPOR NESNESI
@@ -401,7 +457,7 @@ class BridgeSource:
         """
         user_id = _require_id(user_id, "user_id")
         path = f"/attendance/{user_id}"
-        body = await self._get("attendance", school, path)
+        body = await self._get("attendance", school, path, on_behalf_of=on_behalf_of)
         return _extract_rows(
             body,
             "courses",
@@ -411,7 +467,9 @@ class BridgeSource:
             "(web/attendance.rs:84)",
         )
 
-    async def pomodoro(self, school: str, user_id: str) -> list[dict]:
+    async def pomodoro(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> list[dict]:
         """Izin listesi yolu: `/pomodoro/{user}` (`constant.rs:674`).
 
         YANIT BICIMI -- `PomodoroLog`, SAYFA ZARFI + EK ALAN
@@ -439,7 +497,7 @@ class BridgeSource:
         """
         user_id = _require_id(user_id, "user_id")
         path = f"/pomodoro/{user_id}"
-        body = await self._get("pomodoro", school, path)
+        body = await self._get("pomodoro", school, path, on_behalf_of=on_behalf_of)
         return _extract_rows(
             body,
             "items",
@@ -449,7 +507,9 @@ class BridgeSource:
             "(web/pomodoro.rs:78)",
         )
 
-    async def homework_report(self, school: str, user_id: str) -> dict | None:
+    async def homework_report(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> dict | None:
         """Izin listesi yolu: `/homework/report/{user}` (`constant.rs:668`).
 
         YANIT BICIMI -- `Page<HomeworkReportEntry>`, SAYFA ZARFI
@@ -474,7 +534,7 @@ class BridgeSource:
         """
         user_id = _require_id(user_id, "user_id")
         path = f"/homework/report/{user_id}"
-        body = await self._get("homework_report", school, path)
+        body = await self._get("homework_report", school, path, on_behalf_of=on_behalf_of)
         return _extract_object(
             body,
             method="homework_report",
@@ -535,7 +595,11 @@ class BridgeSource:
         )
 
     async def course_notes(
-        self, school: str, course_id: str | None = None
+        self,
+        school: str,
+        course_id: str | None = None,
+        *,
+        on_behalf_of: str | None = None,
     ) -> list[dict]:
         """Izin listesi yolu: `/course-notes` (`constant.rs:661`).
 
@@ -560,7 +624,11 @@ class BridgeSource:
             return []
         course_id = _require_id(course_id, "course_id")
         body = await self._get(
-            "course_notes", school, "/course-notes", query=f"course={course_id}"
+            "course_notes",
+            school,
+            "/course-notes",
+            query=f"course={course_id}",
+            on_behalf_of=on_behalf_of,
         )
         return _extract_rows(
             body,
@@ -675,7 +743,9 @@ class FileSource:
             "unexpected_shape", f"fikstur {kind}/{key}: {type(body).__name__} okundu"
         )
 
-    async def profile(self, school: str, user_id: str) -> dict | None:
+    async def profile(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> dict | None:
         """Kopru karsiligi: `/users/{id}/profile` -> `ProfileResponse` duz nesnesi."""
         return _extract_object(
             self._read(school, "profile", _require_id(user_id, "user_id")),
@@ -684,11 +754,15 @@ class FileSource:
             reference="ProfileResponse duz nesnesi (web/users.rs:707)",
         )
 
-    async def marks(self, school: str, user_id: str) -> list[dict]:
+    async def marks(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> list[dict]:
         """Kopru karsiligi: `/marks/{user}` -> `MarksReport.courses` listesi."""
         return self._rows(school, "marks", _require_id(user_id, "user_id"), "courses")
 
-    async def attendance(self, school: str, user_id: str) -> list[dict]:
+    async def attendance(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> list[dict]:
         """Kopru karsiligi: `/attendance/{user}` -> `AttendanceReport.courses` listesi.
 
         Kopru surumunde oldugu gibi, her satirdaki `counts` bir SAYAC
@@ -698,11 +772,15 @@ class FileSource:
             school, "attendance", _require_id(user_id, "user_id"), "courses"
         )
 
-    async def pomodoro(self, school: str, user_id: str) -> list[dict]:
+    async def pomodoro(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> list[dict]:
         """Kopru karsiligi: `/pomodoro/{user}` -> `PomodoroLog.items` listesi."""
         return self._rows(school, "pomodoro", _require_id(user_id, "user_id"), "items")
 
-    async def homework_report(self, school: str, user_id: str) -> dict | None:
+    async def homework_report(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> dict | None:
         """Kopru karsiligi: `/homework/report/{user}` -> `Page` ZARFININ KENDISI."""
         return _extract_object(
             self._read(school, "homework_report", _require_id(user_id, "user_id")),
@@ -728,7 +806,11 @@ class FileSource:
         )
 
     async def course_notes(
-        self, school: str, course_id: str | None = None
+        self,
+        school: str,
+        course_id: str | None = None,
+        *,
+        on_behalf_of: str | None = None,
     ) -> list[dict]:
         """Kopru karsiligi: `/course-notes?course=...` -> `Page.items` listesi."""
         return self._rows(school, "course_notes", course_id or "_all", "items")

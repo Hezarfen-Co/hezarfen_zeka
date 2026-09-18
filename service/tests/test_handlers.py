@@ -22,7 +22,7 @@ import time
 import unittest
 from datetime import datetime
 
-from src import capabilities, handlers
+from src import capabilities, config, handlers
 from src.compute import clock
 from src.protocol import CapabilityError
 from src.store import (
@@ -252,6 +252,117 @@ class RefreshCapabilityTests(HandlerTestCase):
         self.assertEqual([entry["user_id"] for entry in answer["failed"]], ["student-05"])
         self.assertEqual(answer["failed"][0]["code"], "unavailable")
         self.assertTrue(answer["failed"][0]["message"])
+
+
+class RequesterIdentityTests(HandlerTestCase):
+    """Who a dispatch's reads run as (`on_behalf_of` == payload `requested_by`).
+
+    The backend's api-read principal is the synthetic `ai` role unless a read
+    names `on_behalf_of`, and that role deliberately sees no course
+    (`ai/server.rs:853-867`): every read a dispatch makes must therefore carry
+    the requester's identity, or it answers empty/403. These tests record the
+    identity per read through the fake source and assert it.
+    """
+
+    REQUESTER = "mudur-1"
+
+    def _record(self) -> FakeSource:
+        src = FakeSource(self.data)
+        handlers.bind_source(lambda school: src)
+        return src
+
+    @staticmethod
+    def _identities(src: FakeSource) -> dict[str, str | None]:
+        return {method: who for method, who in src.calls}
+
+    async def test_requester_reads_run_as_requested_by_homework_as_the_student(
+        self,
+    ) -> None:
+        src = self._record()
+        answer = await self.dispatch(
+            "insight.student",
+            {"user_id": "student-00", "requested_by": self.REQUESTER},
+        )
+        self.assertEqual(answer["coverage"]["reads"]["marks"], 1)
+        seen = self._identities(src)
+        # Every read whose subject is the requester's own view runs as them.
+        for method in ("profile", "marks", "attendance", "pomodoro", "homework_report"):
+            self.assertEqual(
+                seen.get(method), self.REQUESTER, f"{method} istek sahibi olarak gitmeli"
+            )
+        # The one exception: `/homework` is "my homework", so reading it as the
+        # requester (manager+ = whole school) would pollute `upcoming`; it runs
+        # as the target student instead.
+        self.assertEqual(seen.get("homework_list"), "student-00")
+
+    async def test_the_school_wide_roster_read_runs_as_the_requester(self) -> None:
+        src = self._record()
+        await self.dispatch(
+            "insight.class", {"course_id": "course-1", "requested_by": self.REQUESTER}
+        )
+        homework_calls = [who for method, who in src.calls if method == "homework_list"]
+        # First the roster derivation (school-wide, as the requester), then one
+        # per-student read each (as that student).
+        self.assertEqual(homework_calls[0], self.REQUESTER)
+        self.assertNotIn(self.REQUESTER, homework_calls[1:])
+
+    async def test_missing_requested_by_keeps_the_ai_fallback_and_says_so(self) -> None:
+        src = self._record()
+        lines: list[str] = []
+        original = config.log
+        config.log = lambda level, message: lines.append(message)  # type: ignore[assignment]
+        try:
+            await self.dispatch("insight.student", {"user_id": "student-00"})
+        finally:
+            config.log = original  # type: ignore[assignment]
+        seen = self._identities(src)
+        for method in ("profile", "marks", "attendance", "pomodoro", "homework_report"):
+            self.assertIsNone(seen.get(method), f"{method} eski (ai) davranista kalmali")
+        # The per-student `/homework` impersonation is unchanged by the fallback.
+        self.assertEqual(seen.get("homework_list"), "student-00")
+        self.assertTrue(
+            any("requested_by" in line for line in lines),
+            "eksik alan yuksek sesle loglanmali",
+        )
+
+    async def test_a_permission_refusal_is_a_typed_signal_not_an_exception(self) -> None:
+        src = FakeSource(
+            self.data, refuse={"student-00": ("/users/student-00/profile", 403)}
+        )
+        handlers.bind_source(lambda school: src)
+        answer = await self.dispatch(
+            "insight.student",
+            {"user_id": "student-00", "requested_by": self.REQUESTER},
+        )
+        self.assertEqual(answer["user_id"], "student-00")
+        self.assertEqual(answer["signals"], [])
+        self.assertEqual(answer["recommendations"], [])
+        self.assertEqual(
+            answer["coverage"]["unavailable"]["permission"],
+            [
+                {
+                    "code": "not_permitted",
+                    "path": "/users/student-00/profile",
+                    "status": 403,
+                }
+            ],
+        )
+
+    async def test_refresh_names_a_permission_refusal_typed(self) -> None:
+        src = FakeSource(
+            self.data, refuse={"student-05": ("/users/student-05/profile", 403)}
+        )
+        handlers.bind_source(lambda school: src)
+        answer = await self.dispatch(
+            "insight.refresh",
+            {"user_ids": ["student-05", "student-00"], "requested_by": self.REQUESTER},
+        )
+        self.assertEqual(answer["computed"], 1)
+        entry = answer["failed"][0]
+        self.assertEqual(entry["user_id"], "student-05")
+        self.assertEqual(entry["code"], "not_permitted")
+        self.assertEqual(entry["path"], "/users/student-05/profile")
+        self.assertEqual(entry["status"], 403)
 
 
 if __name__ == "__main__":

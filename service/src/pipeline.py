@@ -125,6 +125,27 @@ class StudentOutcome:
     #: `fetch` (the data could not be read) or `compute` (the arithmetic fell
     #: over). `handlers._ERROR_CODES` maps it to the refusal code.
     error_kind: str | None = None
+    #: A structured refusal, when the read failed at a known endpoint: the
+    #: `SourceError`'s code (`not_permitted` for HTTP 401/403), the path it
+    #: touched, and the status. Empty when the failure carried none (a compute
+    #: break, or a source that raises a plain exception). `handlers` turns
+    #: these into the answer's `failed[]` / `coverage.unavailable` instead of a
+    #: bare exception, so a reader can tell "the requester may not read this"
+    #: from "the service broke".
+    error_code: str = ""
+    error_path: str = ""
+    error_status: int = 0
+
+    def refusal(self) -> dict[str, Any] | None:
+        """The structured refusal, or `None` when the failure carried none."""
+        if not self.error_code:
+            return None
+        row: dict[str, Any] = {"code": self.error_code}
+        if self.error_path:
+            row["path"] = self.error_path
+        if self.error_status:
+            row["status"] = self.error_status
+        return row
 
 
 def _section_filter(sections: Sequence[str] | None) -> frozenset[str] | None:
@@ -134,7 +155,9 @@ def _section_filter(sections: Sequence[str] | None) -> frozenset[str] | None:
     return frozenset(str(name) for name in sections)
 
 
-async def discover_students(source: Any, school: str) -> list[str]:
+async def discover_students(
+    source: Any, school: str, *, on_behalf_of: str | None = None
+) -> list[str]:
     """Okulun öğrenci kimliklerini türetir.
 
     ⚠️ **Bu bir geçici çözümdür.** `Source` arayüzünde öğrenci listesi
@@ -147,8 +170,13 @@ async def discover_students(source: Any, school: str) -> list[str]:
     ödevden hiçbir kimlik çıkmaz. Yani bu yöntem, **hiç adrese özel ödev
     almamış** öğrencileri kaçırır. Üretimde listenin dışarıdan verilmesi
     gerekir; `run_school(student_ids=...)` bunun için var.
+
+    `on_behalf_of`: okul geneli liste YALNIZ manager+ için doludur
+    (`web/homework.rs::list_homework` `manages_all`); sentetik `ai` rolü hiçbir
+    dersi göremediği için kadro bu alan olmadan boş çıkar. Bir yetenek
+    gönderiminde çağrı sahibinin (`requested_by`) kimliği buraya gelir.
     """
-    rows = await source.homework_list(school)
+    rows = await source.homework_list(school, on_behalf_of)
     if isinstance(rows, dict):
         rows = rows.get("items") or []
     found: list[str] = []
@@ -182,7 +210,12 @@ class _Fetched:
 
 
 async def _fetch_student(
-    source: Any, school: str, student: str, *, sections: frozenset[str] | None = None
+    source: Any,
+    school: str,
+    student: str,
+    *,
+    sections: frozenset[str] | None = None,
+    on_behalf_of: str | None = None,
 ) -> _Fetched:
     """Tek öğrencinin verisini çeker. Yasaklı alan çağrısı **yoktur**.
 
@@ -191,21 +224,51 @@ async def _fetch_student(
     ve bir hata yüzeyi yaratırdı. `profile` her hâlükârda okunur (şube
     kimlikleri oradan gelir), ödev raporu da `submission` ya da `study`
     istenmişse (çalışma profilinin teslim tarihleri ondan çıkar).
+
+    -----------------------------------------------------------------------
+    KİM OLARAK OKUNUR (`on_behalf_of`) — BİLİNÇLİ İSTİSNA
+    -----------------------------------------------------------------------
+    Hedefi `{user}` yol parametresi olan okumalar (profil, not, devam,
+    pomodoro, ödev RAPORU) istek sahibi (`on_behalf_of`, yani gönderimin
+    `requested_by`'si) olarak koşar: backend bu uçlarda istek sahibinin
+    haklarını arar (`web/marks.rs::user_marks` "teacher+, or a parent").
+    Sentetik `ai` rolü hiçbir dersi göremediği için bu alan olmadan her okuma
+    403 ya da boş dönerdi.
+
+    TEK İSTİSNA: kişisel `/homework` (`homework_list`). Bu uç "BENİM
+    ödevlerim" görünümüdür ve KİM olarak okunduğuna göre farklı bir küme
+    döndürür — istek sahibi (manager+) olarak okunursa OKULUN tamamı gelir ve
+    `upcoming` bloğu o öğrencinin profiline başka öğrencilerin/derslerin
+    teslim tarihlerini karıştırır. Doğru küme öğrencinin KENDİSİ olarak
+    okumaktır; bu okuma bilerek `student` olarak gider. Bu satırı "düzeltip"
+    `on_behalf_of`'a çevirmeyin — o öğrencinin `upcoming` listesi bozulur.
     """
     everything = sections is None
 
     def want(name: str) -> bool:
         return everything or name in sections
 
-    profile = await source.profile(school, student)
-    marks_raw = await source.marks(school, student) if want("marks") else None
-    attendance_raw = (
-        await source.attendance(school, student) if want("attendance") else None
+    profile = await source.profile(school, student, on_behalf_of=on_behalf_of)
+    marks_raw = (
+        await source.marks(school, student, on_behalf_of=on_behalf_of)
+        if want("marks")
+        else None
     )
-    pomodoro_raw = await source.pomodoro(school, student) if want("study") else None
+    attendance_raw = (
+        await source.attendance(school, student, on_behalf_of=on_behalf_of)
+        if want("attendance")
+        else None
+    )
+    pomodoro_raw = (
+        await source.pomodoro(school, student, on_behalf_of=on_behalf_of)
+        if want("study")
+        else None
+    )
     need_report = want("submission") or want("study")
     report_raw = (
-        await source.homework_report(school, student) if need_report else None
+        await source.homework_report(school, student, on_behalf_of=on_behalf_of)
+        if need_report
+        else None
     )
     homework_raw = (
         await source.homework_list(school, student) if need_report else None
@@ -269,6 +332,7 @@ async def run_school(
     monotonic_fn: Callable[[], float] = time.monotonic,
     nightly: bool = True,
     sections: Sequence[str] | None = None,
+    on_behalf_of: str | None = None,
     outcomes: list[StudentOutcome] | None = None,
 ) -> RunResult:
     """Bir okul için hattı uçtan uca koşturur.
@@ -328,7 +392,9 @@ async def run_school(
 
     if student_ids is None:
         try:
-            student_ids = await discover_students(source, school)
+            student_ids = await discover_students(
+                source, school, on_behalf_of=on_behalf_of
+            )
         except Exception as exc:  # noqa: BLE001
             log.warning("öğrenci listesi çıkarılamadı (okul=%s): %s", school, exc)
             result.status = "failed"
@@ -364,7 +430,7 @@ async def run_school(
             break
         try:
             fetched[student] = await _fetch_student(
-                source, school, student, sections=wanted
+                source, school, student, sections=wanted, on_behalf_of=on_behalf_of
             )
         except Exception as exc:  # noqa: BLE001 — kısmi başarısızlıkta devam
             log.warning("öğrenci atlandı (okul=%s, id=%s): %s", school, student, exc)
@@ -373,7 +439,14 @@ async def run_school(
                 result.failed_modules.append("fetch")
             if outcomes is not None:
                 outcomes.append(
-                    StudentOutcome(student=student, error=str(exc), error_kind="fetch")
+                    StudentOutcome(
+                        student=student,
+                        error=str(exc),
+                        error_kind="fetch",
+                        error_code=str(getattr(exc, "code", "") or ""),
+                        error_path=str(getattr(exc, "path", "") or ""),
+                        error_status=int(getattr(exc, "status", 0) or 0),
+                    )
                 )
 
     # ---------------- kohort kurulumu --------------------------------------

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from src.compute import clock
+from src.source import NOT_PERMITTED, SourceError
 from src.store import CAP_SCHOOLS, RecordingCaller
 
 _CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
@@ -182,55 +183,98 @@ class FakeSource:
     """`Source` protokolünün test uygulaması — imzalar birebir.
 
     **Yemek, ödeme, diyet, mesaj ve sohbet metodu yoktur ve eklenemez.**
+
+    `calls`: her okuma `(yöntem, on_behalf_of)` olarak kaydedilir. Bu, "hangi
+    okuma hangi kimlikle gitti" sorusunun testte tek kanıtıdır; bir gönderimin
+    `requested_by`'si doğru yerlere ulaştı mı, buradan doğrulanır.
+
+    `/homework` gerçek backend'i taklit eder: kimlik YOK ise (sentetik `ai`
+    rolü) ya da kimlik bir manager/öğretmen ise okul geneli liste (`_school`)
+    döner; kimlik bilinen bir ÖĞRENCİ ise o öğrencinin kendi listesi döner
+    ("benim ödevlerim" görünümü).
     """
 
-    def __init__(self, data: dict[str, dict[str, Any]], *, fail: set[str] | None = None):
+    def __init__(
+        self,
+        data: dict[str, dict[str, Any]],
+        *,
+        fail: set[str] | None = None,
+        refuse: dict[str, tuple[str, int]] | None = None,
+    ):
         self._data = data
         self._fail = fail or set()
-        self.calls: list[str] = []
+        #: user_id -> (path, status): o öğrencinin okuması HTTP 401/403 ile
+        #: düşer (`SourceError(NOT_PERMITTED)`), tıpkı gerçek yetki kapısı gibi.
+        self._refuse = refuse or {}
+        self.calls: list[tuple[str, str | None]] = []
 
     def _get(self, user_id: str, key: str, default: Any) -> Any:
         if user_id in self._fail:
             raise RuntimeError(f"sahte kaynak hatası: {user_id}")
+        if user_id in self._refuse:
+            path, status = self._refuse[user_id]
+            raise SourceError(
+                NOT_PERMITTED,
+                f"{path} -> HTTP {status}",
+                path=path,
+                status=status,
+            )
         return self._data.get(user_id, {}).get(key, default)
 
-    async def profile(self, school: str, user_id: str) -> dict | None:
-        self.calls.append("profile")
+    async def profile(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> dict | None:
+        self.calls.append(("profile", on_behalf_of))
         return self._get(user_id, "profile", None)
 
-    async def marks(self, school: str, user_id: str) -> list[dict]:
-        self.calls.append("marks")
+    async def marks(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> list[dict]:
+        self.calls.append(("marks", on_behalf_of))
         return self._get(user_id, "marks", [])
 
-    async def attendance(self, school: str, user_id: str) -> list[dict]:
-        self.calls.append("attendance")
+    async def attendance(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> list[dict]:
+        self.calls.append(("attendance", on_behalf_of))
         return self._get(user_id, "attendance", [])
 
-    async def pomodoro(self, school: str, user_id: str) -> list[dict]:
-        self.calls.append("pomodoro")
+    async def pomodoro(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> list[dict]:
+        self.calls.append(("pomodoro", on_behalf_of))
         return self._get(user_id, "pomodoro", [])
 
-    async def homework_report(self, school: str, user_id: str) -> dict | None:
-        self.calls.append("homework_report")
+    async def homework_report(
+        self, school: str, user_id: str, *, on_behalf_of: str | None = None
+    ) -> dict | None:
+        self.calls.append(("homework_report", on_behalf_of))
         items = self._get(user_id, "homework_report", [])
         return {"items": items, "total": len(items), "limit": None, "offset": 0}
 
     async def homework_list(
         self, school: str, on_behalf_of: str | None = None
     ) -> list[dict]:
-        self.calls.append("homework_list")
-        if on_behalf_of is None:
-            return self._data.get("_school", {}).get("homework_list", [])
-        return self._get(on_behalf_of, "homework_list", [])
+        self.calls.append(("homework_list", on_behalf_of))
+        # Bilinen bir öğrenci kimliği ise o öğrencinin kendi listesi; kimlik
+        # yoksa (ai) ya da bir gönderim sahibiyse (manager/öğretmen) okul
+        # geneli liste. Gerçek `/homework` görünümü tam olarak budur.
+        if on_behalf_of is not None and on_behalf_of in self._data:
+            return self._get(on_behalf_of, "homework_list", [])
+        return self._data.get("_school", {}).get("homework_list", [])
 
     async def notes(self, school: str, on_behalf_of: str) -> list[dict]:
-        self.calls.append("notes")
+        self.calls.append(("notes", on_behalf_of))
         return []
 
     async def course_notes(
-        self, school: str, course_id: str | None = None
+        self,
+        school: str,
+        course_id: str | None = None,
+        *,
+        on_behalf_of: str | None = None,
     ) -> list[dict]:
-        self.calls.append("course_notes")
+        self.calls.append(("course_notes", on_behalf_of))
         return []
 
 
