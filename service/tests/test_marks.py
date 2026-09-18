@@ -31,8 +31,8 @@ class TestCourseAverage(unittest.TestCase):
 
 
 class TestTrend(unittest.TestCase):
-    def _results(self, values: list[int]) -> list[dict]:
-        return [mark_entry(BASE + i * DAY, v) for i, v in enumerate(values)]
+    def _results(self, values: list[int], step: int = DAY) -> list[dict]:
+        return [mark_entry(BASE + i * step, v) for i, v in enumerate(values)]
 
     def test_gate_blocks_short_history(self) -> None:
         """6 nottan az → eğilim hesaplanmaz (yeni öğrenci korunur)."""
@@ -57,10 +57,52 @@ class TestTrend(unittest.TestCase):
 
     def test_rising_student_is_not_flagged(self) -> None:
         """A5 (yükselen) yanlış-pozitif kontrolü — `[N§3.2]`."""
-        trend = marks.course_trend(self._results([40, 42, 45, 68, 70, 72]))
+        # 2 günlük adım → 10 gün yayılım: eğim kapısı (`MIN_SPAN_DAYS_FOR_SLOPE`)
+        # geçilir ve `slope_per_30d` üretilir.
+        trend = marks.course_trend(self._results([40, 42, 45, 68, 70, 72], step=2 * DAY))
         self.assertGreater(trend["delta"], 0)
         self.assertFalse(trend["dropped"])
         self.assertGreater(trend["slope_per_30d"], 0)
+
+    def test_short_span_suppresses_slope_with_its_own_reason(self) -> None:
+        """Notlar dakikalar içinde oluşturulduysa eğim ekstrapole EDİLMEZ.
+
+        Canlı kusur: tohumdaki sınavların `exam` kimlikleri neredeyse aynı
+        anda damgalıydı, ama eğim 30 güne doğrusal taşınıyordu ve öğrenci
+        "30 günlük değişim -2.460,7 puan / 30 gün" okuyordu. 6-not kuralı ve
+        ortalama farkları KORUNUR; yalnız eğim bastırılır ve sebebi söylenir.
+        """
+        results = [
+            mark_entry(BASE + i * 60_000, v) for i, v in enumerate([70, 70, 70, 50, 50, 50])
+        ]
+        trend = marks.course_trend(results)
+        self.assertTrue(trend["available"])  # ≥6 not kuralı değişmedi
+        self.assertIsNone(trend["slope_per_30d"])
+        # 5 × 60 sn = 5/1440 gün.
+        self.assertAlmostEqual(trend["span_days"], 5.0 / (24 * 60))
+        self.assertEqual(
+            trend["reason"],
+            "eğilim eğimi için notların en az 7 güne yayılması gerekir",
+        )
+        # Ortalama farkları her yayılımda dürüsttür — bastırılmaz.
+        self.assertAlmostEqual(trend["previous_mean"], 70.0)
+        self.assertAlmostEqual(trend["recent_mean"], 50.0)
+        self.assertAlmostEqual(trend["delta"], -20.0)
+        self.assertTrue(trend["dropped"])
+        self.assertFalse(trend["rising"])
+
+    def test_long_span_reports_slope_and_its_span(self) -> None:
+        """≥7 güne yayılan dizi eğimi üretir; span her durumda raporlanır."""
+        # 2 günlük adım → 10 gün yayılım (≥ 7).
+        results = [
+            mark_entry(BASE + i * 2 * DAY, v) for i, v in enumerate([70, 70, 70, 50, 50, 50])
+        ]
+        trend = marks.course_trend(results)
+        self.assertTrue(trend["available"])
+        self.assertEqual(trend["span_days"], 10.0)
+        self.assertIsNone(trend["reason"])
+        # Gün başına eğim = Σ d·y / Σ d² = −180/70; 30 güne çevrilince ×30.
+        self.assertAlmostEqual(trend["slope_per_30d"], (-180.0 / 70.0) * 30.0)
 
     def test_order_comes_from_ulid_not_list_order(self) -> None:
         """Liste karışık gelse bile sıralama ULID damgasından kurulur."""

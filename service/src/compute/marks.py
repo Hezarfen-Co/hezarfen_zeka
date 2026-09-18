@@ -46,6 +46,27 @@ MIN_MARKS_FOR_BAND = 3
 # önceki 3'ten ≥ 15 puan düşük" diyor → iki pencere için en az 6 not gerekir.
 MIN_MARKS_FOR_TREND = 6
 
+# Eğilim eğimi (`slope_per_30d`) için gereken **zaman yayılımı**. Dizinin
+# noktaları doğru sıralansa da aralarında ölçülecek bir zaman yoksa 30 güne
+# doğrusal ekstrapolasyon patlar. Tohumda sınavlar dakikalar içinde
+# oluşturulduğu için (`exam` kimliğinin oluşturulma anı — `_ordered_marks`
+# SINIR notu) dizi neredeyse hiç zaman kaplamaz; canlıda öğrenci
+# "30 günlük değişim -2.460,7 puan / 30 gün" okudu, bir yerde -9.566.150.
+# Böyle bir sayı "son 3 nottaki fark"ın yanında durunca okur hangisinin
+# gerçek olduğunu ayırt edemez; bu yüzden yayılım eşiğin altındaysa eğim
+# ÜRETİLMEZ. Ortalama farkları (`previous_mean`/`recent_mean`/`delta`) bu
+# kapıdan etkilenmez — onlar her yayılımda dürüsttür.
+#
+# 7 gün, "bir haftada en az iki farklı ölçüm" fikrinin yorumlanabilir en
+# küçük karşılığıdır (ürün kararı, `(doğrulanmadı)`). Eşik ayrıca `Δ`/`Δgün`
+# büyüklüğünü 30 günlük pencereye taşırken gün sayısının en az fark
+# edilebilir olmasını şart koşar.
+MIN_SPAN_DAYS_FOR_SLOPE = 7.0
+
+# Gün ↔ milisaniye. Ekstrapolasyon yorumlanabilir birime (30 gün) çevrilirken
+# ve yayılım ölçülürken tek kaynaktan gelsin diye adlandırıldı.
+_MS_PER_DAY = 86_400_000
+
 # `MODULLER.md` §2.3 güven kapısı: kohort büyüklüğü `cohort_n >= 8`.
 # Altında **bir üst kırılıma çıkılmaz** — çıkmak tam olarak `[L-6]`'nın
 # uyardığı havuzlamadır; `band = InsufficientData` yazılır.
@@ -203,6 +224,17 @@ def _ordered_marks(
     return pairs, unanchored
 
 
+def _span_days(pairs: list[tuple[int, float]]) -> float | None:
+    """Dizinin ilk ve son notu arasındaki gün sayısı; 2'den az noktada `None`.
+
+    Çapa dışı (damgasız) notlar buraya **girmez** — çağrı öncesi `_ordered_marks`
+    onları ayıklar; yayılım yalnız damgası çözülen notlar üzerinden ölçülür.
+    """
+    if len(pairs) < 2:
+        return None
+    return (pairs[-1][0] - pairs[0][0]) / _MS_PER_DAY
+
+
 def course_trend(results: list[dict[str, Any]]) -> dict[str, Any]:
     """Dönem içi eğilim: regresyon eğimi + son 3 / önceki 3 farkı.
 
@@ -216,9 +248,16 @@ def course_trend(results: list[dict[str, Any]]) -> dict[str, Any]:
     çözülemeyen bir ders, "6 not yok" cümlesiyle **aynı** cevabı vermez:
     çapa yokluğu kendi cümlesiyle söylenir (2026-09-18 uuid v7 kusurunun
     dersi — iki durum aynı metni basınca kusur görünmez oluyordu).
+
+    Zaman yayılımı kapısı: 6 not yeterli olsa da dizi **çok kısa bir zaman**
+    kaplıyorsa (`span_days < MIN_SPAN_DAYS_FOR_SLOPE`) `slope_per_30d`
+    üretilmez (null) ve sebebi `reason`'da söylenir; `span_days` her iki
+    durumda da taşınır. Ortalama farkları her yayılımda dürüsttür — bu yüzden
+    yalnız eğim bastırılır, `delta`/`dropped`/`rising` pencereleri etkilenmez.
     """
     pairs, unanchored = _ordered_marks(results)
     n_total = len(pairs) + unanchored
+    span_days = _span_days(pairs)
     if len(pairs) < MIN_MARKS_FOR_TREND:
         if unanchored:
             reason = (
@@ -234,6 +273,7 @@ def course_trend(results: list[dict[str, Any]]) -> dict[str, Any]:
             "n": len(pairs),
             "n_total": n_total,
             "n_unanchored": unanchored,
+            "span_days": span_days,
             "slope_per_30d": None,
             "recent_mean": None,
             "previous_mean": None,
@@ -242,8 +282,19 @@ def course_trend(results: list[dict[str, Any]]) -> dict[str, Any]:
             "rising": False,
         }
     # Eğim: 30 günlük dilim başına puan değişimi (yorumlanabilir birim).
-    slope_ms = stat.trend_slope([(float(t), m) for t, m in pairs])
-    slope_30d = None if slope_ms is None else slope_ms * 30 * 86_400_000
+    # Yayılım kapısı: dizi neredeyse hiç zaman kaplamıyorsa ekstrapolasyon
+    # patlar (modül başındaki `MIN_SPAN_DAYS_FOR_SLOPE` notu). Eğim
+    # ÜRETİLMEZ ve söylenir; ortalama farkları etkilenmez.
+    if span_days is not None and span_days < MIN_SPAN_DAYS_FOR_SLOPE:
+        slope_30d = None
+        reason = (
+            "eğilim eğimi için notların en az "
+            f"{MIN_SPAN_DAYS_FOR_SLOPE:g} güne yayılması gerekir"
+        )
+    else:
+        slope_ms = stat.trend_slope([(float(t), m) for t, m in pairs])
+        slope_30d = None if slope_ms is None else slope_ms * 30 * _MS_PER_DAY
+        reason = None
 
     recent = [m for _, m in pairs[-3:]]
     previous = [m for _, m in pairs[-6:-3]]
@@ -254,12 +305,15 @@ def course_trend(results: list[dict[str, Any]]) -> dict[str, Any]:
         delta = recent_mean - previous_mean
     return {
         "available": True,
-        "reason": None,
+        "reason": reason,
         "n": len(pairs),
         # Eğilim süzülmüş bir kümeden geldiyse bu GÖRÜNÜR olmalı: `n` kaç
         # notluk diziden hesaplandı, kaç satır çapasız kaldı.
         "n_total": n_total,
         "n_unanchored": unanchored,
+        # Eğimin dayandığı zaman yayılımı. `slope_per_30d` null olsa da bu
+        # görünür kalır: okur "neden eğim yok" sorusunun cevabını sayıdan görür.
+        "span_days": span_days,
         "slope_per_30d": slope_30d,
         "recent_mean": recent_mean,
         "previous_mean": previous_mean,
