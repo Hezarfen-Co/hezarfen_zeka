@@ -92,7 +92,8 @@ class FailPreFixTests(HandlerTestCase):
             capabilities.verify_dispatchable()
         self.assertIn("insight.class", str(caught.exception))
         self.assertEqual(
-            capabilities.dispatchable_names(), ["insight.student", "insight.refresh"]
+            capabilities.dispatchable_names(),
+            ["insight.student", "insight.refresh", "insight.report"],
         )
 
         handlers.wire()

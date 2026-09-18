@@ -20,7 +20,7 @@ class CapabilityNameTests(unittest.TestCase):
     def test_declared_names(self):
         self.assertEqual(
             capabilities.NAMES,
-            ("insight.student", "insight.class", "insight.refresh"),
+            ("insight.student", "insight.class", "insight.refresh", "insight.report"),
         )
 
     def test_backend_callable_set_is_the_dispatch_table(self):
@@ -31,11 +31,14 @@ class CapabilityNameTests(unittest.TestCase):
             ("chat.reply", "rag.index", "insight.student", "insight.refresh"),
         )
         # `insight.class` ilan edilir ama backend GONDERMEZ (kadro listeleme
-        # yolu yok). Backend tarafi acildiginda bu satiri ve
-        # docs/BACKEND-GEREKSINIMLERI.md madde 1'i birlikte guncelleyin.
+        # yolu yok). `insight.report` da ayni: servis tarafi HAZIR (ilan +
+        # handlers.report) ama backend'in dagitim tablosunda adi yok
+        # (hezarfen_backend/src, 2026-09-18). Backend tarafi acildiginda bu
+        # satiri ve docs/BACKEND-GEREKSINIMLERI.md `## insight.report`i
+        # birlikte guncelleyin.
         self.assertEqual(
             set(capabilities.NAMES) - set(capabilities.BACKEND_CALLABLE_CAPABILITIES),
-            {"insight.class"},
+            {"insight.class", "insight.report"},
         )
 
     def test_sections_vocabulary_is_the_summary_modules(self):
@@ -104,8 +107,11 @@ class DispatchTests(unittest.TestCase):
         # 2) ... depo yolunu (2. yon) kapsamadigi ...
         self.assertIn("servis->backend depo yolu: kopru/insight.*", text)
         # 3) ... ve ilan edilen her adin bir isleyicisi oldugu.
-        self.assertIn("servis tarafi isleyiciler: 3/3 kayitli", text)
-        self.assertIn("backend'in dagitim tablosunda olmayan: insight.class", text)
+        self.assertIn("servis tarafi isleyiciler: 4/4 kayitli", text)
+        self.assertIn(
+            "backend'in dagitim tablosunda olmayan: insight.class, insight.report",
+            text,
+        )
         # Eski hali "TANIMSIZ" diyordu ve isleyici kayitliyken bile servisin
         # bir sey yapmadigini ima ediyordu.
         self.assertNotIn("TANIMSIZ", text)

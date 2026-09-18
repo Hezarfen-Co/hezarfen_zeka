@@ -29,7 +29,9 @@ Yani asagidaki uc madde ZEKA'nin nelerin **disinda** kaldigini tarif eder.
 > servis tarafi ayni gun baglandi (`src/handlers.py`; ilan ile dagitim
 > acilista `capabilities.verify_dispatchable()` ile denetlenir).
 > `insight.class` ilan edilir ama hala GONDERILMEZ -- kadro listeleme yolu
-> yok (Madde 3). Asagidaki "yoktur / tanimli degil" ifadeleri bu iki yonu
+> yok (Madde 3). `insight.report` icin servis tarafi da hazir (2026-09-18):
+> backend'in dagitim tablosuna girmesi bekleniyor, bkz. `## insight.report`.
+> Asagidaki "yoktur / tanimli degil" ifadeleri bu iki yonu
 > ayirmadan okunmamalidir; `src/capabilities.py` modul dokumani ayni ayrimi
 > yapar.
 
@@ -144,6 +146,87 @@ Iki taraftan birden:
 ZEKA'nin hesap motoru bu iki kapi olmadan da **calisir ve test edilir**
 (`--dry-run` cagrilari toplar); kaybedilen sey, sonucun okulun veritabanina
 inmesidir.
+
+---
+
+## insight.report -- okul raporu BELGESI (sunucu-baslatimli; servis tarafi HAZIR 2026-09-18)
+
+**Sahibi: backend'deki `InsightDoors` hatti.** Servis tarafi bugun hazir:
+`insight.report` ilan edilir, isleyicisi kayitlidir (`handlers.report`) ve
+acilistaki `capabilities.verify_dispatchable()` onu dagitilabilir sayar.
+Eksik olan tek sey backend'in dagitim tablosudur (`hezarfen_backend/src`
+icinde bu ad 2026-09-18 itibariyla hic gecmez), yani bugun kimse bu yetenegi
+cagiramaz. Kapi acildiginda uc sey BIRLIKTE guncellenir: `src/capabilities.py`
+`BACKEND_CALLABLE_CAPABILITIES`, `tests/test_capabilities.py` pini ve
+yukaridaki durum cumlesi.
+
+### Ne isteniyor
+
+Backend, okulun `zeka_*` satirlarini **kendi okur** ve tek bir
+`insight.report` istegiyle gonderir; servis belgeyi uretir ve cevap
+cercevesinde **HTML metni olarak** dondurur. Blob yuklemesi yok, depo yok:
+belge, servisin hicbir okuma yapmadigi tek `insight.*` isleyicisidir.
+
+**Istek payload'i.** Cercevedeki `school` = okul slug'i. Satirlar ZEKA'nin
+depo yoluyla yazdigi bicimdir -- backend'in kendi yapilari (`db/insight.rs`
+`SummaryRow` / `RecommendationRow` / `ProfileRow` / `RunRow`), yani ikinci bir
+esleme yok:
+
+| Alan | Tip | Ne |
+|---|---|---|
+| `kind` | str | Zorunlu; sunulan tek deger `okul` |
+| `run_day` | str | `YYYY-MM-DD` (TR gunu); yoksa en yeni kosu satirindan turetilir |
+| `requested_by` | str | Belgeyi isteyen mudur; okuma yapilmadigi icin yalniz log'a yazilir |
+| `school` | nesne | `{id, slug, name}`; `name` belge BASLIGIDIR, `slug` cerceveyle ayni olmali |
+| `summaries` | liste | `zeka_student_summary` satirlari (`attention` listesi dahil) |
+| `recommendations` | liste | `zeka_recommendation` satirlari |
+| `profiles` | liste | `zeka_student_segment_profile` satirlari |
+| `runs` | liste | `zeka_run` satirlari (`run_day` alani belgenin gununu verir) |
+
+Satirlarda `school` GONDERILMEZ: ZEKA onu hic yazmaz, cercevede gelir ve
+servis her satira kendisi damgalar (tek kimlik kaynagi). Yine de bir satir
+baska bir okul tasirsa istek reddedilir -- damgalamak degil, reddetmek.
+
+**Cevap payload'i** (belge cercevenin ICINDE gider):
+
+```json
+{ "kind": "okul", "run_day": "2026-09-18", "format": "html",
+  "html": "<!DOCTYPE html>...", "byte_size": 12345, "truncated": false,
+  "notes": ["Siralama yoktur. ...", "Kaniti olmayan satir rapora girmez. ..."],
+  "coverage": { "rows": {"summaries": 42, "recommendations": 7,
+                          "profiles": 11, "runs": 1}, "empty": false } }
+```
+
+- `byte_size` = `html`in UTF-8 bayt uzunlugu; `truncated` bugun her zaman
+  `false` (sinir asilirsa belge KESILMEZ, asagidaki kodla reddedilir).
+- `notes` paketin kendi kapsam/sinir cumleleridir: backend onlari oldugu gibi
+  gosterir, kendi cumlesini uydurmaz.
+- `coverage` sozlesme disi ek alandir (refresh'in `status`u gibi: serde
+  bilinmeyen alani yok sayar): ham satir sayilari + paketin `empty` hukmu,
+  "belge neden bos" sorusu log'dan da cevaplanabilsin diye.
+
+### Redler (backend'in HTTP durumuna eslemesi icin)
+
+| Kod | Ne zaman | Onerilen esleme |
+|---|---|---|
+| `bad_request` | Sozlesmeye uymayan payload: sunulmayan/bilinmeyen `kind`, bozuk `run_day`, liste olmayan satir alani, cerceveyle celisen okul | 400 |
+| `insufficient_rows` | Dort liste de bos: uretilecek belge yok; bos belge cevap degildir | 404/409 -- ekran kendi "yetersiz veri" durumunu gostersin |
+| `document_too_large` | HTML 4 MiB'i asiyor (cerceve kapagi 8 MiB) | 413 |
+| `internal` | Paket belgeyi kuramadi ya da cizemedi | 500/502 |
+
+### Bugunun sinirlari
+
+- **Dort rapor tipinden yalniz `okul` sunulur.** `ogrenci` / `ogretmen` /
+  `ham` icin istek sozlesmesi yok (payload `student`, `teacher` ve
+  `question_segment` tasimaz); istek gelirse `bad_request` doner ve yarim
+  belge uretilmez.
+- **Kapatilmis tavsiyeler.** Paketin kapatma kapisi satirda `dismissed_at`
+  arar; backend'in `RecommendationRow`'u alani tasimaz (kapatma yazimi bugun
+  hic yok). Kapatma ozelligi gelirse ya okunan satir `dismissed_at` tasimali
+  ya backend kapatilmis satirlari gondermemeli -- yoksa kapatilmis kart
+  rapora geri duser.
+- **HTML siniri 4 MiB** (`AI_MAX_FRAME_BYTES // 2`): belge cevap cercevesinin
+  icinde gider ve JSON kacislarina da yer kalmali.
 
 ---
 
@@ -298,6 +381,7 @@ Yani kapsam **elle** tutulur.
 | 1 | Dokuz `insight.*` operasyonu (yazma + liste + supurme) **ve** `insight.student` / `insight.class` / `insight.refresh` sabitleri + dagitim kodu | `src/constant.rs`, `src/ai/` | ZEKA satirlarini **yazamaz** (gece kosusu `partial`); backend ZEKA'yi **hic cagiramaz**, istege bagli her senaryo duser. Sahibi: `InsightDoors`. **Durum 2026-09-18: student + refresh ACILDI; sinif hala acik (Madde 3).** |
 | 2 | 9 sinav yolu (+3 sinif/ders yolu) izin listesine | `src/constant.rs:656-676` | **Madde analizi, konu karnesi, sinif isi haritasi** hic uretilemez |
 | 3 | `GET /users/search` izin listesine (okul listesi Madde 1a'da) | `src/constant.rs:656-676` | Ogrenci kadrosu elle tutulur; yeni ogrenci **sessizce** gorunmez |
+| 4 | `insight.report` dagitim kapisi: backend kendi `zeka_*` satirlarini okuyup gondersin (bkz. `## insight.report`) | `src/ai/`, `src/constant.rs`, `src/web/` | Okul raporu **belgesi** uretilemez; servis tarafi hazir (2026-09-18) |
 
 ---
 

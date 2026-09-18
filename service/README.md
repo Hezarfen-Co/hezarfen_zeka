@@ -54,7 +54,9 @@ Servisin çağırdığı operasyonlar: `insight.schools.list`, `insight.summary.
 `insight.recommendation.upsert`, `insight.segment.upsert`, `insight.profile.upsert`,
 `insight.run.upsert`, `insight.pending.list`, `insight.retention.sweep`,
 `insight.departed.purge`. Servisin **servis ettiği** yetenekler `insight.student`,
-`insight.class`, `insight.refresh`'tir (`src/capabilities.py`).
+`insight.class`, `insight.refresh` ve `insight.report`'tur (`src/capabilities.py`;
+`insight.report` okul raporu **belgesini** üretir — satırlar payload'da gelir,
+servis köprüden hiçbir şey okumaz).
 
 ---
 

@@ -1,4 +1,4 @@
-"""The three `insight.*` capabilities the service serves to the backend.
+"""The four `insight.*` capabilities the service serves to the backend.
 
 `capabilities.py` owns the wire names and the dispatch table but registers no
 handler: the table is the contract, this module is the product. `wire()` fills
@@ -12,6 +12,9 @@ with an empty table behind them, so every `insight.student` /
 Why the handlers live outside `capabilities.py`: the table must stay
 importable without the compute stack. A handler, on the other hand, is the
 whole stack -- a `Source` read, `pipeline.run_school`, and the store writes.
+`report` is that rule's one exception: it reads nothing at all (its rows arrive
+in the payload), but it belongs to the same table and answers from the same
+package, so it lives here with its siblings.
 
 Handlers are coroutines on purpose. `bridge.BridgeProtocol._handle()` awaits a
 coroutine handler in the event loop and pushes only *sync* handlers into the
@@ -35,9 +38,12 @@ from typing import Any, Callable
 from . import capabilities
 from . import config
 from .compute import attention as attention_mod
+from .compute import clock
 from .compute import marks as marks_mod
 from .pipeline import StudentOutcome, run_school
-from .protocol import CapabilityError
+from .protocol import AI_MAX_FRAME_BYTES, CapabilityError
+from .report import MemoryReader, build_report, load_bundle
+from .report import render as report_render
 from .source import NOT_PERMITTED
 from .store import attention_items, recommendation_rows
 
@@ -154,6 +160,7 @@ def wire() -> None:
     capabilities.register(capabilities.INSIGHT_STUDENT, student)
     capabilities.register(capabilities.INSIGHT_CLASS, klass)
     capabilities.register(capabilities.INSIGHT_REFRESH, refresh)
+    capabilities.register(capabilities.INSIGHT_REPORT, report)
 
 
 def _lock_for(school: str) -> asyncio.Lock:
@@ -528,10 +535,207 @@ async def refresh(school: str, payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# insight.report -- the school report DOCUMENT
+# ---------------------------------------------------------------------------
+
+#: The report kinds this capability serves. The package has four
+#: (`report.gate.REPORT_TYPES`), but only `okul` has a request contract: the
+#: payload carries four row lists and neither a `student`, a `teacher` nor the
+#: `question_segment` rows (`ogrenci`/`ogretmen`/`ham` would need them), so the
+#: other three are refused BY NAME rather than answered half-built.
+_SERVED_REPORT_KINDS: tuple[str, ...] = ("okul",)
+
+#: The payload's four row lists and the `MemoryReader` table each maps to. The
+#: keys are the backend's (`db/insight.rs` row structs, one list each); the
+#: tables are the report package's own read surface (`report/reader.py`). The
+#: mapping is total and one-way: no payload row is ever reshaped.
+_REPORT_ROWS: tuple[tuple[str, str], ...] = (
+    ("summaries", "student_summary"),
+    ("recommendations", "recommendation"),
+    ("profiles", "student_segment_profile"),
+    ("runs", "insight_run"),
+)
+
+#: The HTML byte cap: half of the frame cap, because the document rides INSIDE
+#: the JSON response frame (`AI_MAX_FRAME_BYTES` counts all of it). A document
+#: over the cap is REFUSED, never truncated: a half-written HTML file is not a
+#: readable document, and the download behind it would be silently broken.
+_MAX_HTML_BYTES = AI_MAX_FRAME_BYTES // 2
+
+
+def _report_school(frame_school: str, payload: dict[str, Any]) -> str:
+    """The value every row is stamped with -- and the document's own school.
+
+    The frame's `school` is the tenant identity; `payload.school.name` is the
+    DISPLAY name the report title carries. A payload whose `school.slug`
+    disagrees with the frame is refused: two identity sources is how another
+    school's rows reach a document.
+    """
+    info = payload.get("school")
+    if info is None:
+        return frame_school
+    if not isinstance(info, dict):
+        raise CapabilityError("bad_request", "'school' bir nesne olmali")
+    slug = info.get("slug")
+    if isinstance(slug, str) and slug.strip() and slug.strip() != frame_school:
+        raise CapabilityError(
+            "bad_request",
+            f"payload'daki school.slug ({slug!r}) cercevedeki okulla "
+            f"({frame_school!r}) ayni degil",
+        )
+    name = info.get("name")
+    if isinstance(name, str) and name.strip():
+        return name.strip()
+    return frame_school
+
+
+def _report_tables(
+    payload: dict[str, Any], school: str, frame_school: str
+) -> dict[str, list[dict[str, Any]]]:
+    """The payload's four lists as `MemoryReader` tables, `school` stamped.
+
+    Rows do NOT carry `school` (ZEKA never wrote one; the frame carries it), so
+    the stamp is added here -- and a row that claims a DIFFERENT school is a
+    refusal, not an overwrite: that is the cross-tenant shape this seam exists
+    to make impossible.
+    """
+    tables: dict[str, list[dict[str, Any]]] = {}
+    for key, table in _REPORT_ROWS:
+        rows = payload.get(key)
+        if rows is None:
+            tables[table] = []
+            continue
+        if not isinstance(rows, list) or any(
+            not isinstance(row, dict) for row in rows
+        ):
+            raise CapabilityError("bad_request", f"'{key}' bir nesne listesi olmali")
+        stamped: list[dict[str, Any]] = []
+        for row in rows:
+            claimed = row.get("school")
+            if (
+                isinstance(claimed, str)
+                and claimed.strip()
+                and claimed.strip() not in (school, frame_school)
+            ):
+                raise CapabilityError(
+                    "bad_request",
+                    f"'{key}' satiri baska bir okul tasiyor ({claimed!r}); "
+                    f"cerceve {frame_school!r}",
+                )
+            stamped.append({**row, "school": school})
+        tables[table] = stamped
+    return tables
+
+
+def _report_run_day(value: Any, runs: list[dict[str, Any]], now_ms: int) -> str:
+    """The document's day: the request's `run_day`, else the newest run's.
+
+    `insight_run.run_day` is the TR day ZEKA wrote (`store.run_row`); no run
+    row at all (a report asked for before the first sweep) falls back to
+    `generated_at`'s TR day -- the day the document was made, not an invented
+    one.
+    """
+    if value is not None:
+        day = value.strip() if isinstance(value, str) else ""
+        try:
+            datetime.strptime(day, "%Y-%m-%d")
+        except ValueError as exc:
+            raise CapabilityError(
+                "bad_request", f"'run_day' 'YYYY-MM-DD' biciminde olmali: {value!r}"
+            ) from exc
+        return day
+    newest, at = "", -1
+    for row in runs:
+        day = row.get("run_day")
+        started = int(row.get("started_at") or 0)
+        if isinstance(day, str) and day.strip() and started >= at:
+            newest, at = day.strip(), started
+    return newest or clock.tr_date_key(now_ms)
+
+
+async def report(school: str, payload: dict[str, Any]) -> dict[str, Any]:
+    """`insight.report` -- the school report DOCUMENT, from rows sent to it.
+
+    The one `insight.*` handler that reads NOTHING over the bridge: the backend
+    reads its own `zeka_*` tables and dispatches those rows, and the service
+    only renders them -- no store, no database (standing rule). `requested_by`
+    is the backend's authenticated manager; with no read to run as anybody it
+    is logged, not resolved into `on_behalf_of`.
+
+    Refusals, all typed for the backend to map: `bad_request` (a payload this
+    contract cannot read, or a kind this capability does not serve),
+    `insufficient_rows` (all four lists empty: there is nothing to render, and
+    an empty document is not an answer -- the caller states that in its own
+    words), `document_too_large` (over `_MAX_HTML_BYTES`; never truncated),
+    `internal` (the report package could not build or render the document).
+    """
+    kind = capabilities.require_text(payload, "kind")
+    if kind not in _SERVED_REPORT_KINDS:
+        raise CapabilityError(
+            "bad_request",
+            f"'{kind}' bu yetenekte sunulmuyor (sunulan: "
+            f"{', '.join(_SERVED_REPORT_KINDS)}); paketin diger tipleri icin "
+            "istek sozlesmesi yok",
+        )
+    now_ms = _now_ms()
+    display = _report_school(school, payload)
+    tables = _report_tables(payload, display, school)
+    total = sum(len(rows) for rows in tables.values())
+    if total == 0:
+        raise CapabilityError(
+            "insufficient_rows",
+            "'summaries', 'recommendations', 'profiles', 'runs' listelerinin "
+            "hepsi bos: belge uretilecek satir yok",
+        )
+    run_day = _report_run_day(payload.get("run_day"), tables["insight_run"], now_ms)
+    reader = MemoryReader(tables)
+    try:
+        bundle = await load_bundle(reader, display, kind, now_ms=now_ms)
+        document = build_report(kind, bundle)
+        html = report_render.to_html(document)
+    except Exception as exc:  # the refusal IS the contract: no half document
+        raise CapabilityError("internal", f"rapor uretilemedi: {exc}") from exc
+    encoded = html.encode("utf-8")
+    if len(encoded) > _MAX_HTML_BYTES:
+        raise CapabilityError(
+            "document_too_large",
+            f"belge {len(encoded)} bayt, sinir {_MAX_HTML_BYTES} "
+            f"(cerceve kapagi {AI_MAX_FRAME_BYTES}); kesmek yerine reddedilir",
+        )
+    who = payload.get("requested_by")
+    config.log(
+        "info",
+        f"insight.report: belge uretildi (okul={school}, tip={kind}, "
+        f"satir={total}, bayt={len(encoded)}, isteyen="
+        f"{who.strip() if isinstance(who, str) and who.strip() else '-'})",
+    )
+    return {
+        "kind": kind,
+        "run_day": run_day,
+        "format": "html",
+        "html": html,
+        "byte_size": len(encoded),
+        # Always False today: an over-cap document is refused above, never cut.
+        # The field exists because the backend's struct carries it.
+        "truncated": False,
+        "notes": list(document.notes),
+        # Beyond the backend's struct, which ignores what it does not read
+        # (the same shape as `refresh`'s `status`): raw row counts per payload
+        # list and the package's own `empty` verdict, so "why is the document
+        # empty" is answerable from the log line and from the answer.
+        "coverage": {
+            "rows": {key: len(tables[table]) for key, table in _REPORT_ROWS},
+            "empty": document.empty,
+        },
+    }
+
+
 __all__ = [
     "bind_source",
     "klass",
     "refresh",
+    "report",
     "student",
     "wire",
 ]

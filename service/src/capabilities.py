@@ -10,6 +10,10 @@ IKI YON VARDIR; karistirilmamalidir:
    never dispatched: its request names a course, and the bridge's read
    allowlist hands a service no roster to enumerate it with
    (`ai/insight.rs` module docs; `docs/BACKEND-GEREKSINIMLERI.md` item 3).
+   `insight.report` is the fourth name and the one whose answer is a DOCUMENT:
+   the backend reads its own `zeka_*` rows and dispatches them, and the service
+   renders the school report from them without reading anything itself
+   (`docs/BACKEND-GEREKSINIMLERI.md`, `## insight.report`).
    Routing is an EXACT match (`ai/protocol.rs:91-94`): every advertised name
    gets its handler from `handlers.wire()`, and `verify_dispatchable()` checks
    the pair at startup -- if advertising and dispatch ever drift apart, the
@@ -57,7 +61,21 @@ INSIGHT_CLASS = "insight.class"
 INSIGHT_REFRESH = "insight.refresh"
 """Bir okul icin hesaplari yeniden kosturur; parti isidir."""
 
-NAMES: tuple[str, ...] = (INSIGHT_STUDENT, INSIGHT_CLASS, INSIGHT_REFRESH)
+INSIGHT_REPORT = "insight.report"
+"""Verilen satirlardan okul raporu BELGESI uretir.
+
+Tek `insight.*` isleyicisi ki koprudan HICBIR SEY okumaz: satirlar payload'da
+gelir (backend kendi `zeka_*` tablolarindan okur), servis yalniz render eder.
+Istek/cevap sozlesmesi: `ReportRequest` / `ReportResponse` ve
+`docs/BACKEND-GEREKSINIMLERI.md` `## insight.report`.
+"""
+
+NAMES: tuple[str, ...] = (
+    INSIGHT_STUDENT,
+    INSIGHT_CLASS,
+    INSIGHT_REFRESH,
+    INSIGHT_REPORT,
+)
 
 
 #: The capability names the backend can send a `Request` FOR -- the half of
@@ -67,6 +85,12 @@ NAMES: tuple[str, ...] = (INSIGHT_STUDENT, INSIGHT_CLASS, INSIGHT_REFRESH)
 #: `ai/insight.rs::compute_student/refresh` + the `web/insights.rs` doors
 #: (insight.student, insight.refresh; merged 2026-09-18). `insight.class` is
 #: NOT in the set: the constant exists, the code that would send it does not.
+#: `insight.report` is NOT in it either, for the same reason and one more: the
+#: service side is READY (advertised + `handlers.report`), but the backend's
+#: dispatch table carries no `insight.report` yet (`hezarfen_backend/src` has
+#: no such name as of 2026-09-18). When that door lands, three edits move
+#: together: this tuple, the pin in `tests/test_capabilities.py`, and the
+#: status line of `docs/BACKEND-GEREKSINIMLERI.md` `## insight.report`.
 #: `tests/test_capabilities.py` pins this.
 BACKEND_CALLABLE_CAPABILITIES: tuple[str, ...] = (
     "chat.reply",
@@ -159,11 +183,67 @@ class RefreshResponse(TypedDict, total=False):
     status: str
 
 
+class ReportRequest(TypedDict, total=False):
+    """`insight.report` istek payload'i -- backend'in okudugu satirlar.
+
+    Satirlar backend'in KENDI yapilaridir (`db/insight.rs` `SummaryRow`,
+    `RecommendationRow`, `ProfileRow`, `RunRow`): ZEKA'nin depo yoluyla
+    yazdigi bicimin aynisi, yani ikinci bir esleme yok. Satirlarda `school`
+    YOKTUR -- ZEKA onu hic yazmaz; cercevede gelir ve isleyici her satira
+    damgalar (tek kimlik kaynagi). Payload'daki `school` yalniz GORUNUM icin
+    (`name` baslikta); `slug` cerceveyle celisirse istek reddedilir.
+    """
+
+    kind: str
+    """Sunulan tek tip: `okul` (bkz. `handlers._SERVED_REPORT_KINDS`)."""
+    run_day: str
+    """`YYYY-MM-DD` (TR gunu); yoksa en yeni kosu satirindan turetilir."""
+    requested_by: str
+    """Belgeyi isteyen mudur. Okuma yapilmadigi icin yalniz log'a yazilir."""
+    school: dict[str, Any]
+    """`{"id": ..., "slug": ..., "name": ...}` -- `name` belge basligidir."""
+    summaries: list[dict[str, Any]]
+    """`zeka_student_summary` satirlari; `attention` listesi DAHIL (personel
+    raporunun dikkat tablosunu besleyen tek alan odur)."""
+    recommendations: list[dict[str, Any]]
+    """`zeka_recommendation` satirlari (kapatilan/suresi gecen satirlar
+    backend tarafindan suzulmezse paket onlari yine gostermez -- ama
+    `dismissed_at` satirda yoksa kapi bunu goremez; bkz. docs)."""
+    profiles: list[dict[str, Any]]
+    """`zeka_student_segment_profile` satirlari."""
+    runs: list[dict[str, Any]]
+    """`zeka_run` satirlari; `run_day` alani belgenin gununu verir."""
+
+
+class ReportResponse(TypedDict, total=False):
+    """`insight.report` cevap payload'i (`handlers.report` doldurur).
+
+    Tek `insight.*` cevabi ki BELGENIN KENDISINI tasir: blob yuklemesi yok,
+    depo yok. Degerler: `bad_request` (sozlesmeye uymayan payload),
+    `insufficient_rows` (dort liste de bos -- belge uretilecek satir yok),
+    `document_too_large` (HTML `_MAX_HTML_BYTES` ustunde; KESILMEZ, reddedilir),
+    `internal` (paket kurulamadi/cizilemedi).
+    """
+
+    kind: str
+    run_day: str  # belgenin gunu: istekten aynen, yoksa turetildi
+    format: str  # bugun her zaman "html"
+    html: str  # tek dosyalik, kendi kendine yeten belge
+    byte_size: int  # `html`in UTF-8 bayt uzunlugu
+    truncated: bool  # her zaman False: sinir asilirsa reddedilir, kesilmez
+    notes: list[str]  # paketin kendi kapsam/sinir cumleleri (report.notes)
+    #: Sozlesme disi ek alan (refresh'in `status`u gibi: serde yok sayar):
+    #: satir sayilari + paketin `empty` hukmu. "Belge neden bos" sorusunu
+    #: log'dan cevaplamak icin.
+    coverage: dict[str, Any]
+
+
 #: Yetenek adi -> (istek tipi, cevap tipi). Belge ve dogrulama icin.
 SCHEMAS: dict[str, tuple[type, type]] = {
     INSIGHT_STUDENT: (StudentRequest, StudentResponse),
     INSIGHT_CLASS: (ClassRequest, ClassResponse),
     INSIGHT_REFRESH: (RefreshRequest, RefreshResponse),
+    INSIGHT_REPORT: (ReportRequest, ReportResponse),
 }
 
 

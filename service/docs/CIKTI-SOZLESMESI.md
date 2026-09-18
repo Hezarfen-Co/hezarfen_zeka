@@ -419,5 +419,9 @@ bu tuzak yapısal olarak imkânsızdır.
    2026-09-18'de `insight.student` + `insight.refresh` için açıldı** ve servis
    tarafı aynı gün bağlandı (`service/src/handlers.py`; ilan ile dağıtım
    açılışta `verify_dispatchable()` ile denetlenir). `insight.class` ilan
-   edilir ama gönderilmez: kadro listeleme yolu yok. Sahibi backend'deki
-   `InsightDoors` hattı — `docs/BACKEND-GEREKSINIMLERI.md` Madde 1.
+   edilir ama gönderilmez: kadro listeleme yolu yok. **`insight.report`
+   (okul raporu BELGESİ) servis tarafında aynı gün hazır** — belgeyi
+   backend'in gönderdiği satırlardan üretir; backend'in dağıtım tablosuna
+   girmesi bekleniyor (`docs/BACKEND-GEREKSINIMLERI.md` `## insight.report`).
+   Sahibi backend'deki `InsightDoors` hattı — `docs/BACKEND-GEREKSINIMLERI.md`
+   Madde 1.
