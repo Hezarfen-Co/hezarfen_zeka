@@ -278,7 +278,7 @@ dogrulamaz.
 
 ### 5.3 Backend'in kendi mantigi
 
-- **Okul slug dogrulama kurallari.** Backend `Slug::try_new` kullanir; sahte
+- **Okul uuid dogrulama kurallari.** Backend tireli uuid parse eder (`SchoolId::try_parse`); sahte
   sunucu kaba bir denetim yapar. `malformed` kodu gercek kurallarla uretilmedi.
 - **Kullanici cozumleme.** `on_behalf_of`'un `user:` onekiyle ya da onsuz
   okunmasi, silinmis/rutbesi dusurulmus kullanici, `unknown_user` kodu.

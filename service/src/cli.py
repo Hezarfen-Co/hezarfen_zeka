@@ -342,7 +342,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.set_defaults(func=_cmd_run, is_async=True)
 
     sweep = sub.add_parser("sweep", help="saklama süresi süpürmesini koştur (köprüden)")
-    sweep.add_argument("--school", required=True, help="okul slug'ı")
+    sweep.add_argument("--school", required=True, help="okul uuid'si")
     sweep.add_argument("--now", type=int, help="unix ms; yalnız çıktı içindir")
     sweep.set_defaults(func=_cmd_sweep, is_async=True)
 
@@ -351,7 +351,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     schedule.add_argument(
         "--schools",
-        help="virgülle ayrılmış slug listesi — backend'in verdiği listenin "
+        help="virgülle ayrılmış uuid listesi — backend'in verdiği listenin "
         "FİLTRESİ. Verilmezse bütün aktif okullar koşar.",
     )
     schedule.add_argument("--fixtures", required=True)

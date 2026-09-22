@@ -103,13 +103,13 @@ bir modele o veriyi vermek, erişim kontrolünü modelin içinden dolanmak olurd
   `hab/2` üzerinde taze bir istemci-başlatımlı akış açar ve çerçeveyi yazar:
 
 ```
-{ "id": "<ulid>", "capability": "insight.<ad>", "school": "<slug>", "payload": {...} }
+{ "id": "<ulid>", "capability": "insight.<ad>", "school": "<uuid>", "payload": {...} }
 
 { "status": "ok",  "id": ..., "school": ..., "payload": {...} }
 { "status": "err", "id": ..., "school": ..., "code": ..., "message": ... }
 ```
 
-Okul **çerçevededir**, payload'da değil: backend slug'ı çözer ve her ifadeyi o
+Okul **çerçevededir**, payload'da değil: `school` tireli okul uuid'sidir; backend onu çözer ve her ifadeyi o
 okulun kendi veritabanında koşturur. Reddin kodu tiplidir (`unknown_school`,
 `not_permitted`, `invalid_payload`, `too_many_rows`, `unavailable`, …) ve
 `CapabilityRefused` olarak yükselir; `status: "err"` asla başarı sayılmaz.

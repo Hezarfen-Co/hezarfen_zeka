@@ -102,7 +102,7 @@ _UNAVAILABLE = {
     "term": "no term directory; `term` must be an ISO-8601 date",
 }
 
-#: School slug -> lock. One compute per school at a time: a dispatched refresh
+#: School uuid -> lock. One compute per school at a time: a dispatched refresh
 #: and the night scheduler can overlap, and two `run_school` sweeps on one
 #: school would interleave the day's run-ledger row (the row is keyed by
 #: `run_day`) and race the per-student upserts. In-process only, which is
@@ -568,22 +568,15 @@ def _report_school(frame_school: str, payload: dict[str, Any]) -> str:
     """The value every row is stamped with -- and the document's own school.
 
     The frame's `school` is the tenant identity; `payload.school.name` is the
-    DISPLAY name the report title carries. A payload whose `school.slug`
-    disagrees with the frame is refused: two identity sources is how another
-    school's rows reach a document.
+    DISPLAY name the report title carries. `payload.school` is `{id, name}`
+    (school uuid + title). The backend does not send `slug`; a stray `slug`
+    key is ignored. Identity is the frame alone.
     """
     info = payload.get("school")
     if info is None:
         return frame_school
     if not isinstance(info, dict):
         raise CapabilityError("bad_request", "'school' bir nesne olmali")
-    slug = info.get("slug")
-    if isinstance(slug, str) and slug.strip() and slug.strip() != frame_school:
-        raise CapabilityError(
-            "bad_request",
-            f"payload'daki school.slug ({slug!r}) cercevedeki okulla "
-            f"({frame_school!r}) ayni degil",
-        )
     name = info.get("name")
     if isinstance(name, str) and name.strip():
         return name.strip()

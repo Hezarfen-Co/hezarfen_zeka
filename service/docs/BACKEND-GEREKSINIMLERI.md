@@ -53,7 +53,7 @@ Iki yon birden. Ikisi de ayni cerceve bicimini kullanir
 cercevededir**, payload'da degil:
 
 ```
-{ "id": "<ulid>", "capability": "insight.<ad>", "school": "<slug>", "payload": {...} }
+{ "id": "<ulid>", "capability": "insight.<ad>", "school": "<uuid>", "payload": {...} }
 
 { "status": "ok",  "id": ..., "school": ..., "payload": {...} }
 { "status": "err", "id": ..., "school": ..., "code": ..., "message": ... }
@@ -168,7 +168,7 @@ Backend, okulun `zeka_*` satirlarini **kendi okur** ve tek bir
 cercevesinde **HTML metni olarak** dondurur. Blob yuklemesi yok, depo yok:
 belge, servisin hicbir okuma yapmadigi tek `insight.*` isleyicisidir.
 
-**Istek payload'i.** Cercevedeki `school` = okul slug'i. Satirlar ZEKA'nin
+**Istek payload'i.** Cercevedeki `school` = tireli okul uuid'si. Satirlar ZEKA'nin
 depo yoluyla yazdigi bicimdir -- backend'in kendi yapilari (`db/insight.rs`
 `SummaryRow` / `RecommendationRow` / `ProfileRow` / `RunRow`), yani ikinci bir
 esleme yok:
@@ -178,7 +178,7 @@ esleme yok:
 | `kind` | str | Zorunlu; sunulan tek deger `okul` |
 | `run_day` | str | `YYYY-MM-DD` (TR gunu); yoksa en yeni kosu satirindan turetilir |
 | `requested_by` | str | Belgeyi isteyen mudur; okuma yapilmadigi icin yalniz log'a yazilir |
-| `school` | nesne | `{id, slug, name}`; `name` belge BASLIGIDIR, `slug` cerceveyle ayni olmali |
+| `school` | nesne | `{id, name}`; `name` belge BASLIGIDIR, `id` cercevedeki uuid ile aynidir. `slug` yok |
 | `classes` | liste | `[{id, name}]`: okulun butun subeleri, ad sirasinda. Satirlardaki `marks.classes` KIMLIK tasir; tabloya yazilan GORUNEN ad bu haritadan gelir. Kabul edilen ikinci bicim `class_names: {<id>: "<ad>"}` (`classes` varsa o kazanir) |
 | `summaries` | liste | `zeka_student_summary` satirlari (`attention` listesi dahil) |
 | `recommendations` | liste | `zeka_recommendation` satirlari |

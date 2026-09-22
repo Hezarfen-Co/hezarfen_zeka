@@ -24,7 +24,7 @@ TEL (kablo) SÖZLEŞMESİ
 istemci-başlatımlı akışta gider (tıpkı `ApiRequest` gibi):
 
     { "id": "<ulid>", "capability": "insight.<noun>[.<verb>]",
-      "school": "<slug>", "payload": { ... } }
+      "school": "<uuid>", "payload": { ... } }
 
     { "status": "ok",  "id": ..., "school": ..., "payload": { ... } }
     { "status": "err", "id": ..., "school": ..., "code": ..., "message": ... }
@@ -34,7 +34,7 @@ istemci-başlatımlı akışta gider (tıpkı `ApiRequest` gibi):
 `not_permitted`, `invalid_payload`, `unavailable`, `timed_out`, `internal`,
 `too_many_rows`) ve `CapabilityRefused` olarak yükselir.
 
-Okul **çerçevededir**, payload'da değil: backend slug'ı çözer ve her ifadeyi
+Okul **çerçevededir**, payload'da değil: `school` tireli okul uuid'sidir; backend onu çözer ve her ifadeyi
 o okulun kendi veritabanında koşturur. Tek istisna `insight.schools.list`
 (deployment ölçekli): çerçevede `school: ""` gider.
 

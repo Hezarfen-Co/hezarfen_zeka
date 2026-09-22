@@ -193,7 +193,7 @@ class ReportRequest(TypedDict, total=False):
     yazdigi bicimin aynisi, yani ikinci bir esleme yok. Satirlarda `school`
     YOKTUR -- ZEKA onu hic yazmaz; cercevede gelir ve isleyici her satira
     damgalar (tek kimlik kaynagi). Payload'daki `school` yalniz GORUNUM icin
-    (`name` baslikta); `slug` cerceveyle celisirse istek reddedilir.
+    (`name` baslikta, `id` okul uuid'si). Backend `slug` gondermez.
     """
 
     kind: str
@@ -203,7 +203,7 @@ class ReportRequest(TypedDict, total=False):
     requested_by: str
     """Belgeyi isteyen mudur. Okuma yapilmadigi icin yalniz log'a yazilir."""
     school: dict[str, Any]
-    """`{"id": ..., "slug": ..., "name": ...}` -- `name` belge basligidir."""
+    """`{"id": ..., "name": ...}` -- `id` okul uuid'si, `name` belge basligidir."""
     classes: list[dict[str, Any]]
     """`[{"id": ..., "name": ...}]` -- okulun butun subeleri (kimlik -> GORUNEN
     ad). Satirlardaki `marks.classes` KIMLIK tasir; tabloya yazilan ad bu

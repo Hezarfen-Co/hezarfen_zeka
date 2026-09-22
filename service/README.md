@@ -39,13 +39,13 @@ Aynı köprüye, **yetenek çağrısıyla**. Servis taze bir istemci-başlatıml
 şu çerçeveyi yazar:
 
 ```
-{ "id": "<ulid>", "capability": "insight.<ad>", "school": "<slug>", "payload": {...} }
+{ "id": "<ulid>", "capability": "insight.<ad>", "school": "<uuid>", "payload": {...} }
 
 { "status": "ok",  "id": ..., "school": ..., "payload": {...} }
 { "status": "err", "id": ..., "school": ..., "code": ..., "message": ... }
 ```
 
-Okul çerçevededir; backend slug'ı çözer ve her ifadeyi o okulun kendi
+Okul çerçevededir; `school` tireli okul uuid'sidir. Backend onu çözer ve her ifadeyi o okulun kendi
 veritabanında koşturur. Dokuz `zeka_*` tablosu orada durur ve DDL'i backend
 deposundadır (`migrations/school/20260917000002_zeka.sql`) — servis ne şema
 uygular ne de bir veritabanı kullanıcısı ister.

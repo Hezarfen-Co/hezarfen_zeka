@@ -251,7 +251,7 @@ def payload(**over: Any) -> dict[str, Any]:
         "kind": "okul",
         "run_day": RUN_DAY,
         "requested_by": "mudur-1",
-        "school": {"id": "01990000-0000-7000-8000-000000000001", "slug": SCHOOL, "name": DISPLAY},
+        "school": {"id": "01990000-0000-7000-8000-000000000001", "name": DISPLAY},
         # Sibling key, read whole from the school's own class table: the rows
         # carry class IDS, and the document must print NAMES.
         "classes": [
@@ -426,12 +426,13 @@ class RefusalTests(ReportCase):
         self.assertEqual(caught.exception.code, "bad_request")
         self.assertIn("baska-okul", str(caught.exception))
 
-    async def test_a_school_slug_disagreeing_with_the_frame_is_refused(self) -> None:
-        with self.assertRaises(CapabilityError) as caught:
-            await self.dispatch(
-                payload(school={"id": "x", "slug": "baska-okul", "name": "Başka"})
-            )
-        self.assertEqual(caught.exception.code, "bad_request")
+    async def test_a_stray_school_slug_is_ignored(self) -> None:
+        # Backend dropped ReportSchool.slug. A leftover key must not refuse
+        # and must not become a second identity.
+        answer = await self.dispatch(
+            payload(school={"id": "x", "slug": "baska-okul", "name": "Başka"})
+        )
+        self.assertIn("Başka", answer["html"])
 
     async def test_a_malformed_row_list_is_refused(self) -> None:
         with self.assertRaises(CapabilityError) as caught:

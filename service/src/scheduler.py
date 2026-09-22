@@ -31,7 +31,7 @@ Tasarım kararları (`MODULLER.md` §2.12)
 * **Okul listesi her tikte dizinden okunur**: hangi okulların var olduğunu
   kontrol veritabanı bilir (`tenants.py`), yapılandırma değil. `ZEKA_SCHOOLS`
   artık yalnızca bir filtredir; boşsa bütün aktif okullar işlenir.
-* **Her okul KENDİ veritabanına yazar**: depo, okulun slug'ından çözülür.
+* **Her okul KENDİ veritabanına yazar**: depo, çerçevedeki okul uuid'sinden çözülür.
   Tek bir `store` nesnesi paylaşılmaz — paylaşılsaydı bütün okulların satırı
   ilk okulun veritabanına düşerdi.
 * **Günde bir kez.** Bir okul için o TR gününde koşu yapıldıysa tekrar
@@ -185,7 +185,7 @@ class Scheduler:
                 if self._last_run_day.get(school) == day:
                     continue
                 # Her okul KENDI deposundan yazar: okulun veritabani,
-                # cercevedeki slug'dan cozulur (`tenants.py`). Deposu
+                # cercevedeki uuid'den cozulur (`tenants.py`). Deposu
                 # acilamayan okul dusen okuldur -- tur devam eder, `internal`
                 # diye bir seye donusmez.
                 try:

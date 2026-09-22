@@ -26,7 +26,7 @@ Uc istemci baslatimli sekil, zorunlu alaniyla ayirt edilir: `ApiRequest`'te
 okur; ucuncusu backend'in bir operasyonunu kosturur -- ZEKA'nin veritabani
 erisimi olmadigi icin yazma yolu YALNIZCA budur.
 
-Okul kapsami (`protocol.rs:36-47`): her istek cercevesi okulunu slug ile
+Okul kapsami (`protocol.rs:36-47`): her istek cercevesi okulunu tireli uuid ile
 adlandirir, her cevap onu yankilar. `Hello` KASITLI olarak okul tasimaz --
 filo tum okullar icin paylasilir. Varsayilan ya da geri dusme yoktur.
 
